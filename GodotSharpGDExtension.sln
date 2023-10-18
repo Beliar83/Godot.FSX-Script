@@ -1,0 +1,39 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpGenerator", "SharpGenerator\SharpGenerator.csproj", "{0CDCE5DC-01DC-4B15-A070-DCBCE6477487}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GodotSharpGDExtension.CSharp", "GodotSharpGDExtension.CSharp\GodotSharpGDExtension.CSharp.csproj", "{3BBAE65F-9139-4C0D-847D-CF36A85B0BE8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptInterop.CSharp", "ScriptInterop.CSharp\ScriptInterop.CSharp.csproj", "{2E6D29F4-0AA8-4BAD-8CB6-7FCBF77B8BFC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0CDCE5DC-01DC-4B15-A070-DCBCE6477487}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CDCE5DC-01DC-4B15-A070-DCBCE6477487}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CDCE5DC-01DC-4B15-A070-DCBCE6477487}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CDCE5DC-01DC-4B15-A070-DCBCE6477487}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3BBAE65F-9139-4C0D-847D-CF36A85B0BE8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BBAE65F-9139-4C0D-847D-CF36A85B0BE8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BBAE65F-9139-4C0D-847D-CF36A85B0BE8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BBAE65F-9139-4C0D-847D-CF36A85B0BE8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2E6D29F4-0AA8-4BAD-8CB6-7FCBF77B8BFC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2E6D29F4-0AA8-4BAD-8CB6-7FCBF77B8BFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2E6D29F4-0AA8-4BAD-8CB6-7FCBF77B8BFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2E6D29F4-0AA8-4BAD-8CB6-7FCBF77B8BFC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F5A32E29-BA17-4929-AB0D-C0C6DECC31A8}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+	EndGlobalSection
+EndGlobal

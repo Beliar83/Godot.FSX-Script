@@ -1,0 +1,3 @@
+﻿[submodule "GodotSharpGDExtension/third_party/tomlplusplus"]
+	path = GodotSharpGDExtension/third_party/tomlplusplus
+	url = https://github.com/marzer/tomlplusplus.git
