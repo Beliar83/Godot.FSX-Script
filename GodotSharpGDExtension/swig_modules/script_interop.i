@@ -1,11 +1,24 @@
 %module(directors="1") DotnetScriptInterop
 
-%feature("director") FSharpScript;
+%feature("director") godot::FSXScript;
 
 %include "script_interop/fsharp_method_info.i"
-%include "script_interop/fsharp_script.i"
+%include "script_interop/fsx_script.i"
+%import "godot/string_name.i"
+%import "godot/variant.i"
+
+typedef godot::StringName* (*CreateDotnetInstance)(godot::String path, godot::String code);
+typedef void (*CallMethod)(godot::StringName* script, godot::StringName name, std::vector<godot::Variant> args, godot::Object instance, godot::Variant* return_val);
+
 
 %inline %{
+#include "fsx_script_instance.h"
+
+void SetDotnetFunctions(CreateDotnetInstance p_create_dotnet_instance, CallMethod p_call_method) {
+    godot::FSXScriptInstance::SetDotnetFunctions(p_create_dotnet_instance, p_call_method);
+}
+
+
 #include <iostream>
 
      void test(const char* text) {
@@ -13,8 +26,6 @@
          WARN_PRINT(text);
      }
 
-#include "fsharp_script.h"
-
-void print_script_info(FSharpScript* script);
+void print_script_info(godot::FSXScript* script);
 
 %}

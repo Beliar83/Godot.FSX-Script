@@ -7,7 +7,8 @@
 		<Title>GodotSharpGDExtension</Title>
 		<RootNamespace>GodotSharpGDExtension</RootNamespace>
 		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
-		<TargetFramework>net7.0</TargetFramework>
+		<AssemblyName>GodotSharpGDExtension</AssemblyName>
+		<TargetFrameworks>net7.0;net6.0</TargetFrameworks>
 	</PropertyGroup>
 
 	<ItemGroup>

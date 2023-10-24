@@ -7,6 +7,12 @@
 %import "godot_string.i"
 
 namespace godot{
+        %extend StringName {
+            const char *AsString() {
+                return godot::String(*$self).ascii().get_data();
+            }
+        }
+
     class StringName {
         public:
             StringName();

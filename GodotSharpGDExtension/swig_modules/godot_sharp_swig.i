@@ -9,5 +9,6 @@
 %include "godot/node.i"
 %include "godot/variant.i"
 %include "godot/property_info.i"
+//%include "godot/method_info.i"
 
 

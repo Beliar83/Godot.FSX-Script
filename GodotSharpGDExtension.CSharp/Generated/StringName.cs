@@ -70,4 +70,9 @@ public class StringName : global::System.IDisposable {
   public StringName(string from) : this(GodotSharpSwigPINVOKE.new_StringName__SWIG_4(from), true) {
   }
 
+  public string AsString() {
+    string ret = GodotSharpSwigPINVOKE.StringName_AsString(swigCPtr);
+    return ret;
+  }
+
 }

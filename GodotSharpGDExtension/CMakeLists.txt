@@ -7,6 +7,8 @@ set(CMAKE_CXX_STANDARD 17)
 add_compile_definitions(HOSTFXR_PATH="Test")
 
 include_directories(src)
+include_directories(src/script_interop)
+include_directories(src/swig)
 include_directories(godot-cpp/gdextension)
 include_directories(godot-cpp/gen/include)
 include_directories(godot-cpp/include)
@@ -19,6 +21,10 @@ add_library(fsharp_extension
         src/dotnet_api.cpp
         src/swig/godot_sharp_swig_wrap.cxx
         src/swig/script_interop_wrap.cxx
-        src/script_interop/fsharp_script.cpp
         src/script_interop/fsharp_method_info.cpp
-        src/script_interop/script_interop.cpp)
+        src/script_interop/script_interop.cpp
+        src/script_interop/fsx_resource_format_loader.cpp
+        src/script_interop/fsx_resource_format_saver.cpp
+        src/script_interop/fsx_script.cpp
+        src/script_interop/fsx_script_instance.cpp
+        src/script_interop/fsx_script_language.cpp)

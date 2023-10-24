@@ -59,48 +59,6 @@ public class Variant : global::System.IDisposable {
   public Variant() : this(GodotSharpSwigPINVOKE.new_Variant(), true) {
   }
 
-  public enum Type {
-    NIL,
-    BOOL,
-    INT,
-    FLOAT,
-    STRING,
-    VECTOR2,
-    VECTOR2I,
-    RECT2,
-    RECT2I,
-    VECTOR3,
-    VECTOR3I,
-    TRANSFORM2D,
-    VECTOR4,
-    VECTOR4I,
-    PLANE,
-    QUATERNION,
-    AABB,
-    BASIS,
-    TRANSFORM3D,
-    PROJECTION,
-    COLOR,
-    STRING_NAME,
-    NODE_PATH,
-    RID,
-    OBJECT,
-    CALLABLE,
-    SIGNAL,
-    DICTIONARY,
-    ARRAY,
-    PACKED_BYTE_ARRAY,
-    PACKED_INT32_ARRAY,
-    PACKED_INT64_ARRAY,
-    PACKED_FLOAT32_ARRAY,
-    PACKED_FLOAT64_ARRAY,
-    PACKED_STRING_ARRAY,
-    PACKED_VECTOR2_ARRAY,
-    PACKED_VECTOR3_ARRAY,
-    PACKED_COLOR_ARRAY,
-    VARIANT_MAX
-  }
-
   public enum Operator {
     OP_EQUAL,
     OP_NOT_EQUAL,

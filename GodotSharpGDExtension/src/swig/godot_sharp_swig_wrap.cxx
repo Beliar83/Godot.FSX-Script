@@ -349,6 +349,9 @@ SWIGINTERN char const *godot_String_AsString(godot::String *self){
 /* Includes the header in the wrapper code */
 #include "godot_cpp/variant/string_name.hpp"
 
+SWIGINTERN char const *godot_StringName_AsString(godot::StringName *self){
+                return godot::String(*self).ascii().get_data();
+            }
 
 /* Includes the header in the wrapper code */
 #include "godot_cpp/classes/object.hpp"
@@ -360,6 +363,10 @@ SWIGINTERN char const *godot_String_AsString(godot::String *self){
 
 
 #include "godot_cpp/variant/variant.hpp"
+
+namespace godot{
+        typedef godot::Variant::Type VariantType;
+}
 
 
 #include "godot_cpp/core/property_info.hpp"
@@ -2676,6 +2683,18 @@ SWIGEXPORT void SWIGSTDCALL CSharp_delete_StringName(void * jarg1) {
   
   arg1 = (godot::StringName *)jarg1; 
   delete arg1;
+}
+
+
+SWIGEXPORT char * SWIGSTDCALL CSharp_StringName_AsString(void * jarg1) {
+  char * jresult ;
+  godot::StringName *arg1 = (godot::StringName *) 0 ;
+  char *result = 0 ;
+  
+  arg1 = (godot::StringName *)jarg1; 
+  result = (char *)godot_StringName_AsString(arg1);
+  jresult = SWIG_csharp_string_callback((const char *)result); 
+  return jresult;
 }
 
 
@@ -5610,10 +5629,10 @@ SWIGEXPORT void SWIGSTDCALL CSharp_delete_Variant(void * jarg1) {
 
 SWIGEXPORT void SWIGSTDCALL CSharp_PropertyInfo_type_set(void * jarg1, int jarg2) {
   godot::PropertyInfo *arg1 = (godot::PropertyInfo *) 0 ;
-  godot::Variant::Type arg2 ;
+  godot::VariantType arg2 ;
   
   arg1 = (godot::PropertyInfo *)jarg1; 
-  arg2 = (godot::Variant::Type)jarg2; 
+  arg2 = (godot::VariantType)jarg2; 
   if (arg1) (arg1)->type = arg2;
 }
 
@@ -5621,10 +5640,10 @@ SWIGEXPORT void SWIGSTDCALL CSharp_PropertyInfo_type_set(void * jarg1, int jarg2
 SWIGEXPORT int SWIGSTDCALL CSharp_PropertyInfo_type_get(void * jarg1) {
   int jresult ;
   godot::PropertyInfo *arg1 = (godot::PropertyInfo *) 0 ;
-  godot::Variant::Type result;
+  godot::VariantType result;
   
   arg1 = (godot::PropertyInfo *)jarg1; 
-  result = (godot::Variant::Type) ((arg1)->type);
+  result = (godot::VariantType) ((arg1)->type);
   jresult = (int)result; 
   return jresult;
 }
@@ -5752,7 +5771,7 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_0() {
 
 SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_1(int jarg1, void * jarg2, int jarg3, void * jarg4, unsigned int jarg5, void * jarg6) {
   void * jresult ;
-  godot::Variant::Type arg1 ;
+  godot::VariantType arg1 ;
   godot::StringName *arg2 = 0 ;
   godot::PropertyHint arg3 ;
   godot::String *arg4 = 0 ;
@@ -5760,7 +5779,7 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_1(int jarg1, void * 
   godot::StringName *arg6 = 0 ;
   godot::PropertyInfo *result = 0 ;
   
-  arg1 = (godot::Variant::Type)jarg1; 
+  arg1 = (godot::VariantType)jarg1; 
   arg2 = (godot::StringName *)jarg2;
   if (!arg2) {
     SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::StringName const & is null", 0);
@@ -5786,14 +5805,14 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_1(int jarg1, void * 
 
 SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_2(int jarg1, void * jarg2, int jarg3, void * jarg4, unsigned int jarg5) {
   void * jresult ;
-  godot::Variant::Type arg1 ;
+  godot::VariantType arg1 ;
   godot::StringName *arg2 = 0 ;
   godot::PropertyHint arg3 ;
   godot::String *arg4 = 0 ;
   uint32_t arg5 ;
   godot::PropertyInfo *result = 0 ;
   
-  arg1 = (godot::Variant::Type)jarg1; 
+  arg1 = (godot::VariantType)jarg1; 
   arg2 = (godot::StringName *)jarg2;
   if (!arg2) {
     SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::StringName const & is null", 0);
@@ -5814,13 +5833,13 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_2(int jarg1, void * 
 
 SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_3(int jarg1, void * jarg2, int jarg3, void * jarg4) {
   void * jresult ;
-  godot::Variant::Type arg1 ;
+  godot::VariantType arg1 ;
   godot::StringName *arg2 = 0 ;
   godot::PropertyHint arg3 ;
   godot::String *arg4 = 0 ;
   godot::PropertyInfo *result = 0 ;
   
-  arg1 = (godot::Variant::Type)jarg1; 
+  arg1 = (godot::VariantType)jarg1; 
   arg2 = (godot::StringName *)jarg2;
   if (!arg2) {
     SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::StringName const & is null", 0);
@@ -5840,12 +5859,12 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_3(int jarg1, void * 
 
 SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_4(int jarg1, void * jarg2, int jarg3) {
   void * jresult ;
-  godot::Variant::Type arg1 ;
+  godot::VariantType arg1 ;
   godot::StringName *arg2 = 0 ;
   godot::PropertyHint arg3 ;
   godot::PropertyInfo *result = 0 ;
   
-  arg1 = (godot::Variant::Type)jarg1; 
+  arg1 = (godot::VariantType)jarg1; 
   arg2 = (godot::StringName *)jarg2;
   if (!arg2) {
     SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::StringName const & is null", 0);
@@ -5860,11 +5879,11 @@ SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_4(int jarg1, void * 
 
 SWIGEXPORT void * SWIGSTDCALL CSharp_new_PropertyInfo__SWIG_5(int jarg1, void * jarg2) {
   void * jresult ;
-  godot::Variant::Type arg1 ;
+  godot::VariantType arg1 ;
   godot::StringName *arg2 = 0 ;
   godot::PropertyInfo *result = 0 ;
   
-  arg1 = (godot::Variant::Type)jarg1; 
+  arg1 = (godot::VariantType)jarg1; 
   arg2 = (godot::StringName *)jarg2;
   if (!arg2) {
     SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::StringName const & is null", 0);

@@ -56,12 +56,12 @@ public class PropertyInfo : global::System.IDisposable {
     }
   }
 
-  public Variant.Type type {
+  public VariantType type {
     set {
       GodotSharpSwigPINVOKE.PropertyInfo_type_set(swigCPtr, (int)value);
     } 
     get {
-      Variant.Type ret = (Variant.Type)GodotSharpSwigPINVOKE.PropertyInfo_type_get(swigCPtr);
+      VariantType ret = (VariantType)GodotSharpSwigPINVOKE.PropertyInfo_type_get(swigCPtr);
       return ret;
     } 
   }
@@ -122,23 +122,23 @@ public class PropertyInfo : global::System.IDisposable {
   public PropertyInfo() : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_0(), true) {
   }
 
-  public PropertyInfo(Variant.Type p_type, StringName p_name, PropertyHint p_hint, GodotString p_hint_string, uint p_usage, StringName p_class_name) : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_1((int)p_type, StringName.getCPtr(p_name), (int)p_hint, GodotString.getCPtr(p_hint_string), p_usage, StringName.getCPtr(p_class_name)), true) {
+  public PropertyInfo(VariantType p_type, StringName p_name, PropertyHint p_hint, GodotString p_hint_string, uint p_usage, StringName p_class_name) : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_1((int)p_type, StringName.getCPtr(p_name), (int)p_hint, GodotString.getCPtr(p_hint_string), p_usage, StringName.getCPtr(p_class_name)), true) {
     if (GodotSharpSwigPINVOKE.SWIGPendingException.Pending) throw GodotSharpSwigPINVOKE.SWIGPendingException.Retrieve();
   }
 
-  public PropertyInfo(Variant.Type p_type, StringName p_name, PropertyHint p_hint, GodotString p_hint_string, uint p_usage) : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_2((int)p_type, StringName.getCPtr(p_name), (int)p_hint, GodotString.getCPtr(p_hint_string), p_usage), true) {
+  public PropertyInfo(VariantType p_type, StringName p_name, PropertyHint p_hint, GodotString p_hint_string, uint p_usage) : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_2((int)p_type, StringName.getCPtr(p_name), (int)p_hint, GodotString.getCPtr(p_hint_string), p_usage), true) {
     if (GodotSharpSwigPINVOKE.SWIGPendingException.Pending) throw GodotSharpSwigPINVOKE.SWIGPendingException.Retrieve();
   }
 
-  public PropertyInfo(Variant.Type p_type, StringName p_name, PropertyHint p_hint, GodotString p_hint_string) : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_3((int)p_type, StringName.getCPtr(p_name), (int)p_hint, GodotString.getCPtr(p_hint_string)), true) {
+  public PropertyInfo(VariantType p_type, StringName p_name, PropertyHint p_hint, GodotString p_hint_string) : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_3((int)p_type, StringName.getCPtr(p_name), (int)p_hint, GodotString.getCPtr(p_hint_string)), true) {
     if (GodotSharpSwigPINVOKE.SWIGPendingException.Pending) throw GodotSharpSwigPINVOKE.SWIGPendingException.Retrieve();
   }
 
-  public PropertyInfo(Variant.Type p_type, StringName p_name, PropertyHint p_hint) : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_4((int)p_type, StringName.getCPtr(p_name), (int)p_hint), true) {
+  public PropertyInfo(VariantType p_type, StringName p_name, PropertyHint p_hint) : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_4((int)p_type, StringName.getCPtr(p_name), (int)p_hint), true) {
     if (GodotSharpSwigPINVOKE.SWIGPendingException.Pending) throw GodotSharpSwigPINVOKE.SWIGPendingException.Retrieve();
   }
 
-  public PropertyInfo(Variant.Type p_type, StringName p_name) : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_5((int)p_type, StringName.getCPtr(p_name)), true) {
+  public PropertyInfo(VariantType p_type, StringName p_name) : this(GodotSharpSwigPINVOKE.new_PropertyInfo__SWIG_5((int)p_type, StringName.getCPtr(p_name)), true) {
     if (GodotSharpSwigPINVOKE.SWIGPendingException.Pending) throw GodotSharpSwigPINVOKE.SWIGPendingException.Retrieve();
   }
 

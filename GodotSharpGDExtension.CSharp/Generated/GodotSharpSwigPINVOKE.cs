@@ -663,6 +663,9 @@ class GodotSharpSwigPINVOKE {
   [global::System.Runtime.InteropServices.DllImport("bin/fsharp", EntryPoint="CSharp_delete_StringName")]
   public static extern void delete_StringName(global::System.Runtime.InteropServices.HandleRef jarg1);
 
+  [global::System.Runtime.InteropServices.DllImport("bin/fsharp", EntryPoint="CSharp_StringName_AsString")]
+  public static extern string StringName_AsString(global::System.Runtime.InteropServices.HandleRef jarg1);
+
   [global::System.Runtime.InteropServices.DllImport("bin/fsharp", EntryPoint="CSharp_GodotObject_NOTIFICATION_POSTINITIALIZE_get")]
   public static extern int GodotObject_NOTIFICATION_POSTINITIALIZE_get();
 

@@ -43,3 +43,4 @@ env_interop.Append(CPPPATH=["src/script_interop"])
 interop_library = env_interop.SharedLibrary("demo/bin/fsharp{}".format(env["SHLIBSUFFIX"]), source=interop_sources)
 
 Default(interop_library)
+# Default(library)

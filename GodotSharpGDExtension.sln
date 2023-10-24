@@ -7,7 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SharpGenerator", "SharpGene
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GodotSharpGDExtension.CSharp", "GodotSharpGDExtension.CSharp\GodotSharpGDExtension.CSharp.csproj", "{3BBAE65F-9139-4C0D-847D-CF36A85B0BE8}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptInterop.CSharp", "ScriptInterop.CSharp\ScriptInterop.CSharp.csproj", "{2E6D29F4-0AA8-4BAD-8CB6-7FCBF77B8BFC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptInterop.Interface", "ScriptInterop.Interface\ScriptInterop.Interface.csproj", "{2E6D29F4-0AA8-4BAD-8CB6-7FCBF77B8BFC}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSXScriptInterpreter", "FSXScriptInterpreter\FSXScriptInterpreter.fsproj", "{AEF564DF-7CE9-4BA6-ABB0-1FEF298727D7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptInterop.CSharp", "ScriptInterop.CSharp\ScriptInterop.CSharp.csproj", "{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +31,14 @@ Global
 		{2E6D29F4-0AA8-4BAD-8CB6-7FCBF77B8BFC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2E6D29F4-0AA8-4BAD-8CB6-7FCBF77B8BFC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2E6D29F4-0AA8-4BAD-8CB6-7FCBF77B8BFC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AEF564DF-7CE9-4BA6-ABB0-1FEF298727D7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AEF564DF-7CE9-4BA6-ABB0-1FEF298727D7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AEF564DF-7CE9-4BA6-ABB0-1FEF298727D7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AEF564DF-7CE9-4BA6-ABB0-1FEF298727D7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

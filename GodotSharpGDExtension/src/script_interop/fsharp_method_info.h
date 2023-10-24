@@ -3,7 +3,13 @@
 #include "godot_cpp/core/property_info.hpp"
 
 struct FSharpMethodInfo {
-    godot::String Name;
-    std::vector<godot::PropertyInfo> args;
+    godot::StringName name;
+    godot::PropertyInfo return_val;
+    uint32_t flags;
+    int id = 0;
+    std::vector<godot::PropertyInfo> arguments;
+    std::vector<godot::Variant> default_arguments;
+
+    godot::Dictionary to_dictionary() const;;
 };
 

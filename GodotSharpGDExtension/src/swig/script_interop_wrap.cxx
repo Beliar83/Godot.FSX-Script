@@ -385,7 +385,7 @@ template <typename T> T SwigValueInit() {
 #endif
 
 
-#include "fsharp_method_info.h"
+#include "script_interop/fsharp_method_info.h"
 
 
 #include <typeinfo>
@@ -396,6 +396,97 @@ template <typename T> T SwigValueInit() {
 #include <algorithm>
 #include <stdexcept>
 
+SWIGINTERN std::vector< godot::Variant > *new_std_vector_Sl_godot_Variant_Sg___SWIG_2(int capacity){
+        std::vector< godot::Variant >* pv = 0;
+        if (capacity >= 0) {
+          pv = new std::vector< godot::Variant >();
+          pv->reserve(capacity);
+       } else {
+          throw std::out_of_range("capacity");
+       }
+       return pv;
+      }
+SWIGINTERN godot::Variant std_vector_Sl_godot_Variant_Sg__getitemcopy(std::vector< godot::Variant > *self,int index){
+        if (index>=0 && index<(int)self->size())
+          return (*self)[index];
+        else
+          throw std::out_of_range("index");
+      }
+SWIGINTERN std::vector< godot::Variant >::value_type const &std_vector_Sl_godot_Variant_Sg__getitem(std::vector< godot::Variant > *self,int index){
+        if (index>=0 && index<(int)self->size())
+          return (*self)[index];
+        else
+          throw std::out_of_range("index");
+      }
+SWIGINTERN void std_vector_Sl_godot_Variant_Sg__setitem(std::vector< godot::Variant > *self,int index,godot::Variant const &val){
+        if (index>=0 && index<(int)self->size())
+          (*self)[index] = val;
+        else
+          throw std::out_of_range("index");
+      }
+SWIGINTERN void std_vector_Sl_godot_Variant_Sg__AddRange(std::vector< godot::Variant > *self,std::vector< godot::Variant > const &values){
+        self->insert(self->end(), values.begin(), values.end());
+      }
+SWIGINTERN std::vector< godot::Variant > *std_vector_Sl_godot_Variant_Sg__GetRange(std::vector< godot::Variant > *self,int index,int count){
+        if (index < 0)
+          throw std::out_of_range("index");
+        if (count < 0)
+          throw std::out_of_range("count");
+        if (index >= (int)self->size()+1 || index+count > (int)self->size())
+          throw std::invalid_argument("invalid range");
+        return new std::vector< godot::Variant >(self->begin()+index, self->begin()+index+count);
+      }
+SWIGINTERN void std_vector_Sl_godot_Variant_Sg__Insert(std::vector< godot::Variant > *self,int index,godot::Variant const &x){
+        if (index>=0 && index<(int)self->size()+1)
+          self->insert(self->begin()+index, x);
+        else
+          throw std::out_of_range("index");
+      }
+SWIGINTERN void std_vector_Sl_godot_Variant_Sg__InsertRange(std::vector< godot::Variant > *self,int index,std::vector< godot::Variant > const &values){
+        if (index>=0 && index<(int)self->size()+1)
+          self->insert(self->begin()+index, values.begin(), values.end());
+        else
+          throw std::out_of_range("index");
+      }
+SWIGINTERN void std_vector_Sl_godot_Variant_Sg__RemoveAt(std::vector< godot::Variant > *self,int index){
+        if (index>=0 && index<(int)self->size())
+          self->erase(self->begin() + index);
+        else
+          throw std::out_of_range("index");
+      }
+SWIGINTERN void std_vector_Sl_godot_Variant_Sg__RemoveRange(std::vector< godot::Variant > *self,int index,int count){
+        if (index < 0)
+          throw std::out_of_range("index");
+        if (count < 0)
+          throw std::out_of_range("count");
+        if (index >= (int)self->size()+1 || index+count > (int)self->size())
+          throw std::invalid_argument("invalid range");
+        self->erase(self->begin()+index, self->begin()+index+count);
+      }
+SWIGINTERN std::vector< godot::Variant > *std_vector_Sl_godot_Variant_Sg__Repeat(godot::Variant const &value,int count){
+        if (count < 0)
+          throw std::out_of_range("count");
+        return new std::vector< godot::Variant >(count, value);
+      }
+SWIGINTERN void std_vector_Sl_godot_Variant_Sg__Reverse__SWIG_0(std::vector< godot::Variant > *self){
+        std::reverse(self->begin(), self->end());
+      }
+SWIGINTERN void std_vector_Sl_godot_Variant_Sg__Reverse__SWIG_1(std::vector< godot::Variant > *self,int index,int count){
+        if (index < 0)
+          throw std::out_of_range("index");
+        if (count < 0)
+          throw std::out_of_range("count");
+        if (index >= (int)self->size()+1 || index+count > (int)self->size())
+          throw std::invalid_argument("invalid range");
+        std::reverse(self->begin()+index, self->begin()+index+count);
+      }
+SWIGINTERN void std_vector_Sl_godot_Variant_Sg__SetRange(std::vector< godot::Variant > *self,int index,std::vector< godot::Variant > const &values){
+        if (index < 0)
+          throw std::out_of_range("index");
+        if (index+values.size() > self->size())
+          throw std::out_of_range("index");
+        std::copy(values.begin(), values.end(), self->begin()+index);
+      }
 SWIGINTERN std::vector< godot::PropertyInfo > *new_std_vector_Sl_godot_PropertyInfo_Sg___SWIG_2(int capacity){
         std::vector< godot::PropertyInfo >* pv = 0;
         if (capacity >= 0) {
@@ -488,8 +579,8 @@ SWIGINTERN void std_vector_Sl_godot_PropertyInfo_Sg__SetRange(std::vector< godot
         std::copy(values.begin(), values.end(), self->begin()+index);
       }
 
-#include "fsharp_script.h"
-#include "fsharp_method_info.h"
+#include "script_interop/fsx_script.h"
+#include "godot_cpp/classes/object.hpp"
 
 SWIGINTERN std::vector< FSharpMethodInfo > *new_std_vector_Sl_FSharpMethodInfo_Sg___SWIG_2(int capacity){
         std::vector< FSharpMethodInfo >* pv = 0;
@@ -583,6 +674,13 @@ SWIGINTERN void std_vector_Sl_FSharpMethodInfo_Sg__SetRange(std::vector< FSharpM
         std::copy(values.begin(), values.end(), self->begin()+index);
       }
 
+#include "fsx_script_instance.h"
+
+void SetDotnetFunctions(CreateDotnetInstance p_create_dotnet_instance, CallMethod p_call_method) {
+    godot::FSXScriptInstance::SetDotnetFunctions(p_create_dotnet_instance, p_call_method);
+}
+
+
 #include <iostream>
 
      void test(const char* text) {
@@ -590,9 +688,7 @@ SWIGINTERN void std_vector_Sl_FSharpMethodInfo_Sg__SetRange(std::vector< FSharpM
          WARN_PRINT(text);
      }
 
-#include "fsharp_script.h"
-
-void print_script_info(FSharpScript* script);
+void print_script_info(godot::FSXScript* script);
 
 
 
@@ -603,44 +699,363 @@ void print_script_info(FSharpScript* script);
 
 #include "script_interop_wrap.h"
 
-SwigDirector_FSharpScript::SwigDirector_FSharpScript() : FSharpScript(), Swig::Director() {
-  swig_init_callbacks();
-}
-
-SwigDirector_FSharpScript::~SwigDirector_FSharpScript() {
-  
-}
-
-
-std::vector< FSharpMethodInfo > SwigDirector_FSharpScript::_getMethods() {
-  std::vector< FSharpMethodInfo > c_result ;
-  void * jresult = 0 ;
-  
-  if (!swig_callback_getMethods) {
-    return FSharpScript::_getMethods();
-  } else {
-    jresult = (void *) swig_callback_getMethods();
-    if (!jresult) {
-      SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "Unexpected null return for type std::vector< FSharpMethodInfo >", 0);
-      return c_result;
-    }
-    c_result = *(std::vector< FSharpMethodInfo > *)jresult; 
-  }
-  return c_result;
-}
-
-void SwigDirector_FSharpScript::swig_connect_director(SWIG_Callback0_t callback_getMethods) {
-  swig_callback_getMethods = callback_getMethods;
-}
-
-void SwigDirector_FSharpScript::swig_init_callbacks() {
-  swig_callback_getMethods = 0;
-}
-
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_Clear(void * jarg1) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  (arg1)->clear();
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_Add(void * jarg1, void * jarg2) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  godot::Variant *arg2 = 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (godot::Variant *)jarg2;
+  if (!arg2) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::Variant const & is null", 0);
+    return ;
+  } 
+  (arg1)->push_back((godot::Variant const &)*arg2);
+}
+
+
+SWIGEXPORT unsigned long SWIGSTDCALL CSharp_VariantVector_size(void * jarg1) {
+  unsigned long jresult ;
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  std::vector< godot::Variant >::size_type result;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  result = ((std::vector< godot::Variant > const *)arg1)->size();
+  jresult = (unsigned long)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT unsigned long SWIGSTDCALL CSharp_VariantVector_capacity(void * jarg1) {
+  unsigned long jresult ;
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  std::vector< godot::Variant >::size_type result;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  result = ((std::vector< godot::Variant > const *)arg1)->capacity();
+  jresult = (unsigned long)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_reserve(void * jarg1, unsigned long jarg2) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  std::vector< godot::Variant >::size_type arg2 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (std::vector< godot::Variant >::size_type)jarg2; 
+  (arg1)->reserve(arg2);
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_new_VariantVector__SWIG_0() {
+  void * jresult ;
+  std::vector< godot::Variant > *result = 0 ;
+  
+  result = (std::vector< godot::Variant > *)new std::vector< godot::Variant >();
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_new_VariantVector__SWIG_1(void * jarg1) {
+  void * jresult ;
+  std::vector< godot::Variant > *arg1 = 0 ;
+  std::vector< godot::Variant > *result = 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1;
+  if (!arg1) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "std::vector< godot::Variant > const & is null", 0);
+    return 0;
+  } 
+  result = (std::vector< godot::Variant > *)new std::vector< godot::Variant >((std::vector< godot::Variant > const &)*arg1);
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_new_VariantVector__SWIG_2(int jarg1) {
+  void * jresult ;
+  int arg1 ;
+  std::vector< godot::Variant > *result = 0 ;
+  
+  arg1 = (int)jarg1; 
+  try {
+    result = (std::vector< godot::Variant > *)new_std_vector_Sl_godot_Variant_Sg___SWIG_2(arg1);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return 0;
+  }
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_VariantVector_getitemcopy(void * jarg1, int jarg2) {
+  void * jresult ;
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  int arg2 ;
+  godot::Variant result;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (int)jarg2; 
+  try {
+    result = std_vector_Sl_godot_Variant_Sg__getitemcopy(arg1,arg2);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return 0;
+  }
+  jresult = new godot::Variant(result); 
+  return jresult;
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_VariantVector_getitem(void * jarg1, int jarg2) {
+  void * jresult ;
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  int arg2 ;
+  std::vector< godot::Variant >::value_type *result = 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (int)jarg2; 
+  try {
+    result = (std::vector< godot::Variant >::value_type *) &std_vector_Sl_godot_Variant_Sg__getitem(arg1,arg2);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return 0;
+  }
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_setitem(void * jarg1, int jarg2, void * jarg3) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  int arg2 ;
+  godot::Variant *arg3 = 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (int)jarg2; 
+  arg3 = (godot::Variant *)jarg3;
+  if (!arg3) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::Variant const & is null", 0);
+    return ;
+  } 
+  try {
+    std_vector_Sl_godot_Variant_Sg__setitem(arg1,arg2,(godot::Variant const &)*arg3);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return ;
+  }
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_AddRange(void * jarg1, void * jarg2) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  std::vector< godot::Variant > *arg2 = 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (std::vector< godot::Variant > *)jarg2;
+  if (!arg2) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "std::vector< godot::Variant > const & is null", 0);
+    return ;
+  } 
+  std_vector_Sl_godot_Variant_Sg__AddRange(arg1,(std::vector< godot::Variant > const &)*arg2);
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_VariantVector_GetRange(void * jarg1, int jarg2, int jarg3) {
+  void * jresult ;
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  int arg2 ;
+  int arg3 ;
+  std::vector< godot::Variant > *result = 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (int)jarg2; 
+  arg3 = (int)jarg3; 
+  try {
+    result = (std::vector< godot::Variant > *)std_vector_Sl_godot_Variant_Sg__GetRange(arg1,arg2,arg3);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return 0;
+  } catch(std::invalid_argument &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentException, (&_e)->what(), "");
+    return 0;
+  }
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_Insert(void * jarg1, int jarg2, void * jarg3) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  int arg2 ;
+  godot::Variant *arg3 = 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (int)jarg2; 
+  arg3 = (godot::Variant *)jarg3;
+  if (!arg3) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::Variant const & is null", 0);
+    return ;
+  } 
+  try {
+    std_vector_Sl_godot_Variant_Sg__Insert(arg1,arg2,(godot::Variant const &)*arg3);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return ;
+  }
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_InsertRange(void * jarg1, int jarg2, void * jarg3) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  int arg2 ;
+  std::vector< godot::Variant > *arg3 = 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (int)jarg2; 
+  arg3 = (std::vector< godot::Variant > *)jarg3;
+  if (!arg3) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "std::vector< godot::Variant > const & is null", 0);
+    return ;
+  } 
+  try {
+    std_vector_Sl_godot_Variant_Sg__InsertRange(arg1,arg2,(std::vector< godot::Variant > const &)*arg3);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return ;
+  }
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_RemoveAt(void * jarg1, int jarg2) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  int arg2 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (int)jarg2; 
+  try {
+    std_vector_Sl_godot_Variant_Sg__RemoveAt(arg1,arg2);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return ;
+  }
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_RemoveRange(void * jarg1, int jarg2, int jarg3) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  int arg2 ;
+  int arg3 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (int)jarg2; 
+  arg3 = (int)jarg3; 
+  try {
+    std_vector_Sl_godot_Variant_Sg__RemoveRange(arg1,arg2,arg3);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return ;
+  } catch(std::invalid_argument &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentException, (&_e)->what(), "");
+    return ;
+  }
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_VariantVector_Repeat(void * jarg1, int jarg2) {
+  void * jresult ;
+  godot::Variant *arg1 = 0 ;
+  int arg2 ;
+  std::vector< godot::Variant > *result = 0 ;
+  
+  arg1 = (godot::Variant *)jarg1;
+  if (!arg1) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::Variant const & is null", 0);
+    return 0;
+  } 
+  arg2 = (int)jarg2; 
+  try {
+    result = (std::vector< godot::Variant > *)std_vector_Sl_godot_Variant_Sg__Repeat((godot::Variant const &)*arg1,arg2);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return 0;
+  }
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_Reverse__SWIG_0(void * jarg1) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  std_vector_Sl_godot_Variant_Sg__Reverse__SWIG_0(arg1);
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_Reverse__SWIG_1(void * jarg1, int jarg2, int jarg3) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  int arg2 ;
+  int arg3 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (int)jarg2; 
+  arg3 = (int)jarg3; 
+  try {
+    std_vector_Sl_godot_Variant_Sg__Reverse__SWIG_1(arg1,arg2,arg3);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return ;
+  } catch(std::invalid_argument &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentException, (&_e)->what(), "");
+    return ;
+  }
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_VariantVector_SetRange(void * jarg1, int jarg2, void * jarg3) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  int arg2 ;
+  std::vector< godot::Variant > *arg3 = 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  arg2 = (int)jarg2; 
+  arg3 = (std::vector< godot::Variant > *)jarg3;
+  if (!arg3) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "std::vector< godot::Variant > const & is null", 0);
+    return ;
+  } 
+  try {
+    std_vector_Sl_godot_Variant_Sg__SetRange(arg1,arg2,(std::vector< godot::Variant > const &)*arg3);
+  } catch(std::out_of_range &_e) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentOutOfRangeException, 0, (&_e)->what());
+    return ;
+  }
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_delete_VariantVector(void * jarg1) {
+  std::vector< godot::Variant > *arg1 = (std::vector< godot::Variant > *) 0 ;
+  
+  arg1 = (std::vector< godot::Variant > *)jarg1; 
+  delete arg1;
+}
+
 
 SWIGEXPORT void SWIGSTDCALL CSharp_PropertyInfoVector_Clear(void * jarg1) {
   std::vector< godot::PropertyInfo > *arg1 = (std::vector< godot::PropertyInfo > *) 0 ;
@@ -995,45 +1410,133 @@ SWIGEXPORT void SWIGSTDCALL CSharp_delete_PropertyInfoVector(void * jarg1) {
 }
 
 
-SWIGEXPORT void SWIGSTDCALL CSharp_FSharpMethodInfo_Name_set(void * jarg1, void * jarg2) {
+SWIGEXPORT void SWIGSTDCALL CSharp_FSharpMethodInfo_name_set(void * jarg1, void * jarg2) {
   FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
-  godot::String *arg2 = (godot::String *) 0 ;
+  godot::StringName *arg2 = (godot::StringName *) 0 ;
   
   arg1 = (FSharpMethodInfo *)jarg1; 
-  arg2 = (godot::String *)jarg2; 
-  if (arg1) (arg1)->Name = *arg2;
+  arg2 = (godot::StringName *)jarg2; 
+  if (arg1) (arg1)->name = *arg2;
 }
 
 
-SWIGEXPORT void * SWIGSTDCALL CSharp_FSharpMethodInfo_Name_get(void * jarg1) {
+SWIGEXPORT void * SWIGSTDCALL CSharp_FSharpMethodInfo_name_get(void * jarg1) {
   void * jresult ;
   FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
-  godot::String *result = 0 ;
+  godot::StringName *result = 0 ;
   
   arg1 = (FSharpMethodInfo *)jarg1; 
-  result = (godot::String *)& ((arg1)->Name);
+  result = (godot::StringName *)& ((arg1)->name);
   jresult = (void *)result; 
   return jresult;
 }
 
 
-SWIGEXPORT void SWIGSTDCALL CSharp_FSharpMethodInfo_args_set(void * jarg1, void * jarg2) {
+SWIGEXPORT void SWIGSTDCALL CSharp_FSharpMethodInfo_return_val_set(void * jarg1, void * jarg2) {
+  FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
+  godot::PropertyInfo *arg2 = (godot::PropertyInfo *) 0 ;
+  
+  arg1 = (FSharpMethodInfo *)jarg1; 
+  arg2 = (godot::PropertyInfo *)jarg2; 
+  if (arg1) (arg1)->return_val = *arg2;
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_FSharpMethodInfo_return_val_get(void * jarg1) {
+  void * jresult ;
+  FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
+  godot::PropertyInfo *result = 0 ;
+  
+  arg1 = (FSharpMethodInfo *)jarg1; 
+  result = (godot::PropertyInfo *)& ((arg1)->return_val);
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_FSharpMethodInfo_flags_set(void * jarg1, unsigned int jarg2) {
+  FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
+  uint32_t arg2 ;
+  
+  arg1 = (FSharpMethodInfo *)jarg1; 
+  arg2 = (uint32_t)jarg2; 
+  if (arg1) (arg1)->flags = arg2;
+}
+
+
+SWIGEXPORT unsigned int SWIGSTDCALL CSharp_FSharpMethodInfo_flags_get(void * jarg1) {
+  unsigned int jresult ;
+  FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
+  uint32_t result;
+  
+  arg1 = (FSharpMethodInfo *)jarg1; 
+  result = (uint32_t) ((arg1)->flags);
+  jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_FSharpMethodInfo_id_set(void * jarg1, int jarg2) {
+  FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
+  int arg2 ;
+  
+  arg1 = (FSharpMethodInfo *)jarg1; 
+  arg2 = (int)jarg2; 
+  if (arg1) (arg1)->id = arg2;
+}
+
+
+SWIGEXPORT int SWIGSTDCALL CSharp_FSharpMethodInfo_id_get(void * jarg1) {
+  int jresult ;
+  FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
+  int result;
+  
+  arg1 = (FSharpMethodInfo *)jarg1; 
+  result = (int) ((arg1)->id);
+  jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_FSharpMethodInfo_arguments_set(void * jarg1, void * jarg2) {
   FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
   std::vector< godot::PropertyInfo > *arg2 = (std::vector< godot::PropertyInfo > *) 0 ;
   
   arg1 = (FSharpMethodInfo *)jarg1; 
   arg2 = (std::vector< godot::PropertyInfo > *)jarg2; 
-  if (arg1) (arg1)->args = *arg2;
+  if (arg1) (arg1)->arguments = *arg2;
 }
 
 
-SWIGEXPORT void * SWIGSTDCALL CSharp_FSharpMethodInfo_args_get(void * jarg1) {
+SWIGEXPORT void * SWIGSTDCALL CSharp_FSharpMethodInfo_arguments_get(void * jarg1) {
   void * jresult ;
   FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
   std::vector< godot::PropertyInfo > *result = 0 ;
   
   arg1 = (FSharpMethodInfo *)jarg1; 
-  result = (std::vector< godot::PropertyInfo > *)& ((arg1)->args);
+  result = (std::vector< godot::PropertyInfo > *)& ((arg1)->arguments);
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_FSharpMethodInfo_default_arguments_set(void * jarg1, void * jarg2) {
+  FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
+  std::vector< godot::Variant > *arg2 = (std::vector< godot::Variant > *) 0 ;
+  
+  arg1 = (FSharpMethodInfo *)jarg1; 
+  arg2 = (std::vector< godot::Variant > *)jarg2; 
+  if (arg1) (arg1)->default_arguments = *arg2;
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_FSharpMethodInfo_default_arguments_get(void * jarg1) {
+  void * jresult ;
+  FSharpMethodInfo *arg1 = (FSharpMethodInfo *) 0 ;
+  std::vector< godot::Variant > *result = 0 ;
+  
+  arg1 = (FSharpMethodInfo *)jarg1; 
+  result = (std::vector< godot::Variant > *)& ((arg1)->default_arguments);
   jresult = (void *)result; 
   return jresult;
 }
@@ -1410,52 +1913,83 @@ SWIGEXPORT void SWIGSTDCALL CSharp_delete_MethodInfoVector(void * jarg1) {
 }
 
 
-SWIGEXPORT void SWIGSTDCALL CSharp_delete_FSharpScript(void * jarg1) {
-  FSharpScript *arg1 = (FSharpScript *) 0 ;
-  
-  arg1 = (FSharpScript *)jarg1; 
-  delete arg1;
-}
-
-
-SWIGEXPORT void * SWIGSTDCALL CSharp_FSharpScript__getMethods(void * jarg1) {
+SWIGEXPORT void * SWIGSTDCALL CSharp_new_FSXScriptRef__SWIG_0(void * jarg1) {
   void * jresult ;
-  FSharpScript *arg1 = (FSharpScript *) 0 ;
-  std::vector< FSharpMethodInfo > result;
+  godot::Ref< godot::FSXScript > *arg1 = 0 ;
+  godot::Ref< godot::FSXScript > *result = 0 ;
   
-  arg1 = (FSharpScript *)jarg1; 
-  result = (arg1)->_getMethods();
-  jresult = new std::vector< FSharpMethodInfo >(result); 
-  return jresult;
-}
-
-
-SWIGEXPORT void * SWIGSTDCALL CSharp_FSharpScript__getMethodsSwigExplicitFSharpScript(void * jarg1) {
-  void * jresult ;
-  FSharpScript *arg1 = (FSharpScript *) 0 ;
-  std::vector< FSharpMethodInfo > result;
-  
-  arg1 = (FSharpScript *)jarg1; 
-  result = (arg1)->FSharpScript::_getMethods();
-  jresult = new std::vector< FSharpMethodInfo >(result); 
-  return jresult;
-}
-
-
-SWIGEXPORT void * SWIGSTDCALL CSharp_new_FSharpScript() {
-  void * jresult ;
-  FSharpScript *result = 0 ;
-  
-  result = (FSharpScript *)new SwigDirector_FSharpScript();
+  arg1 = (godot::Ref< godot::FSXScript > *)jarg1;
+  if (!arg1) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::Ref< godot::FSXScript > const & is null", 0);
+    return 0;
+  } 
+  result = (godot::Ref< godot::FSXScript > *)new godot::Ref< godot::FSXScript >((godot::Ref< godot::FSXScript > const &)*arg1);
   jresult = (void *)result; 
   return jresult;
 }
 
 
-SWIGEXPORT void SWIGSTDCALL CSharp_FSharpScript_director_connect(void *objarg, SwigDirector_FSharpScript::SWIG_Callback0_t callback0) {
-  FSharpScript *obj = (FSharpScript *)objarg;
-  SwigDirector_FSharpScript *director = static_cast<SwigDirector_FSharpScript *>(obj);
-  director->swig_connect_director(callback0);
+SWIGEXPORT void * SWIGSTDCALL CSharp_new_FSXScriptRef__SWIG_1(void * jarg1) {
+  void * jresult ;
+  godot::FSXScript *arg1 = (godot::FSXScript *) 0 ;
+  godot::Ref< godot::FSXScript > *result = 0 ;
+  
+  arg1 = (godot::FSXScript *)jarg1; 
+  result = (godot::Ref< godot::FSXScript > *)new godot::Ref< godot::FSXScript >(arg1);
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_new_FSXScriptRef__SWIG_2(void * jarg1) {
+  void * jresult ;
+  godot::Variant *arg1 = 0 ;
+  godot::Ref< godot::FSXScript > *result = 0 ;
+  
+  arg1 = (godot::Variant *)jarg1;
+  if (!arg1) {
+    SWIG_CSharpSetPendingExceptionArgument(SWIG_CSharpArgumentNullException, "godot::Variant const & is null", 0);
+    return 0;
+  } 
+  result = (godot::Ref< godot::FSXScript > *)new godot::Ref< godot::FSXScript >((godot::Variant const &)*arg1);
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_delete_FSXScriptRef(void * jarg1) {
+  godot::Ref< godot::FSXScript > *arg1 = (godot::Ref< godot::FSXScript > *) 0 ;
+  
+  arg1 = (godot::Ref< godot::FSXScript > *)jarg1; 
+  delete arg1;
+}
+
+
+SWIGEXPORT void * SWIGSTDCALL CSharp_new_FSXScript() {
+  void * jresult ;
+  godot::FSXScript *result = 0 ;
+  
+  result = (godot::FSXScript *)new godot::FSXScript();
+  jresult = (void *)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_delete_FSXScript(void * jarg1) {
+  godot::FSXScript *arg1 = (godot::FSXScript *) 0 ;
+  
+  arg1 = (godot::FSXScript *)jarg1; 
+  delete arg1;
+}
+
+
+SWIGEXPORT void SWIGSTDCALL CSharp_SetDotnetFunctions(void * jarg1, void * jarg2) {
+  CreateDotnetInstance arg1 = (CreateDotnetInstance) 0 ;
+  CallMethod arg2 = (CallMethod) 0 ;
+  
+  arg1 = (CreateDotnetInstance)jarg1; 
+  arg2 = (CallMethod)jarg2; 
+  SetDotnetFunctions(arg1,arg2);
 }
 
 
@@ -1468,9 +2002,9 @@ SWIGEXPORT void SWIGSTDCALL CSharp_test(char * jarg1) {
 
 
 SWIGEXPORT void SWIGSTDCALL CSharp_print_script_info(void * jarg1) {
-  FSharpScript *arg1 = (FSharpScript *) 0 ;
+  godot::FSXScript *arg1 = (godot::FSXScript *) 0 ;
   
-  arg1 = (FSharpScript *)jarg1; 
+  arg1 = (godot::FSXScript *)jarg1; 
   print_script_info(arg1);
 }
 

@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>ScriptInterop.CSharp</RootNamespace>
+        <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Folder Include="Generated\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\GodotSharpGDExtension.CSharp\GodotSharpGDExtension.CSharp.csproj" />
+    </ItemGroup>
+
+</Project>

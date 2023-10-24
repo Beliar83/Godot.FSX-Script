@@ -1,5 +1,4 @@
 #include <filesystem>
-#include <string>
 
 #include "register_types.h"
 #include <gdextension_interface.h>
@@ -8,15 +7,14 @@
 #include <godot_cpp/godot.hpp>
 #include <sstream>
 #include "nativehost.h"
-#include "dotnet_api.h"
 #include "godot_cpp/classes/gd_extension.hpp"
-#include "godot_cpp/classes/engine.hpp"
 
 using namespace godot;
 
 //LocalVector<extension_data> extension_datas;
 bool initialized = false;
 GDExtension* extension;
+
 
 void initialize_fsharp_extension_module(ModuleInitializationLevel p_level) {
     switch (p_level) {
@@ -26,6 +24,7 @@ void initialize_fsharp_extension_module(ModuleInitializationLevel p_level) {
                 bind();
                 initialized = true;
             }
+            extension->initialize_library(godot::GDExtension::INITIALIZATION_LEVEL_SCENE);
             break;
         }
         case godot::MODULE_INITIALIZATION_LEVEL_CORE:
@@ -40,7 +39,10 @@ void initialize_fsharp_extension_module(ModuleInitializationLevel p_level) {
             break;
         }
         case MODULE_INITIALIZATION_LEVEL_SERVERS:
+            extension->initialize_library(godot::GDExtension::INITIALIZATION_LEVEL_SERVERS);
+            break;
         case MODULE_INITIALIZATION_LEVEL_EDITOR:
+            extension->initialize_library(godot::GDExtension::INITIALIZATION_LEVEL_EDITOR);
             break;
     }
 //    for (auto extension_data: extension_datas) {
@@ -56,8 +58,8 @@ void uninitialize_fsharp_extension_module(ModuleInitializationLevel p_level) {
             memdelete(extension);
             extension = nullptr;
             break;
-        case MODULE_INITIALIZATION_LEVEL_SERVERS:
         case MODULE_INITIALIZATION_LEVEL_SCENE:
+        case MODULE_INITIALIZATION_LEVEL_SERVERS:
         case MODULE_INITIALIZATION_LEVEL_EDITOR:
             break;
     }

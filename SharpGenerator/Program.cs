@@ -45,7 +45,7 @@ internal class Program
         
         await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(30));
         
-        generatedDir = GetGeneratedDir(rootFolder, "ScriptInterop.CSharp");
+        generatedDir = GetGeneratedDir(rootFolder, "ScriptInterop.Interface");
 
         if (Directory.Exists(generatedDir))
         {

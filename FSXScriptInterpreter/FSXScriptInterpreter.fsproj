@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <TargetFrameworks>net6.0;net7.0</TargetFrameworks>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+      <Compile Include="TypeNameToGodotType.fs" />
+      <Compile Include="ScriptSession.fs" />
+      <Compile Include="Main.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Update="FSharp.Core" Version="7.0.400" />
+      <PackageReference Include="JetBrains.FSharp.Compiler.Service" Version="2023.3.0.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="res\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\GodotSharpGDExtension.CSharp\GodotSharpGDExtension.CSharp.csproj" />
+      <ProjectReference Include="..\ScriptInterop.Interface\ScriptInterop.Interface.csproj" />
+    </ItemGroup>
+
+</Project>

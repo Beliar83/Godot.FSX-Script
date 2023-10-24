@@ -26,6 +26,9 @@
 #include "register_types.h"
 #include "godot_cpp/variant/string.hpp"
 #include "godot_cpp/variant/variant.hpp"
+#include "nativehost.h"
+#include "godot_cpp/variant/utility_functions.hpp"
+
 using namespace std::string_view_literals;
 
 
@@ -74,9 +77,9 @@ void bind()
     load_library(STR("libfsharp.so"));
 #endif
 //    godot::LocalVector<extension_data> extension_datas;
-    WARN_PRINT("Test");
+    godot::UtilityFunctions::print("Test");
     string_t root_path = STR("./");
-    WARN_PRINT(godot::String(std::filesystem::current_path().c_str()));
+    godot::UtilityFunctions::print(godot::String(std::filesystem::current_path().c_str()));
 
     //
     // STEP 1: Load HostFxr and get exported hosting functions
@@ -99,7 +102,7 @@ void bind()
     //
     const string_t godot_sharp_extension_path = root_path + STR("ScriptInterop.CSharp.dll");
 
-    WARN_PRINT(godot::Variant(std::filesystem::exists(std::filesystem::path(godot_sharp_extension_path))));
+    godot::UtilityFunctions::print(godot::Variant(std::filesystem::exists(std::filesystem::path(godot_sharp_extension_path))));
 
     const char_t *main_dotnet_type = STR("ScriptInterop.CSharp.Entry, ScriptInterop.CSharp");
     const char_t *bind_method = STR("Initialize");
@@ -122,8 +125,8 @@ void bind()
     if (rc != 0 || bind == nullptr) {
         std::stringstream message;
         message << "load_assembly_and_get_function_pointer failed: " << std::hex << std::showbase << rc << std::endl;
-        WARN_PRINT(godot::String(message.str().c_str()));
-        WARN_PRINT(godot::Variant(rc));
+        godot::UtilityFunctions::print(godot::String(message.str().c_str()));
+        godot::UtilityFunctions::print(godot::Variant(rc));
 //        return extension_datas;
         return;
     }
@@ -133,12 +136,10 @@ void bind()
     auto funcs = interface_functions();
     init_interface_functions(&funcs);
 
-    WARN_PRINT("Calling bind");
+    godot::UtilityFunctions::print("Calling bind");
 
     bind();
-    WARN_PRINT("Success");
-
-    return ;
+    godot::UtilityFunctions::print("Success");
 }
 
 /********************************************************************************************
@@ -153,7 +154,7 @@ namespace
 #ifdef _WIN32
     void *load_library(const char_t *path)
     {
-//        WARN_PRINT(path);
+//        godot::UtilityFunctions::print(path);
         HMODULE h = ::LoadLibraryW(path);
         assert(h != nullptr);
         return (void*)h;
@@ -193,11 +194,11 @@ namespace
 
         Dl_info info;
         if (dladdr(h, &info) == 0) {
-//            WARN_PRINT("Failed to retrieve information about shared library");
+//            godot::UtilityFunctions::print("Failed to retrieve information about shared library");
             return h;
         }
 
-//        WARN_PRINT(info.dli_fname);
+//        godot::UtilityFunctions::print(info.dli_fname);
         return h;
     }
 #endif
@@ -207,7 +208,7 @@ namespace
     bool load_hostfxr()
     {
         // Load hostfxr and get desired exports
-//        WARN_PRINT(godot::String(HOSTFXR_PATH));
+//        godot::UtilityFunctions::print(godot::String(HOSTFXR_PATH));
         void *lib = load_library(HOSTFXR_PATH);
         init_fptr = (hostfxr_initialize_for_runtime_config_fn)get_export(lib, "hostfxr_initialize_for_runtime_config");
         get_delegate_fptr = (hostfxr_get_runtime_delegate_fn)get_export(lib, "hostfxr_get_runtime_delegate");

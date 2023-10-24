@@ -9,20 +9,5 @@
 #ifndef SWIG_DotnetScriptInterop_WRAP_H_
 #define SWIG_DotnetScriptInterop_WRAP_H_
 
-class SwigDirector_FSharpScript : public FSharpScript, public Swig::Director {
-
-public:
-    SwigDirector_FSharpScript();
-    virtual ~SwigDirector_FSharpScript();
-    virtual std::vector< FSharpMethodInfo > _getMethods();
-
-    typedef void * (SWIGSTDCALL* SWIG_Callback0_t)();
-    void swig_connect_director(SWIG_Callback0_t callback_getMethods);
-
-private:
-    SWIG_Callback0_t swig_callback_getMethods;
-    void swig_init_callbacks();
-};
-
 
 #endif
