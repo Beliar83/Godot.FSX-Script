@@ -96,7 +96,7 @@ public static unsafe class Entry
         {
             DotnetScriptInterop.test(value.Value.ReflectionValue as string);
         }
-
+        
         var createDotnetInstance = new SWIGTYPE_p_f_godot__String_godot__String__p_godot__StringName(Marshal.GetFunctionPointerForDelegate(CreateScriptInstance), false);
         var callMethod = new SWIGTYPE_p_f_p_godot__StringName_godot__StringName_std__vector__godot__Variant___godot__Object_p_godot__Variant__void(Marshal.GetFunctionPointerForDelegate(CallMethod), false);
         DotnetScriptInterop.SetDotnetFunctions(createDotnetInstance, callMethod);

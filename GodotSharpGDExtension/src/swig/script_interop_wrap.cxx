@@ -676,9 +676,16 @@ SWIGINTERN void std_vector_Sl_FSharpMethodInfo_Sg__SetRange(std::vector< FSharpM
 
 #include "fsx_script_instance.h"
 
+typedef godot::StringName* (*CreateDotnetInstance)(godot::String path, godot::String code);
+typedef void (*CallMethod)(godot::StringName* script, godot::StringName name, std::vector<godot::Variant> args, godot::Object instance, godot::Variant* return_val);
+
+
 void SetDotnetFunctions(CreateDotnetInstance p_create_dotnet_instance, CallMethod p_call_method) {
     godot::FSXScriptInstance::SetDotnetFunctions(p_create_dotnet_instance, p_call_method);
 }
+
+typedef godot::StringName* (*CreateDotnetInstance)(godot::String path, godot::String code);
+typedef void (*CallMethod)(godot::StringName* script, godot::StringName name, std::vector<godot::Variant> args, godot::Object instance, godot::Variant* return_val);
 
 
 #include <iostream>
