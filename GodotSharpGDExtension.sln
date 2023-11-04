@@ -13,6 +13,8 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSXScriptInterpreter", "FSX
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptInterop.CSharp", "ScriptInterop.CSharp\ScriptInterop.CSharp.csproj", "{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GodotSharpGDExtension.Interface", "GodotSharpGDExtension.Interface\GodotSharpGDExtension.Interface.csproj", "{DA9038C5-2AE2-433D-BEEC-AF469C5B0CF4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA9038C5-2AE2-433D-BEEC-AF469C5B0CF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA9038C5-2AE2-433D-BEEC-AF469C5B0CF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA9038C5-2AE2-433D-BEEC-AF469C5B0CF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA9038C5-2AE2-433D-BEEC-AF469C5B0CF4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
