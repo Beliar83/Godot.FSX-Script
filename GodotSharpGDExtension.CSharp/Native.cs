@@ -19,7 +19,10 @@ namespace GDExtension
 
 	public static unsafe class Native
 	{
-
+		// public void sdf()
+		// {
+		// 	// GDExtensionInterface.ClassdbRegis;
+		// }
 	}
 }
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

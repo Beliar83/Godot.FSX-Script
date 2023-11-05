@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<config id="GDExtension" xmlns="urn:SharpGen.Config">
+    <assembly>GodotSharpGDExtension.Interface</assembly>
+    <namespace>GodotSharpGDExtension</namespace>
+    <depends>SharpGen.Runtime</depends>
+    <include-dir override="true">$(THIS_CONFIG_PATH)/../../godot-cpp/gdextension</include-dir>
+    <include-dir override="true">$(THIS_CONFIG_PATH)/../../godot-cpp/include</include-dir>
+    <include-dir override="true">$(THIS_CONFIG_PATH)/../../GodotSharpGDExtension.Native/src</include-dir>
+    <include file="dotnet_api.h" namespace="GodotSharpGDExtension" attach="true"/>
+    <include file="gdextension_interface.h" namespace="GodotSharpGDExtension" attach="true" />
+    <extension>
+        <create class="GodotSharpGDExtension.GDExtensionInterface" visibility="public static"/>
+    </extension>
+    <mapping>
+        <map param="\w+::r_\w+" attribute="out" />
+    </mapping>
+</config>

@@ -83,10 +83,7 @@ public sealed unsafe partial class Variant
         GC.SuppressFinalize(this);
     }
 
-    public static Variant Nil
-    {
-        get { var v = new Variant(); GDExtensionInterface.VariantNewNil(v.internalPointer); return v; }
-    }
+    public static Variant Nil => new(GDExtensionInterface.VariantNewNil());
 
     public Variant(int value) : this((long)value) { }
     public Variant(float value) : this((double)value) { }

@@ -4,6 +4,14 @@ namespace GodotSharpGDExtension;
 
 public unsafe partial class Array<T> : Array, IList<T>, ICollection<T>, IEnumerable<T>, IEnumerable
 {
+    public Array()
+    {
+    }
+    
+    public Array(IntPtr ptr) : base(ptr)
+    {
+    }
+    
     public new T this[int index]
     {
         get => (T)base[index];

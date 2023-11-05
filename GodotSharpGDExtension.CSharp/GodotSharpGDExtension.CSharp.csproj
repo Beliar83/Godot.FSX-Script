@@ -29,6 +29,5 @@
 
 	<ItemGroup>
 		<SharpGenMapping Include="Mappings\GDExtension.xml" />
-		<None Include="Mappings\GDExtension.template.xml" />
 	</ItemGroup>
 </Project>
