@@ -4,43 +4,43 @@ namespace GodotSharpGDExtension;
 
 public unsafe partial class Callable
 {
-    protected Callable(Delegate @delegate,Object @object)
+    protected Callable(Delegate @delegate,GodotObject godotObject)
     {
         if (@delegate is null)
         {
             throw new NullReferenceException();
         }
         this.@delegate = @delegate;
-        this.@object = @object;
+        this.godotObject = godotObject;
         gCHandle = GCHandle.Alloc(this);
         internalPointer = GodotSharpGDExtensionCustomCallable.Libgodot_create_callable((IntPtr)gCHandle);
     }
     internal readonly GCHandle gCHandle;
     internal Delegate @delegate;
-    internal Object @object;
+    internal GodotObject godotObject;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Callable From<T>(T target, Object @object = null) where T : Delegate
+    public static Callable From<T>(T target, GodotObject godotObject = null) where T : Delegate
     {
         if(target is null)
         {
             throw new NullReferenceException();
         }
-        if(target.Target is Object delobject)
+        if(target.Target is GodotObject delobject)
         {
-            @object = delobject;
+            godotObject = delobject;
         }
-        if(@object is null)
+        if(godotObject is null)
         {
             throw new NullReferenceException();
         }
-        return new Callable(target, @object);
+        return new Callable(target, godotObject);
     }
 
     internal void Free()
     {
         gCHandle.Free();
         @delegate = null;
-        @object = null;
+        godotObject = null;
     }
 }

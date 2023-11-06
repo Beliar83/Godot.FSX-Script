@@ -8,7 +8,7 @@ typedef VoidFunctionPtr (*GDExtensionInterfaceGetProcAddressC2CS)(const char *p_
 #define GDExtensionInterfaceGetProcAddress GDExtensionInterfaceGetProcAddressC2CS
 #endif
 
-typedef struct interface_functions {
+typedef struct {
     GDExtensionInterfaceGetProcAddress get_proc_address;
     GDExtensionInterfaceGetGodotVersion get_godot_version;
     GDExtensionInterfaceMemAlloc mem_alloc;
@@ -146,5 +146,5 @@ typedef struct interface_functions {
     GDExtensionInterfaceGetLibraryPath get_library_path;
     GDExtensionInterfaceEditorAddPlugin editor_add_plugin;
     GDExtensionInterfaceEditorRemovePlugin editor_remove_plugin;
-};
-void init_interface_functions(struct interface_functions *interface_functions);
+} interface_functions;
+void init_interface_functions(interface_functions *interface_functions);

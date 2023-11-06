@@ -1,7 +1,7 @@
 #include "dotnet_api.h"
 #include "godot_cpp/godot.hpp"
 
-void init_interface_functions(struct interface_functions *interface_functions) {
+void init_interface_functions(interface_functions *interface_functions) {
     interface_functions->get_proc_address = godot::internal::gdextension_interface_get_proc_address;
     interface_functions->get_godot_version = godot::internal::gdextension_interface_get_godot_version;
     interface_functions->mem_alloc = godot::internal::gdextension_interface_mem_alloc;

@@ -47,7 +47,7 @@ public static class Fixer
         if (name.StartsWith("String")) { name = name.Replace("int", "string"); }
         if (name.StartsWith("VariantType")) { name = name.Replace("VariantType", "Variant.Type"); }
 
-        return name;
+        return name == "Object" ? "GodotObject" : name;
     }
 
     public static string MethodName(string name)
@@ -137,6 +137,7 @@ public static class Fixer
             "int" => "Int",
             "float" => "Float",
             "bool" => "Bool",
+            "Object" => "GodotObject",
             _ => name,
         };
     }

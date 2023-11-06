@@ -1,6 +1,6 @@
 namespace GodotSharpGDExtension;
 
-public unsafe partial class Node : Object
+public unsafe partial class Node : GodotObject
 {
 
     public T GetNode<T>(NodePath path) where T : Node => (T)GetNode(path);

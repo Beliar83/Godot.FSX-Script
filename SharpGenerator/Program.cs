@@ -47,11 +47,16 @@ internal class Program
         dotnetApiHeaderBuilder.AppendLine();
         dotnetApiHeaderBuilder.AppendLine("#include \"gdextension_interface.h\"");
         dotnetApiHeaderBuilder.AppendLine();
+        dotnetApiHeaderBuilder.AppendLine("GDExtensionClassLibraryPtr get_library();");
         // dotnetApiHeaderBuilder.AppendLine("struct interface_functions {");
 
         dotnetApiCodeBuilder.AppendLine("#include \"dotnet_api.h\"");
         dotnetApiCodeBuilder.AppendLine("#include \"godot_cpp/godot.hpp\"");
         dotnetApiCodeBuilder.AppendLine();
+        dotnetApiCodeBuilder.AppendLine("GDExtensionClassLibraryPtr get_library() {");
+        dotnetApiCodeBuilder.AppendLine("    return godot::internal::library;");
+        dotnetApiCodeBuilder.AppendLine("}");
+        
         // dotnetApiCodeBuilder.AppendLine("void init_interface_functions(struct interface_functions *interface_functions) {");
 
         var ignoredTypes = new List<string>
@@ -70,7 +75,7 @@ internal class Program
 
         // Find the mapping element using the namespace
         XElement mappingElement = mappingDoc.Root?.Element(ns + "mapping");
-
+        
         var functions = new Dictionary<string, CppType>();
 
         if (mappingElement == null)
@@ -80,6 +85,13 @@ internal class Program
             mappingDoc.Root?.Add(mappingElement);
         }
 
+        var functionMapElement = new XElement(ns + "map");
+        functionMapElement.SetAttributeValue("function", "get_library");
+        functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
+        functionMapElement.SetAttributeValue("dll", "\"fsharp.dll\"");
+        mappingElement.Add(functionMapElement);
+        
+        
         // if (mappingNode is null)
         // {
         //     Console.Error.WriteLineAsync("Could not find config/mapping node");

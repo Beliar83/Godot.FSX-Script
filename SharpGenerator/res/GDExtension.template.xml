@@ -13,5 +13,6 @@
     </extension>
     <mapping>
         <map param="\w+::r_\w+" attribute="out" />
+        <map param="classdb_register_extension_class_signal::p_argument_info" attribute="buffer"/>
     </mapping>
 </config>

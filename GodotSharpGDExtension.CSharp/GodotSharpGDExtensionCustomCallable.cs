@@ -75,7 +75,7 @@ internal static unsafe class GodotSharpGDExtensionCustomCallable
     internal static ulong Get_object_bind_del(void* targetObject)
     {
         var target = GetCallable(targetObject);
-        return (ulong)target.@object.GetInstanceId();
+        return (ulong)target.godotObject.GetInstanceId();
     }
 
     internal static void Disposes_bind_del(void* targetObject)

@@ -43,24 +43,24 @@ public sealed unsafe partial class Variant
         srcSpan.CopyTo(dstSpan);
     }
 
-    public static void SaveIntoPointer(Object value, IntPtr ptr)
+    public static void SaveIntoPointer(GodotObject value, IntPtr ptr)
     {
         IntPtr objectPtr = value?.internalPointer ?? IntPtr.Zero;
-        GDExtensionInterface.CallGDExtensionVariantFromTypeConstructorFunc(Constructors[(int)Type.Object].fromType, ptr, objectPtr);
+        GDExtensionInterface.CallGDExtensionVariantFromTypeConstructorFunc(Constructors[(int)Type.GodotObject].fromType, ptr, objectPtr);
     }
-    public static Object GetObjectFromVariant(Variant @object)
+    public static GodotObject GetGodotObjectFromVariant(Variant @object)
     {
         IntPtr res = IntPtr.Zero;
-        GDExtensionInterface.CallGDExtensionTypeFromVariantConstructorFunc(Constructors[(int)Type.Object].toType, res, @object.internalPointer);
-        return Object.ConstructUnknown(res);
+        GDExtensionInterface.CallGDExtensionTypeFromVariantConstructorFunc(Constructors[(int)Type.GodotObject].toType, res, @object.internalPointer);
+        return GodotObject.ConstructUnknown(res);
     }
 
-    public static Object GetObjectFromPointer(IntPtr ptr)
+    public static GodotObject GetObjectFromPointer(IntPtr ptr)
     {
         IntPtr res = IntPtr.Zero;
-        GDExtensionInterface.CallGDExtensionTypeFromVariantConstructorFunc(Constructors[(int)Type.Object].toType, res, ptr);
+        GDExtensionInterface.CallGDExtensionTypeFromVariantConstructorFunc(Constructors[(int)Type.GodotObject].toType, res, ptr);
         
-        return Object.ConstructUnknown(res);
+        return GodotObject.ConstructUnknown(res);
     }
 
     internal IntPtr internalPointer;
