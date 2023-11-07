@@ -47,8 +47,14 @@ internal class Program
         dotnetApiHeaderBuilder.AppendLine();
         dotnetApiHeaderBuilder.AppendLine("#include \"gdextension_interface.h\"");
         dotnetApiHeaderBuilder.AppendLine();
-        dotnetApiHeaderBuilder.AppendLine("GDExtensionClassLibraryPtr get_library();");
-        // dotnetApiHeaderBuilder.AppendLine("struct interface_functions {");
+        dotnetApiHeaderBuilder.AppendLine("#ifndef __castxml__ // This avoids issues with clang version of CastXML not matching the one of VS. Also, it is not needed for the wrapper. ");
+        dotnetApiHeaderBuilder.AppendLine("#include \"godot_cpp/core/defs.hpp\"");
+        dotnetApiHeaderBuilder.AppendLine("#else");
+        dotnetApiHeaderBuilder.AppendLine("#define GDE_EXPORT");
+        dotnetApiHeaderBuilder.AppendLine("#endif");
+        dotnetApiHeaderBuilder.AppendLine();
+        dotnetApiHeaderBuilder.AppendLine("extern \"C\" {");
+        dotnetApiHeaderBuilder.AppendLine("GDE_EXPORT GDExtensionClassLibraryPtr get_library();");
 
         dotnetApiCodeBuilder.AppendLine("#include \"dotnet_api.h\"");
         dotnetApiCodeBuilder.AppendLine("#include \"godot_cpp/godot.hpp\"");
@@ -75,6 +81,7 @@ internal class Program
 
         // Find the mapping element using the namespace
         XElement mappingElement = mappingDoc.Root?.Element(ns + "mapping");
+        XElement bindingElement = mappingDoc.Root?.Element(ns + "bindings");
         
         var functions = new Dictionary<string, CppType>();
 
@@ -85,10 +92,17 @@ internal class Program
             mappingDoc.Root?.Add(mappingElement);
         }
 
+        if (bindingElement == null)
+        {
+            // If the "mapping" element doesn't exist, you can create it and add content
+            bindingElement = new XElement(ns + "bindings");
+            mappingDoc.Root?.Add(bindingElement);
+        }
+
         var functionMapElement = new XElement(ns + "map");
         functionMapElement.SetAttributeValue("function", "get_library");
         functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
-        functionMapElement.SetAttributeValue("dll", "\"fsharp.dll\"");
+        functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
         mappingElement.Add(functionMapElement);
         
         
@@ -97,6 +111,8 @@ internal class Program
         //     Console.Error.WriteLineAsync("Could not find config/mapping node");
         // }
         // mappingNode.RemoveAll();
+
+        var processedTypes = new HashSet<string>();
 
         foreach (CppField field in interfaceFunctions)
         {
@@ -109,9 +125,6 @@ internal class Program
             bool isIgnored = false;
 
 
-            if (functionName.Contains("string_new_with_utf16_chars"))
-            {
-            }
             foreach (string ignoredType in ignoredTypes)
             {
                 if (GetTypeString(functionType.ReturnType).Contains(ignoredType))
@@ -130,9 +143,18 @@ internal class Program
             }
 
             if (isIgnored) continue;
-           
+
             if (IsFunction(functionType.ReturnType))
             {
+                string returnTypeName = functionType.ReturnType.FullName;
+                if (processedTypes.Add(returnTypeName))
+                {
+                    var functionBindingElement = new XElement(ns + "bind");
+                    functionBindingElement.SetAttributeValue("from", returnTypeName);
+                    functionBindingElement.SetAttributeValue("to", "System.IntPtr");
+                    bindingElement.Add(functionBindingElement);
+                }            
+
                 if (!functions.ContainsKey(functionType.ReturnType.GetDisplayName()))
                 {
                     functions.Add(functionType.ReturnType.GetDisplayName(), functionType.ReturnType);
@@ -213,10 +235,7 @@ internal class Program
             "GodotSharpGDExtension.CSharp/Mappings/GDExtension.xml")));
         
         
-        // dotnetApiHeaderBuilder.AppendLine("};");
-        // dotnetApiHeaderBuilder.AppendLine("void init_interface_functions(struct interface_functions *interface_functions);");
-        //
-        // dotnetApiCodeBuilder.AppendLine("}");
+        dotnetApiHeaderBuilder.AppendLine("}");
 
 
         await File.WriteAllTextAsync($"{rootFolder}GodotSharpGDExtension.Native/src/dotnet_api.h", dotnetApiHeaderBuilder.ToString().Replace("\t", "    "));
@@ -288,7 +307,7 @@ internal class Program
             CppFunctionType functionType,
             IEnumerable<string> parameterNames)
         {
-            dotnetApiHeaderBuilder.AppendLine($"{functionSignature};");
+            dotnetApiHeaderBuilder.AppendLine($"GDE_EXPORT {functionSignature};");
             dotnetApiCodeBuilder.AppendLine($"{functionSignature} {{");
             string typeString = GetTypeString(functionType.ReturnType);
 
@@ -306,7 +325,7 @@ internal class Program
             var functionMapElement = new XElement(ns + "map");
             functionMapElement.SetAttributeValue("function", functionName);
             functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
-            functionMapElement.SetAttributeValue("dll", "\"fsharp.dll\"");
+            functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
             mappingElement.Add(functionMapElement);
             
         }

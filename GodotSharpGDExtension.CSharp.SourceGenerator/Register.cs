@@ -77,7 +77,7 @@ public static class Register
 		               			//FreePropertyListFunc = &FreePropertyList,
 		               			//PropertyCanRevertFunc = &PropertyCanConvert,
 		               			//PropertyGetRevertFunc = &PropertyGetRevert,
-		               			NotificationFunc = {{(notification ? "Engine.IsEditorHint() ? IntPtr.Zero : new FunctionCallBack(Marshal.GetFunctionPointerForDelegate(__Notification))" : "IntPtr.Zero")}},
+		               			NotificationFunc = {{(notification ? "Engine.IsEditorHint() ? IntPtr.Zero : Marshal.GetFunctionPointerForDelegate(__Notification)" : "IntPtr.Zero")}},
 		               			//ToStringFunc = &ToString,
 		               			//ReferenceFunc = &Reference,
 		               			//UnreferenceFunc = &Unreference,

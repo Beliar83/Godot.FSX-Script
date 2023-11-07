@@ -132,7 +132,7 @@ public class Convert
         {
             for (var i = 0; i < list.Count; i++)
             {
-                file.WriteLine($"\tstatic SharpGen.Runtime.FunctionCallback __methodPointer{i} = {list[i]};");
+                file.WriteLine($"\tstatic IntPtr __methodPointer{i} = {list[i]};");
             }
             file.WriteLine();
 
@@ -393,25 +393,26 @@ public class Convert
 
         foreach (var member in membersWithFunctions)
         {
-            file.WriteLine($"\tstatic SharpGen.Runtime.FunctionCallback {member}Getter;");
-            file.WriteLine($"\tstatic SharpGen.Runtime.FunctionCallback {member}Setter;");
+            file.WriteLine($"\tprivate static readonly StringName _stringName{member} = new (\"{member}\");");
+            file.WriteLine($"\tstatic IntPtr {member}Getter = GDExtensionInterface.VariantGetPtrGetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
+            file.WriteLine($"\tstatic IntPtr {member}Setter = GDExtensionInterface.VariantGetPtrSetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
         }
         for (var i = 0; i < constructorRegistrations.Count; i++)
         {
-            file.WriteLine($"\tstatic SharpGen.Runtime.FunctionCallback __constructorPointer{i};");
+            file.WriteLine($"\tstatic IntPtr __constructorPointer{i} = {constructorRegistrations[i]};");
         }
         for (var i = 0; i < operatorRegistrations.Count; i++)
         {
-            file.WriteLine($"\tstatic SharpGen.Runtime.FunctionCallback __operatorPointer{i};");
+            file.WriteLine($"\tstatic IntPtr __operatorPointer{i} = {operatorRegistrations[i]};");
         }
         for (var i = 0; i < methodRegistrations.Count; i++)
         {
-            file.WriteLine($"\tstatic SharpGen.Runtime.FunctionCallback __methodPointer{i} = {methodRegistrations[i]};");
+            file.WriteLine($"\tstatic IntPtr __methodPointer{i} = {methodRegistrations[i]};");
         }
 
         if (hasPointer)
         {
-            file.WriteLine("\tstatic SharpGen.Runtime.FunctionCallback __destructor;");
+            file.WriteLine($"\tstatic IntPtr __destructor = GDExtensionInterface.VariantGetPtrDestructor((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)});");
         }
 
         file.WriteLine();
@@ -421,21 +422,17 @@ public class Convert
         file.WriteLine("\t\t_registered = true;");
         if (hasPointer)
         {
-            file.WriteLine($"\t\t__destructor = GDExtensionInterface.VariantGetPtrDestructor((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)});");
+            // file.WriteLine($"\t\t__destructor = GDExtensionInterface.VariantGetPtrDestructor((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)});");
         }
         foreach (var member in membersWithFunctions)
         {
-            file.WriteLine($"\t\tvar _stringName{member} = new StringName(\"{member}\");");
-            file.WriteLine($"\t\t{member}Getter = GDExtensionInterface.VariantGetPtrGetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
-            file.WriteLine($"\t\t{member}Setter = GDExtensionInterface.VariantGetPtrSetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
-        }
-        for (var i = 0; i < constructorRegistrations.Count; i++)
-        {
-            file.WriteLine(constructorRegistrations[i]);
+            // file.WriteLine($"\t\tvar _stringName{member} = new StringName(\"{member}\");");
+            // file.WriteLine($"\t\t{member}Getter = GDExtensionInterface.VariantGetPtrGetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
+            // file.WriteLine($"\t\t{member}Setter = GDExtensionInterface.VariantGetPtrSetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
         }
         for (var i = 0; i < operatorRegistrations.Count; i++)
         {
-            file.WriteLine(operatorRegistrations[i]);
+            // file.WriteLine(operatorRegistrations[i]);
         }
         if (c.constants != null)
         {
@@ -542,7 +539,7 @@ public class Convert
         }
         var m = $"__constructorPointer{constructorRegistrations.Count}";
         file.WriteLine($"\t\tvar constructor = {m};");
-        constructorRegistrations.Add($"\t\t{m} = GDExtensionInterface.VariantGetPtrConstructor((GDExtensionVariantType)Variant.Type.{Fixer.Type(c.name, api)}, {constructor.index});");
+        constructorRegistrations.Add($"GDExtensionInterface.VariantGetPtrConstructor((GDExtensionVariantType)Variant.Type.{Fixer.Type(c.name, api)}, {constructor.index})");
 
         if (constructor.arguments != null)
         {
@@ -580,10 +577,6 @@ public class Convert
 
     void Operator(Api.Operator op, string className, StreamWriter file, List<string> operatorRegistrations, Documentation.Operator doc)
     {
-        if (className.Contains("object", StringComparison.InvariantCultureIgnoreCase))
-        {
-        }
-        
         if (op.rightType != null)
         {
             if (op.rightType == "Variant") { return; }
@@ -603,7 +596,7 @@ public class Convert
             file.WriteLine($"\tpublic static {Fixer.Type(op.returnType, api)} {name}({Fixer.Type(className, api)} left, {Fixer.Type(op.rightType, api)} right) {{");
             var m = $"__operatorPointer{operatorRegistrations.Count}";
             file.WriteLine($"\t\tvar __op = {m};");
-            operatorRegistrations.Add($"\t\t{m} = GDExtensionInterface.VariantGetPtrOperatorEvaluator((GDExtensionVariantOperator)Variant.Operator.{Fixer.VariantOperator(op.name)}, (GDExtensionVariantType)Variant.Type.{className}, (GDExtensionVariantType)Variant.Type.{Fixer.VariantName(op.rightType)});");
+            operatorRegistrations.Add($"GDExtensionInterface.VariantGetPtrOperatorEvaluator((GDExtensionVariantOperator)Variant.Operator.{Fixer.VariantOperator(op.name)}, (GDExtensionVariantType)Variant.Type.{className}, (GDExtensionVariantType)Variant.Type.{Fixer.VariantName(op.rightType)})");
             file.WriteLine($"\t\tIntPtr __res = GDExtensionInterface.CallGDExtensionPtrOperatorEvaluator(__op, {ValueToPointer("left", className)}, {ValueToPointer("right", op.rightType)});");
             file.WriteLine($"\t\treturn {ReturnStatementValue(op.returnType)};");
         }
@@ -623,7 +616,7 @@ public class Convert
             file.WriteLine($"\tpublic static {Fixer.Type(op.returnType, api)} {name}({Fixer.Type(className, api)} value) {{");
             var m = $"__operatorPointer{operatorRegistrations.Count}";
             file.WriteLine($"\t\tvar __op = {m};");
-            operatorRegistrations.Add($"\t\t{m} = GDExtensionInterface.VariantGetPtrOperatorEvaluator((GDExtensionVariantOperator)Variant.Operator.{Fixer.VariantOperator(op.name)}, (GDExtensionVariantType)Variant.Type.{className}, (GDExtensionVariantType)Variant.Type.Nil);");
+            operatorRegistrations.Add($"GDExtensionInterface.VariantGetPtrOperatorEvaluator((GDExtensionVariantOperator)Variant.Operator.{Fixer.VariantOperator(op.name)}, (GDExtensionVariantType)Variant.Type.{className}, (GDExtensionVariantType)Variant.Type.Nil)");
             file.WriteLine($"\t\tIntPtr __res = GDExtensionInterface.CallGDExtensionPtrOperatorEvaluator(__op, {ValueToPointer("value", className)}, IntPtr.Zero);");
             file.WriteLine($"\t\treturn {ReturnStatementValue(op.returnType)};");
         }

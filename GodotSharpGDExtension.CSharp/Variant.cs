@@ -8,8 +8,8 @@ public sealed unsafe partial class Variant
     struct Constructor
     {
         // GodotSharpGDExtension.CSharp.
-        public FunctionCallback fromType;
-        public FunctionCallback toType;
+        public IntPtr fromType;
+        public IntPtr toType;
     }
 
     static readonly Constructor[] Constructors = new Constructor[(int)Type.Max];

@@ -38,7 +38,10 @@ public static class Entry
 using System;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Reflection;
+using System.Diagnostics;
 using GodotSharpGDExtension;
+
 namespace {{assemblyName}};
 
 public unsafe static class {{className}} {
@@ -48,6 +51,9 @@ public unsafe static class {{className}} {
     [UnmanagedCallersOnly]
     public static void Bind()
     {
+		NativeLibrary.SetDllImportResolver(
+             Assembly.GetAssembly(typeof(GDExtensionInterface)), 
+             GDExtensionMain.NativeImportResolver);    
         Library = GDExtensionInterface.GetLibrary();
     }
 

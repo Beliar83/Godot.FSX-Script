@@ -15,12 +15,9 @@ public static unsafe class GDExtensionMain
     
 	public static void Initialize(IntPtr library)
 	{
-		// Console.WriteLine("Attach Debugger");
-		// while (!Debugger.IsAttached)
-		// {
-		// }
+		// Assembly.GetAssembly(typeof(GDExtensionInterface));
 		if (initialized) return;
-
+		
 		Library = library;
 		initialized = true;
 
@@ -40,5 +37,26 @@ public static unsafe class GDExtensionMain
 		return ptr;
 	}
 	
-	
+	public static IntPtr NativeImportResolver(string name, Assembly assembly, DllImportSearchPath? path)
+	{
+		Console.WriteLine("Attach Debugger");
+		while (!Debugger.IsAttached)
+		{
+		}
+		string libraryName;
+		if (OperatingSystem.IsWindows())
+		{
+			libraryName = "godot_sharp_gdextension.dll";
+		}
+		else if (OperatingSystem.IsLinux())
+		{
+			libraryName = "godot_sharp_gdextension.so";
+		}
+		else
+		{
+			throw new PlatformNotSupportedException();
+		}
+         
+		return name == "godot_sharp_gdextension" ? NativeLibrary.Load($"bin/{libraryName}") : IntPtr.Zero;
+	}   	
 }
