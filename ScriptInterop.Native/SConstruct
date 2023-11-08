@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+import os
+import sys
+from clr_loader import find_dotnet_root
+
+env = SConscript("../godot-cpp/SConstruct")
+
+# For reference:
+# - CCFLAGS are compilation flags shared between C and C++
+# - CFLAGS are for C-specific compilation flags
+# - CXXFLAGS are for C++-specific compilation flags
+# - CPPFLAGS are for pre-processor flags
+# - CPPDEFINES are for pre-processor defines
+# - LINKFLAGS are for linking flags
+
+# tweak this if you want to use different folders, or more folders, to store your source code in.
+env.Append(CPPPATH=["src/"])
+env.Append(CPPPATH=["third_party"])
+extension_sources = Glob("src/*.cpp")
+env_extension = env.Clone()
+env_extension.Append(CPPDEFINES=["HOSTFXR_PATH=" "STR(\\\"" + os.path.normpath(str(find_dotnet_root()) + "/host/fxr/6.0.24/" + env["LIBPREFIX"] + "hostfxr" + env["SHLIBSUFFIX"]).replace("\\", "\\\\") + "\\\")"])
+
+library_name = ''
+
+if env["platform"] == "macos":
+    library = env_extension.SharedLibrary(
+        "../demo/bin/libscript_interop.{}.{}.framework/libfsharp.{}.{}".format(
+            env["platform"], env["target"], env["platform"], env["target"]
+        ),
+        source=extension_sources,
+    )
+else:
+    library = env_extension.SharedLibrary(
+        "../demo/bin/libscript_interop{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+        source=extension_sources,
+    )
+
+Default(library)

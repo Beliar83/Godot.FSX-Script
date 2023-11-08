@@ -1,5 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
+	<Sdk Name="SharpGenTools.Sdk" Version="2.1.2-beta" />
 	<PropertyGroup>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
@@ -8,7 +8,7 @@
 		<RootNamespace>GodotSharpGDExtension</RootNamespace>
 		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
 		<AssemblyName>GodotSharpGDExtension</AssemblyName>
-		<TargetFrameworks>net7.0;net6.0</TargetFrameworks>
+		<TargetFramework>net7.0</TargetFramework>		
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -17,5 +17,9 @@
 
 	<ItemGroup>
 	  <Folder Include="Generated\" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<SharpGenMapping Include="Mappings\GDExtension.xml" />
 	</ItemGroup>
 </Project>
