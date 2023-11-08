@@ -57,6 +57,6 @@ public static unsafe class GDExtensionMain
 			throw new PlatformNotSupportedException();
 		}
          
-		return name == "godot_sharp_gdextension" ? NativeLibrary.Load($"bin/{libraryName}") : IntPtr.Zero;
+		return name == "godot_sharp_gdextension" ? NativeLibrary.Load($"{libraryName}") : IntPtr.Zero;
 	}   	
 }

@@ -4,6 +4,7 @@
 #include <filesystem>
 #include "nativehost.h"
 #include "godot_cpp/classes/gd_extension.hpp"
+#include "godot_cpp/variant/utility_functions.hpp"
 
 using namespace godot;
 
@@ -13,13 +14,23 @@ using namespace godot;
 
 bool initialized = false;
 godot::GDExtension* extension;
-DotnetInitialization* dotnetInitialization;
+//DotnetInitialization* dotnetInitialization;
 
 void initialize_godot_sharp_gdextension_extension_module(godot::ModuleInitializationLevel p_level) {
+            if (!initialized) {
+            extension = memnew(GDExtension);
+#ifdef _WIN32
+            extension->open_library(std::filesystem::current_path().append("godot_sharp_gdextension.dll").c_str(), "godot_sharp_gdextension_init");
+#else
+            extension->open_library(std::filesystem::current_path().append("bin/libgodot_sharp_gdextension.so").c_str(), "godot_sharp_gdextension_init");
+#endif
+                bind();
+                initialized = true;
+            }
     switch (p_level) {
         case MODULE_INITIALIZATION_LEVEL_SCENE:
             extension->initialize_library(godot::GDExtension::INITIALIZATION_LEVEL_SCENE);
-            dotnetInitialization->initialize(GDEXTENSION_INITIALIZATION_SCENE);
+//            dotnetInitialization->initialize(GDEXTENSION_INITIALIZATION_SCENE);
 
 //            godot::UtilityFunctions::print("FSXScriptLanguage");
 //            ClassDB::register_class<FSXScriptLanguage>();
@@ -45,26 +56,16 @@ void initialize_godot_sharp_gdextension_extension_module(godot::ModuleInitializa
 //            ResourceLoader::get_singleton()->add_resource_format_loader(fsxResourceFormatLoader);
             break;
         case MODULE_INITIALIZATION_LEVEL_CORE:
-            extension = memnew(GDExtension);
-#ifdef _WIN32
-            extension->open_library(std::filesystem::current_path().append("bin/godot_sharp_gdextension.dll").c_str(), "godot_sharp_gdextension_init");
-#else
-            extension->open_library(std::filesystem::current_path().append("bin/libgodot_sharp_gdextension.so").c_str(), "godot_sharp_gdextension_init");
-#endif
-            if (!initialized) {
-                dotnetInitialization = bind();
-                initialized = true;
-            }
             extension->initialize_library(godot::GDExtension::INITIALIZATION_LEVEL_CORE);
-            dotnetInitialization->initialize(GDEXTENSION_INITIALIZATION_CORE);
+            // dotnetInitialization->initialize(GDEXTENSION_INITIALIZATION_CORE);
             break;
         case MODULE_INITIALIZATION_LEVEL_SERVERS:
             extension->initialize_library(godot::GDExtension::INITIALIZATION_LEVEL_SERVERS);
-            dotnetInitialization->initialize(GDEXTENSION_INITIALIZATION_SERVERS);
+            // dotnetInitialization->initialize(GDEXTENSION_INITIALIZATION_SERVERS);
             break;
         case MODULE_INITIALIZATION_LEVEL_EDITOR:
             extension->initialize_library(godot::GDExtension::INITIALIZATION_LEVEL_EDITOR);
-            dotnetInitialization->initialize(GDEXTENSION_INITIALIZATION_EDITOR);
+            // dotnetInitialization->initialize(GDEXTENSION_INITIALIZATION_EDITOR);
             break;
     }
 }
@@ -73,21 +74,21 @@ void unitialize_fsharp_extension_module(godot::ModuleInitializationLevel p_level
 
     switch (p_level) {
         case MODULE_INITIALIZATION_LEVEL_SCENE:
-            dotnetInitialization->uninitialize(GDEXTENSION_INITIALIZATION_SCENE);
+//            dotnetInitialization->uninitialize(GDEXTENSION_INITIALIZATION_SCENE);
             break;
         case MODULE_INITIALIZATION_LEVEL_CORE:
-            dotnetInitialization->uninitialize(GDEXTENSION_INITIALIZATION_CORE);
+//            dotnetInitialization->uninitialize(GDEXTENSION_INITIALIZATION_CORE);
             extension->close_library();
             memdelete(extension);
             extension = nullptr;
-            delete dotnetInitialization;
-            dotnetInitialization = nullptr;
+//            delete dotnetInitialization;
+//            dotnetInitialization = nullptr;
             break;
         case MODULE_INITIALIZATION_LEVEL_SERVERS:
-            dotnetInitialization->uninitialize(GDEXTENSION_INITIALIZATION_SERVERS);
+//            dotnetInitialization->uninitialize(GDEXTENSION_INITIALIZATION_SERVERS);
             break;
         case MODULE_INITIALIZATION_LEVEL_EDITOR:
-            dotnetInitialization->uninitialize(GDEXTENSION_INITIALIZATION_EDITOR);
+//            dotnetInitialization->uninitialize(GDEXTENSION_INITIALIZATION_EDITOR);
             break;
     }
 }

@@ -49,7 +49,7 @@ public static class Register
 		               namespace {{c.ContainingNamespace}} {
 		               public unsafe partial class {{c.Name}} : {{c.BaseType.Name}} {
 		               #pragma warning disable CS8618
-		               	public static new StringName __godot_name;
+		               	public static new StringName __godot_name => new StringName("{{gdName}}");
 		               #pragma warning restore CS8618
 		               	private GCHandle handle;
 		               #pragma warning disable CS8618
@@ -67,7 +67,7 @@ public static class Register
 		               	}
 		               	public static unsafe new void Register() {	
 		               		if (!GodotSharpGDExtension.GodotObject.RegisterConstructor("{{c.Name}}", Construct)) return;{{ registerBase }}
-		               		__godot_name = new StringName("{{gdName}}");
+		               		//__godot_name = new StringName("{{gdName}}");
 		               		var info = new GDExtensionClassCreationInfo {
 		               			IsVirtual = System.Convert.ToByte(false),
 		               			IsAbstract = System.Convert.ToByte({{c.IsAbstract.ToString().ToLower()}}),
@@ -86,7 +86,7 @@ public static class Register
 		               			GetVirtualFunc = {{(virtualgen ? " (IntPtr)(delegate* unmanaged<IntPtr, IntPtr, IntPtr>)(&__RegisterVirtual)" : "IntPtr.Zero")}},
 		               			//GetRidFunc = &GetRid,
 		               		};
-		               		GDExtensionInterface.ClassdbRegisterExtensionClass({{entryClassName}}.Library, __godot_name.internalPointer, {{c.BaseType.Name}}.__godot_name.internalPointer, ref info);
+		               		GodotSharpGDExtension.GDExtensionInterface.RegisterClass("{{gdName}}", "{{c.BaseType.Name}}", ref info);
 		               		RegisterMethods();
 		               		RegisterExports();
 		               		RegisterSignals();

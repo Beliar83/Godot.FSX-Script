@@ -41,12 +41,16 @@ using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Diagnostics;
 using GodotSharpGDExtension;
+using SharpGen.Runtime;
 
 namespace {{assemblyName}};
 
 public unsafe static class {{className}} {
 
     static public IntPtr Library { get; private set; }
+    delegate void DeInitDelegate (GDExtensionInitializationLevel level);
+    //static GCHandle InitHandle = GCHandle.FromIntPtr((IntPtr)(delegate* unmanaged<GDExtensionInitializationLevel, void>)&ScriptInterop_CSharpExtensionEntry.Initialize);
+    //static GCHandle UninitHandle = GCHandle.FromIntPtr((IntPtr)(delegate* unmanaged<GDExtensionInitializationLevel, void>)&ScriptInterop_CSharpExtensionEntry.Uninitialize);
     
     [UnmanagedCallersOnly]
     public static void Bind()
@@ -55,9 +59,11 @@ public unsafe static class {{className}} {
              Assembly.GetAssembly(typeof(GDExtensionInterface)), 
              GDExtensionMain.NativeImportResolver);    
         Library = GDExtensionInterface.GetLibrary();
+        IntPtr initPtr = Marshal.GetFunctionPointerForDelegate<DeInitDelegate>(Initialize);
+        IntPtr uninitPtr = Marshal.GetFunctionPointerForDelegate<DeInitDelegate>(Uninitialize);
+        GDExtensionInterface.AddExtensionLibrary(new FunctionCallback(initPtr), new FunctionCallback(uninitPtr));        
     }
 
-    [UnmanagedCallersOnly]
     public static void Initialize(GDExtensionInitializationLevel level) 
     {
         switch (level)
@@ -83,7 +89,6 @@ public unsafe static class {{className}} {
         }
     }
 
-    [UnmanagedCallersOnly]
     public static void Uninitialize(GDExtensionInitializationLevel level)
     {
         switch (level)

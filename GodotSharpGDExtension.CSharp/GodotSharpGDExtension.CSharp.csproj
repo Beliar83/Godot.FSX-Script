@@ -20,10 +20,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-<!--	  <ProjectReference Include="..\GodotSharpGDExtension.Interface\GodotSharpGDExtension.Interface.csproj" />-->
-	</ItemGroup>
-
-	<ItemGroup>
 	  <PackageReference Include="SharpGen.Runtime.COM" Version="2.1.2-beta" />
 	</ItemGroup>
 

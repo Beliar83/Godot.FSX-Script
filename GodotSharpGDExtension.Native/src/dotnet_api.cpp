@@ -1,6 +1,23 @@
 #include "dotnet_api.h"
 #include "godot_cpp/godot.hpp"
+#include "godot_cpp/variant/utility_functions.hpp"
+#include "godot_cpp/variant/string_name.hpp"
 
+std::vector<DotnetInitialization> initializations;
+
+GDExtensionConstStringNamePtr create_string_name(const char* name) {
+    return new godot::StringName(name);
+}
+
+void add_extension_library(de_init initialize, de_init uninitialize) {
+    godot::UtilityFunctions::print("Adding extension library ", (int64_t)initialize);
+    DotnetInitialization initialization;
+    initialization.initialize = initialize;
+    initialization.uninitialize = uninitialize;     
+    initializations.push_back(initialization);
+    // initialization->initialize(static_cast<GDExtensionInitializationLevel>(0));
+    godot::UtilityFunctions::print("Libraries:", initializations.size());
+}
 GDExtensionClassLibraryPtr get_library() {
     return godot::internal::library;
 }
@@ -352,6 +369,11 @@ GDExtensionMethodBindPtr classdb_get_method_bind(GDExtensionConstStringNamePtr p
 void* classdb_get_class_tag(GDExtensionConstStringNamePtr p_classname) {
     return godot::internal::gdextension_interface_classdb_get_class_tag(p_classname);
 }
+
+void register_class(const char* p_name, const char* p_parent_name, const GDExtensionClassCreationInfo* p_extension_funcs) {
+    godot::internal::gdextension_interface_classdb_register_extension_class(godot::internal::library, godot::StringName(p_name)._native_ptr(), godot::StringName(p_parent_name)._native_ptr(), p_extension_funcs);
+}
+
 void classdb_register_extension_class(GDExtensionClassLibraryPtr p_library, GDExtensionConstStringNamePtr p_class_name, GDExtensionConstStringNamePtr p_parent_class_name, const GDExtensionClassCreationInfo* p_extension_funcs) {
     return godot::internal::gdextension_interface_classdb_register_extension_class(p_library, p_class_name, p_parent_class_name, p_extension_funcs);
 }
@@ -398,12 +420,37 @@ void call_GDExtensionPtrOperatorEvaluator(GDExtensionPtrOperatorEvaluator func, 
     return func(p_left, p_right, r_result);
 }
 void call_GDExtensionPtrBuiltInMethod(GDExtensionPtrBuiltInMethod func, GDExtensionTypePtr p_base, const GDExtensionConstTypePtr* p_args, GDExtensionTypePtr r_return, int p_argument_count) {
-    return func(p_base, p_args, r_return, p_argument_count);
+    godot::UtilityFunctions::print(int64_t(func));
+    godot::UtilityFunctions::print(int64_t(p_base));
+    godot::UtilityFunctions::print(int64_t(p_args));
+    godot::UtilityFunctions::print(p_argument_count);
+    func(p_base, p_args, r_return, p_argument_count);
+    godot::UtilityFunctions::print(int64_t(r_return));
 }
 void call_GDExtensionPtrConstructor(GDExtensionPtrConstructor func, GDExtensionUninitializedTypePtr p_base, const GDExtensionConstTypePtr* p_args) {
+    godot::UtilityFunctions::print(int64_t(func));
+    godot::UtilityFunctions::print(int64_t(p_base));
+    godot::UtilityFunctions::print(int64_t(p_args));
+    godot::UtilityFunctions::print(int64_t(p_args[0]));
+//    auto string = *(godot::String*)(p_args[0]);
+    auto name = godot::String();
+    char buf[1];
+//    godot::internal::gdextension_interface_string_new_with_latin1_chars(name._native_ptr(), "value");
+//    auto l = godot::internal::gdextension_interface_string_to_utf8_chars(name._native_ptr(), buf, 0);
+//    godot::UtilityFunctions::print(l);
+    auto l = godot::internal::gdextension_interface_string_to_utf8_chars(p_args[0], buf, 0);
+    godot::UtilityFunctions::print(l);
+//    godot::internal::gdextension_interface_string_new_with_latin1_chars(
+//            name._native_ptr(), "value"); //new godot::Variant(p_args[0]);
+//    godot::UtilityFunctions::print(args);
+//    godot::UtilityFunctions::print(args[0]);
+//    auto name = new godot::StringName("value");
+//    args[0] = name._native_ptr();
     return func(p_base, p_args);
 }
 void call_GDExtensionPtrDestructor(GDExtensionPtrDestructor func, GDExtensionTypePtr p_base) {
+    godot::UtilityFunctions::print(int64_t(func));
+    godot::UtilityFunctions::print(int64_t(p_base));
     return func(p_base);
 }
 void call_GDExtensionPtrSetter(GDExtensionPtrSetter func, GDExtensionTypePtr p_base, GDExtensionConstTypePtr p_value) {

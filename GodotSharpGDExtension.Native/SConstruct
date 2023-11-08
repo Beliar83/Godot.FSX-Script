@@ -14,17 +14,17 @@ env = SConscript("../godot-cpp/SConstruct")
 
 # tweak this if you want to use different folders, or more folders, to store your source code in.
 env.Append(CPPPATH=["src/"])
-env.Append(CPPPATH=["third_party"])
+# env.Append(CPPPATH=["third_party"])
 extension_sources = Glob("src/*.cpp")
 
 if env["platform"] == "macos":
     library = env.SharedLibrary(
-        "demo/bin/godot_sharp_gdextension",
+        "../demo/godot_sharp_gdextension",
         source=extension_sources,
     )
 else:
     library = env.SharedLibrary(
-        "demo/bin/godot_sharp_gdextension{}".format(env["SHLIBSUFFIX"]),
+        "../demo/godot_sharp_gdextension{}".format(env["SHLIBSUFFIX"]),
         source=extension_sources,
     )
 

@@ -315,7 +315,7 @@ public class Convert
                         file.WriteLine(com);
                     }
                 }
-                file.WriteLine($"\tpublic static {Fixer.Type(con.type, api)} {Fixer.SnakeToPascal(con.name)} {{ get; private set; }}");
+                file.WriteLine($"\tpublic static {Fixer.Type(con.type, api)} {Fixer.SnakeToPascal(con.name)} => {Fixer.Value(con.value)};");
             }
             file.WriteLine();
         }
@@ -393,26 +393,26 @@ public class Convert
 
         foreach (var member in membersWithFunctions)
         {
-            file.WriteLine($"\tprivate static readonly StringName _stringName{member} = new (\"{member}\");");
-            file.WriteLine($"\tstatic IntPtr {member}Getter = GDExtensionInterface.VariantGetPtrGetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
-            file.WriteLine($"\tstatic IntPtr {member}Setter = GDExtensionInterface.VariantGetPtrSetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
+            file.WriteLine($"\tprivate static StringName _stringName{member} => *(StringName*)GDExtensionInterface.CreateStringName (\"{member}\");");
+            file.WriteLine($"\tstatic IntPtr {member}Getter => GDExtensionInterface.VariantGetPtrGetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
+            file.WriteLine($"\tstatic IntPtr {member}Setter => GDExtensionInterface.VariantGetPtrSetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
         }
         for (var i = 0; i < constructorRegistrations.Count; i++)
         {
-            file.WriteLine($"\tstatic IntPtr __constructorPointer{i} = {constructorRegistrations[i]};");
+            file.WriteLine($"\tstatic IntPtr __constructorPointer{i} => {constructorRegistrations[i]};");
         }
         for (var i = 0; i < operatorRegistrations.Count; i++)
         {
-            file.WriteLine($"\tstatic IntPtr __operatorPointer{i} = {operatorRegistrations[i]};");
+            file.WriteLine($"\tstatic IntPtr __operatorPointer{i} => {operatorRegistrations[i]};");
         }
         for (var i = 0; i < methodRegistrations.Count; i++)
         {
-            file.WriteLine($"\tstatic IntPtr __methodPointer{i} = {methodRegistrations[i]};");
+            file.WriteLine($"\tstatic IntPtr __methodPointer{i} => {methodRegistrations[i]};");
         }
 
         if (hasPointer)
         {
-            file.WriteLine($"\tstatic IntPtr __destructor = GDExtensionInterface.VariantGetPtrDestructor((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)});");
+            file.WriteLine($"\tstatic IntPtr __destructor => GDExtensionInterface.VariantGetPtrDestructor((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)});");
         }
 
         file.WriteLine();
@@ -434,13 +434,13 @@ public class Convert
         {
             // file.WriteLine(operatorRegistrations[i]);
         }
-        if (c.constants != null)
-        {
-            foreach (var con in c.constants)
-            {
-                file.WriteLine($"\t\t{Fixer.SnakeToPascal(con.name)} = {Fixer.Value(con.value)};");
-            }
-        }
+        // if (c.constants != null)
+        // {
+        //     foreach (var con in c.constants)
+        //     {
+        //         file.WriteLine($"\t\t{Fixer.SnakeToPascal(con.name)} = {Fixer.Value(con.value)};");
+        //     }
+        // }
         file.WriteLine("\t}");
         file.WriteLine("}");
         file.Close();
@@ -1398,10 +1398,10 @@ public class Convert
         file.WriteLine($"\tinternal static {className} Construct(IntPtr ptr) => new (ptr);");
         file.WriteLine();
 
-        file.WriteLine($"\tpublic new static StringName __godot_name = new StringName(\"{className}\");");
+        file.WriteLine($"\tpublic new static StringName __godot_name => *(StringName*)GDExtensionInterface.CreateStringName(\"{className}\");");
         for (var i = 0; i < methodRegistrations.Count; i++)
         {
-            file.WriteLine($"\tstatic IntPtr __methodPointer{i} = {methodRegistrations[i]};");
+            file.WriteLine($"\tstatic IntPtr __methodPointer{i} => {methodRegistrations[i]};");
         }
         file.WriteLine();
         file.WriteLine("\tpublic new static void Register() {");
