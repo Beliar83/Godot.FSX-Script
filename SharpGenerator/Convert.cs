@@ -1,12 +1,14 @@
 using System.Xml.Serialization;
+using Microsoft.VisualBasic;
 using SharpGenerator.Documentation;
 
 namespace SharpGenerator;
 
-public class Convert(Api api, string csDir, string cppDir, string docDir, string configName)
+public class Convert
 {
-    readonly HashSet<string> objectTypes = new() { "Variant" };
-    readonly HashSet<string> builtinObjectTypes = new() {
+    private readonly HashSet<string> objectTypes = new() { "Variant" };
+
+    private readonly HashSet<string> builtinObjectTypes = new() {
         "Array",
         "Callable",
         "Dictionary",
@@ -23,7 +25,8 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         "Signal",
         "StringName",
     };
-    readonly Dictionary<string, HashSet<string>> registrations = new()
+
+    private readonly Dictionary<string, HashSet<string>> registrations = new()
     {
         ["builtin"] = new() { "StringName", "Variant" },
         ["utility"] = new(),
@@ -32,13 +35,33 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         ["scene"] = new(),
         ["editor"] = new(),
     };
-    readonly Api api = api;
-    readonly XmlSerializer classXml = new(typeof(Documentation.Class));
-    readonly XmlSerializer builtinXml = new(typeof(Documentation.BuiltinClass));
-    readonly string csDir = csDir;
-    private readonly string cppDir = cppDir;
-    private readonly string docDir = docDir;
-    readonly string configName = configName;
+
+    private readonly Api api;
+    private readonly XmlSerializer classXml = new(typeof(Documentation.Class));
+    private readonly XmlSerializer builtinXml = new(typeof(Documentation.BuiltinClass));
+    private readonly string csDir;
+    private readonly string cppDir;
+    private readonly string docDir;
+    private readonly string configName;
+    private static readonly Dictionary<string, int> BuiltinClassSizes = new();
+
+    public Convert(Api api, string csDir, string cppDir, string docDir, string configName)
+    {
+        this.api = api;
+        this.csDir = csDir;
+        this.cppDir = cppDir;
+        this.docDir = docDir;
+        this.configName = configName;
+        foreach (Api.BuiltinClassSizes classSizes in api.builtinClassSizes)
+        {
+            if (classSizes.buildConfiguration != configName) continue;
+            foreach (Api.Size size in classSizes.sizes)
+            {
+                BuiltinClassSizes[size.name] = size.size;
+            }
+        }
+    }
+
     public Dictionary<string, List<string>> BuiltinClassFunctions { get; } = new();
     public Dictionary<string, List<string>> ClassFunctions { get; } = new();
 
@@ -67,7 +90,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         Directory.CreateDirectory(csDir + "/NativeStructures");
         foreach (Api.NativeStructure native in api.nativeStructures)
         {
-            StreamWriter file = File.CreateText(csDir + "/NativeStructures/" + Fixer.Type(native.name, api) + ".cs");
+            StreamWriter file = File.CreateText(csDir + "/NativeStructures/" + Fixer.CSType(native.name, api) + ".cs");
             file.WriteLine("namespace GodotSharpGDExtension;");
             file.WriteLine(value: "[StructLayout(LayoutKind.Sequential)]");
             file.WriteLine($"public unsafe struct {native.name} {{");
@@ -75,7 +98,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
             {
                 string[] pair = member.Split(" ");
                 string name = Fixer.Name(pair[1]);
-                string type = Fixer.Type(pair[0], api);
+                string type = Fixer.CSType(pair[0], api);
                 if (name.Contains('*'))
                 {
                     type = "IntPtr"; //pointer to `'Object', which is managed in bindings
@@ -153,7 +176,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         Variant();
     }
 
-    Documentation.Class GetDocs(string name)
+    private Documentation.Class GetDocs(string name)
     {
         if (docDir == null) { return null; }
         string path = docDir + name + ".xml";
@@ -170,7 +193,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         }
     }
 
-    Documentation.BuiltinClass GetBuiltinDocs(string name)
+    private Documentation.BuiltinClass GetBuiltinDocs(string name)
     {
         if (docDir == null) { return null; }
         string path = docDir + name + ".xml";
@@ -187,18 +210,18 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         }
     }
 
-    void GlobalEnum(Api.Enum e, string dir)
+    private void GlobalEnum(Api.Enum e, string dir)
     {
         if (e.name.Contains('.')) { return; }
-        string name = Fixer.Type(e.name, api).Replace(".", "");
-        StreamWriter file = File.CreateText(dir + "/" + Fixer.Type(name, api) + ".cs");
+        string name = Fixer.CSType(e.name, api).Replace(".", "");
+        StreamWriter file = File.CreateText(dir + "/" + Fixer.CSType(name, api) + ".cs");
         file.WriteLine("namespace GodotSharpGDExtension {");
         Enum(e, file);
         file.WriteLine("}");
         file.Close();
     }
 
-    void BuiltinClasses()
+    private void BuiltinClasses()
     {
         string csDir = this.csDir + "/BuiltinClasses";
         string cppDir = this.cppDir + "/BuiltinClasses";
@@ -221,21 +244,26 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         }
     }
 
-    void BuiltinClass(Api.BuiltinClass c, string csDir, string cppDir, bool hasPointer)
+    private void BuiltinClass(Api.BuiltinClass c, string csDir, string cppDir, bool hasPointer)
     {
         string className = c.name;
         if (className == "Object") className = "GodotObject";
-        StreamWriter csFile = File.CreateText(csDir + "/" + Fixer.Type(className, api) + ".cs");
-        StreamWriter cppHeaderFile = File.CreateText(cppDir + "/" + Fixer.Type(className, api) + ".hpp");
-        StreamWriter cppSourceFile = File.CreateText(cppDir + "/" + Fixer.Type(className, api) + ".cpp");
-        registrations["builtin"].Add(Fixer.Type(className, api));
+        StreamWriter csFile = File.CreateText(csDir + "/" + Fixer.CSType(className, api) + ".cs");
+        StreamWriter cppHeaderFile = File.CreateText(cppDir + "/" + Fixer.CSType(className, api) + ".hpp");
+        StreamWriter cppSourceFile = File.CreateText(cppDir + "/" + Fixer.CSType(className, api) + ".cpp");
+        registrations["builtin"].Add(Fixer.CSType(className, api));
 
+        var classFunctions = new List<string>();
+        BuiltinClassFunctions[className] = classFunctions;
+        
         BuiltinClass doc = GetBuiltinDocs(className);
 
         var constructorRegistrations = new List<string>();
         var operatorRegistrations = new List<string>();
         var methodRegistrations = new List<string>();
 
+        int size = BuiltinClassSizes[c.name];
+        
         foreach (Api.BuiltinClassSizes config in api.builtinClassSizes)
         {
             if (config.buildConfiguration != configName)
@@ -259,8 +287,13 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         cppHeaderFile.WriteLine();
         cppHeaderFile.WriteLine("#include \"gdextension_interface.h\"");
         cppHeaderFile.WriteLine("#include \"godot_cpp/core/defs.hpp\"");
-        cppHeaderFile.WriteLine("#include \"godot_cpp/variant/string_name.hpp\"");
         cppHeaderFile.WriteLine();
+        
+        cppSourceFile.WriteLine($"#include \"{Fixer.CSType(className, api)}.hpp\"");
+        cppSourceFile.WriteLine();
+        cppSourceFile.WriteLine("#include <array>");
+        cppSourceFile.WriteLine("#include \"godot_cpp/variant/string_name.hpp\"");
+        cppSourceFile.WriteLine("#include \"godot_cpp/godot.hpp\"");
         
         // TODO: remove?
         // if (hasPointer == false)
@@ -270,7 +303,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         cppHeaderFile.WriteLine("namespace GodotSharpGDExtension {");
         csFile.WriteLine("namespace GodotSharpGDExtension;");
         csFile.WriteLine();
-        csFile.WriteLine($"public unsafe class {Fixer.Type(className, api)} {{");    
+        csFile.WriteLine($"public unsafe class {Fixer.CSType(className, api)} {{");    
         // TODO: remove?
         // csFile.WriteLine("\tstatic private bool _registered = false;");
         // csFile.WriteLine();
@@ -299,15 +332,15 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         {
             foreach (Api.Member member in c.members)
             {
-                Documentation.Member d = null;
+                Member? d = null;
                 if (doc != null && doc.members != null)
                 {
                     d = doc.members.FirstOrDefault(x => x.name == member.name);
                 }
-                Member(api, c, member, configName, csFile, cppHeaderFile, cppSourceFile, membersWithFunctions, d);
+                Member(member, csFile, cppHeaderFile, cppSourceFile, className, d, classFunctions);
             }
         }
-
+        
         if (c.constants != null)
         {
             foreach (Api.Constant con in c.constants)
@@ -321,7 +354,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
                         csFile.WriteLine(com);
                     }
                 }
-                csFile.WriteLine($"\tpublic static {Fixer.Type(con.type, api)} {Fixer.SnakeToPascal(con.name)} => {Fixer.Value(con.value)};");
+                csFile.WriteLine($"\tpublic static {Fixer.CSType(con.type, api)} {Fixer.SnakeToPascal(con.name)} => {Fixer.Value(con.value)};");
             }
             csFile.WriteLine();
         }
@@ -331,26 +364,26 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
             for (var i = 0; i < c.constructors.Length; i++)
             {
                 Api.Constructor constructor = c.constructors[i];
-                Documentation.Constructor d = null;
+                Constructor? d = null;
                 if (doc != null && doc.constructors != null)
                 {
                     d = doc.constructors[i];
                 }
-                Constructor(c, constructor, csFile, cppHeaderFile, cppSourceFile, constructorRegistrations, d, hasPointer);
+                Constructor(c, constructor, csFile, cppHeaderFile, cppSourceFile, constructorRegistrations, d, hasPointer, size, classFunctions);
             }
         }
         else
         {
             var emptyApiConstructor = new Api.Constructor { arguments = Array.Empty<Api.Argument>(), index = 0};
             var emptyDocConstructor = new Constructor();
-            Constructor(c, emptyApiConstructor, csFile, cppHeaderFile, cppSourceFile, constructorRegistrations, emptyDocConstructor, hasPointer);
+            Constructor(c, emptyApiConstructor, csFile, cppHeaderFile, cppSourceFile, constructorRegistrations, emptyDocConstructor, hasPointer, size, classFunctions);
         }
 
         if (c.operators != null)
         {
             foreach (Api.Operator op in c.operators)
             {
-                Documentation.Operator d = null;
+                Operator? d = null;
                 if (doc != null && doc.operators != null)
                 {
                     d = doc.operators.FirstOrDefault(x => x.name == $"operator {op.name}");
@@ -384,7 +417,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
 
         if (hasPointer)
         {
-            csFile.WriteLine($"\t~{Fixer.Type(className, api)}() {{");
+            csFile.WriteLine($"\t~{Fixer.CSType(className, api)}() {{");
             //file.WriteLine($"\t\tif(internalPointer == null) {{ return; }}");
             csFile.WriteLine($"\t\tGDExtensionInterface.CallGDExtensionPtrDestructor(__destructor, internalPointer);");
             //file.WriteLine($"\t\tGDExtensionInterface.MemFree(internalPointer);");
@@ -412,7 +445,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
 
         if (hasPointer)
         {
-            csFile.WriteLine($"\tstatic IntPtr __destructor => GDExtensionInterface.VariantGetPtrDestructor((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)});");
+            csFile.WriteLine($"\tstatic IntPtr __destructor => GDExtensionInterface.VariantGetPtrDestructor((GDExtensionVariantType)Variant.Type.{Fixer.CSType(className, api)});");
         }
 
         csFile.WriteLine();
@@ -442,7 +475,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         //     }
         // }
         csFile.WriteLine("\t}");
-        csFile.WriteLine($" }} { (hasPointer ? "" : $"{Fixer.Type(className, api)};")}");
+        csFile.WriteLine($" }} { (hasPointer ? "" : $"{Fixer.CSType(className, api)};")}");
         csFile.Close();
         cppHeaderFile.WriteLine("}");
         
@@ -450,133 +483,165 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         cppSourceFile.Close();
     }
 
-    private static void Member(Api api, Api.BuiltinClass c, Api.Member member, string configName, TextWriter csFile,
-        TextWriter cppHeaderFile, TextWriter cppSourceFile, ICollection<string> withFunctions, Member doc)
+    private void Member(Api.Member member, TextWriter csFile,
+        TextWriter cppHeaderFile, TextWriter cppSourceFile, string className, Member? doc, ICollection<string> classFunctions)
     {
-        int offset = -1;
-        foreach (Api.BuiltinClassMemberOffsets config in api.builtinClassMemberOffsets)
-        {
-            if (config.buildConfiguration == configName)
-            {
-                foreach (Api.ClassOffsets cl in config.classes)
-                {
-                    if (cl.name == c.name)
-                    {
-                        foreach (Api.MemberOffset memberOffset in cl.members)
-                        {
-                            if (memberOffset.member == member.name)
-                            {
-                                offset = memberOffset.offset;
-                            }
-                        }
-                    }
-                }
-            }
-        }
         if (doc != null)
         {
             string com = Fixer.XMLComment(doc.comment);
             csFile.WriteLine(com);
         }
 
-        {
-            var getterName = $"{c.name}_{member.name}_getter";
-            var setterName = $"{c.name}_{member.name}_setter";
-            var getterSignature = $"GDExtensionConstTypePtr {getterName}(GDExtensionTypePtr p_base)";
-            var setterSignature = $"void {setterName}(GDExtensionTypePtr p_base, GDExtensionConstTypePtr p_value)";
-            csFile.WriteLine($$"""
-                               	public {{member.type}} {{Fixer.SnakeToPascal(member.name)}}
-                               	{
-                               		get => new (GDExtensionInterface.{{Fixer.SnakeToPascal(getterName)}}(InternalPointer));
-                               		set => GDExtensionInterface.{{Fixer.SnakeToPascal(setterName)}}(InternalPointer, value.InternalPointer);
-                               	}
-                               """);
-            cppHeaderFile.WriteLine($"""
-                                     GDE_EXPORT {getterSignature};
-                                     GDE_EXPORT {setterSignature};
-                                     """);
+        var getterName = $"{className}_{member.name}_getter";
+        var setterName = $"{className}_{member.name}_setter";
+
+        string cppType = Fixer.CPPType(member.type, api);
+        bool isPod = Fixer.IsPod(member.type);
+        
+        (string? memberType, string? returnText) = isPod ? (null, null) : Fixer.GetReturnDataForType(cppType);
+
+        
+        
+        memberType ??= cppType;
+        returnText ??= "return {0};";
+        
+        
+        var getterSignature = $"{memberType} {getterName}(GDExtensionTypePtr p_base)";
+        var setterSignature = $"void {setterName}(GDExtensionTypePtr p_base, {memberType} p_value)";
+        var getterCall = $"GDExtensionInterface.{Fixer.SnakeToPascal(getterName)}(InternalPointer)";
+        csFile.WriteLine($$"""
+                           	public {{cppType}} {{Fixer.SnakeToPascal(member.name)}}
+                           	{
+                           		get => {{(isPod ? getterCall : $"new({getterCall})")}};
+                           		set => GDExtensionInterface.{{Fixer.SnakeToPascal(setterName)}}(InternalPointer, {{(isPod ? "value" : "value.InternalPointer")}});
+                           	}
+                           """);
+        cppHeaderFile.WriteLine($"""
+                                 GDE_EXPORT {getterSignature};
+                                 GDE_EXPORT {setterSignature};
+                                 """);
 
 
-            // foreach (string member in membersWithFunctions)
-            // {
-            //     csFile.WriteLine($"\tprivate static StringName _stringName{member} => *(StringName*)GDExtensionInterface.CreateStringName (\"{member}\");");
-            //     csFile.WriteLine($"\tstatic IntPtr {member}Getter => GDExtensionInterface.VariantGetPtrGetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
-            //     csFile.WriteLine($"\tstatic IntPtr {member}Setter => GDExtensionInterface.VariantGetPtrSetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
-            // }            
-            
-            cppSourceFile.WriteLine();
-            cppSourceFile.WriteLine($"{getterSignature} {{");
-            cppSourceFile.WriteLine($"static auto func = gdextension_interface_variant_get_ptr_getter(GDEXTENSION_VARIANT_TYPE_{member.type.ToUpper()}, StringName({member.name}));");
-            cppSourceFile.WriteLine("GDExtensionTypePtr value");
-            cppSourceFile.WriteLine("func(p_base, value);");
-            cppSourceFile.WriteLine("return value");
-            cppSourceFile.WriteLine("}");
-            withFunctions.Add(member.name);
-        }
+        // foreach (string member in membersWithFunctions)
+        // {
+        //     csFile.WriteLine($"\tprivate static StringName _stringName{member} => *(StringName*)GDExtensionInterface.CreateStringName (\"{member}\");");
+        //     csFile.WriteLine($"\tstatic IntPtr {member}Getter => GDExtensionInterface.VariantGetPtrGetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
+        //     csFile.WriteLine($"\tstatic IntPtr {member}Setter => GDExtensionInterface.VariantGetPtrSetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
+        // }            
+
+        cppSourceFile.WriteLine();
+        cppSourceFile.WriteLine($"{getterSignature} {{");
+        cppSourceFile.WriteLine($"static auto func = godot::internal::gdextension_interface_variant_get_ptr_getter(GDEXTENSION_VARIANT_TYPE_{cppType.ToUpper()}, godot::StringName(\"{member.name}\")._native_ptr());");
+        cppSourceFile.WriteLine(
+            isPod 
+                ? $"{memberType} value;"
+                : $"auto value = godot::internal::gdextension_interface_mem_alloc({BuiltinClassSizes[member.type]});");
+        cppSourceFile.WriteLine(
+            isPod
+            ? "func(p_base, &value);"
+            : "func(p_base, value);");
+        cppSourceFile.WriteLine(returnText, "value");
+        cppSourceFile.WriteLine("}");
+
+        classFunctions.Add(getterName);
+        classFunctions.Add(setterName);
         csFile.WriteLine();
     }
 
-    void Constructor(Api.BuiltinClass c, Api.Constructor constructor, TextWriter csFile, TextWriter cppHeaderFile, TextWriter cppSourceFile, ICollection<string> constructorRegistrations, Documentation.Constructor doc, bool hasPointer)
+    private void Constructor(Api.BuiltinClass c, Api.Constructor constructor, TextWriter csFile, TextWriter cppHeaderFile,
+        TextWriter cppSourceFile, ICollection<string> constructorRegistrations, Constructor? doc, bool hasPointer,
+        int size, ICollection<string> classFunctions)
     {
         if (doc != null)
         {
             string com = Fixer.XMLComment(doc.description);
             csFile.WriteLine(com);
         }
-        csFile.Write($"\tpublic {Fixer.Type(c.name, api)}(");
+        csFile.Write($"\tpublic {Fixer.CSType(c.name, api)}(");
+        var csArgs = new List<string>();
+        var nativeArgs = new List<string>();
+        var csArgPAsses = new List<string>();
+        var nativeArgPasses = new List<string>();
+
+        
         if (constructor.arguments != null)
         {
-            for (var i = 0; i < constructor.arguments.Length - 1; i++)
+            foreach (Api.Argument arg in constructor.arguments)
             {
-                Api.Argument arg = constructor.arguments[i];
-                csFile.Write(value: $"{Fixer.Type(arg.type, api)} {Fixer.Name(arg.name)}, ");
+                bool isPod = Fixer.IsPod(arg.type);
+                csArgs.Add($"{Fixer.CSType(arg.type, api)} {Fixer.Name(arg.name)}");
+                nativeArgs.Add($"{(isPod ? Fixer.CPPType(arg.type, api) : "GDExtensionTypePtr")} {arg.name}");
+                csArgPAsses.Add(isPod ? arg.name : $"{arg.name}.InternalPointer");
+                nativeArgPasses.Add(isPod ? $"&{arg.name}" : arg.name);
             }
-            Api.Argument a = constructor.arguments.Last();
-            csFile.Write(value: $"{Fixer.Type(a.type, api)} {Fixer.Name(a.name)}");
         }
+        const string argSeparator = ", ";
 
         var nativeFunctionName = $"{c.name}_constructor_{constructor.index}";
         
-        csFile.WriteLine(") {");
-        csFile.WriteLine($"\t\tinternalPointer = {nativeFunctionName}(");
+        var functionSignature = $"GDExtensionTypePtr {nativeFunctionName}({string.Join(argSeparator, nativeArgs)})";
+        
+        cppHeaderFile.WriteLine($"GDE_EXPORT {functionSignature};");
+        cppHeaderFile.WriteLine();
+        
+        
+        // static auto constructor = godot::internal::gdextension_interface_variant_get_ptr_constructor(GDEXTENSION_VARIANT_TYPE_AABB, 1);
+        // auto base = new uint8_t[8];
+        // std::array<GDExtensionConstTypePtr, 1> call_args = {from};
+        // constructor(base, call_args.data());
+        // return base;
 
-        if (constructor.arguments != null)
+        cppSourceFile.WriteLine($"{functionSignature} {{");
+        cppSourceFile.WriteLine($"\tstatic auto constructor = godot::internal::gdextension_interface_variant_get_ptr_constructor(GDEXTENSION_VARIANT_TYPE_{c.name.ToUpper()}, {constructor.index});");
+        cppSourceFile.WriteLine($"\tauto base = new uint8_t[{size}];");
+        if (nativeArgPasses.Any())
         {
-            csFile.WriteLine($"\t\tvar args = stackalloc IntPtr[{constructor.arguments.Length}];");
-            for (var i = 0; i < constructor.arguments.Length; i++)
-            {
-                Api.Argument arg = constructor.arguments[i];
-                // csFile.Write();
-                csFile.WriteLine($"\t\targs[{i}] = {ValueToPointer(Fixer.Name(arg.name), arg.type)};");
-            }
+            cppSourceFile.WriteLine($"\tstd::array<GDExtensionConstTypePtr, {nativeArgPasses.Count}> call_args = {{{string.Join(argSeparator, nativeArgPasses)}}};");
         }
-        if (hasPointer == false)
-        {
-            csFile.WriteLine($"\t\tfixed ({Fixer.Type(c.name, api)}* ptr = &this) {{");
-            csFile.Write("\t\t\tGDExtensionInterface.CallGDExtensionPtrConstructor(constructor, (IntPtr)ptr, ");
-        }
-        else
-        {
-            csFile.Write("\t\tGDExtensionInterface.CallGDExtensionPtrConstructor(constructor, internalPointer, ");
-        }
-        if (constructor.arguments != null)
-        {
-            csFile.WriteLine("*args);");
-        }
-        else
-        {
-            csFile.WriteLine("IntPtr.Zero);");
-        }
-        if (hasPointer == false)
-        {
-            csFile.WriteLine("\t\t}");
-        }
+        cppSourceFile.Write("\tconstructor(base");
+        cppSourceFile.WriteLine(nativeArgPasses.Any() ? ", call_args.data());" : ", nullptr);");
+        cppSourceFile.WriteLine("\treturn base;");
+        cppSourceFile.WriteLine("}");
+        cppSourceFile.WriteLine();
+        
+        csFile.Write(string.Join(argSeparator, csArgs));
+        csFile.WriteLine(") {");
+        csFile.Write($"\t\tInternalPointer = GDExtensionInterface.{Fixer.SnakeToPascal(nativeFunctionName)}(");
+        csFile.Write(string.Join(argSeparator, csArgPAsses));
+        csFile.WriteLine(");");
         csFile.WriteLine("\t}");
+        
+        
+        // TODO: remove?
+        // if (hasPointer == false)
+        // {
+        //     csFile.WriteLine($"\t\tfixed ({Fixer.Type(c.name, api)}* ptr = &this) {{");
+        //     csFile.Write("\t\t\tGDExtensionInterface.CallGDExtensionPtrConstructor(constructor, (IntPtr)ptr, ");
+        // }
+        // else
+        // {
+        //     csFile.Write("\t\tGDExtensionInterface.CallGDExtensionPtrConstructor(constructor, internalPointer, ");
+        // }
+        // if (constructor.arguments != null)
+        // {
+        //     csFile.WriteLine("*args);");
+        // }
+        // else
+        // {
+        //     csFile.WriteLine("IntPtr.Zero);");
+        // }
+        // if (hasPointer == false)
+        // {
+        //     csFile.WriteLine("\t\t}");
+        // }
+        // csFile.WriteLine("\t}");
         csFile.WriteLine();
+        classFunctions.Add(nativeFunctionName);
     }
 
-    void Operator(Api.Operator op, string className, StreamWriter file, List<string> operatorRegistrations, Documentation.Operator doc)
+    private void Operator(Api.Operator op, string className, StreamWriter file, List<string> operatorRegistrations, Operator? doc)
     {
+        // TODO
         if (op.rightType != null)
         {
             if (op.rightType == "Variant") { return; }
@@ -593,7 +658,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
             {
                 file.WriteLine(Fixer.XMLComment(doc.description));
             }
-            file.WriteLine($"\tpublic static {Fixer.Type(op.returnType, api)} {name}({Fixer.Type(className, api)} left, {Fixer.Type(op.rightType, api)} right) {{");
+            file.WriteLine($"\tpublic static {Fixer.CSType(op.returnType, api)} {name}({Fixer.CSType(className, api)} left, {Fixer.CSType(op.rightType, api)} right) {{");
             var m = $"__operatorPointer{operatorRegistrations.Count}";
             file.WriteLine($"\t\tvar __op = {m};");
             operatorRegistrations.Add($"GDExtensionInterface.VariantGetPtrOperatorEvaluator((GDExtensionVariantOperator)Variant.Operator.{Fixer.VariantOperator(op.name)}, (GDExtensionVariantType)Variant.Type.{className}, (GDExtensionVariantType)Variant.Type.{Fixer.VariantName(op.rightType)})");
@@ -613,7 +678,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
             {
                 file.WriteLine(Fixer.XMLComment(doc.description));
             }
-            file.WriteLine($"\tpublic static {Fixer.Type(op.returnType, api)} {name}({Fixer.Type(className, api)} value) {{");
+            file.WriteLine($"\tpublic static {Fixer.CSType(op.returnType, api)} {name}({Fixer.CSType(className, api)} value) {{");
             var m = $"__operatorPointer{operatorRegistrations.Count}";
             file.WriteLine($"\t\tvar __op = {m};");
             operatorRegistrations.Add($"GDExtensionInterface.VariantGetPtrOperatorEvaluator((GDExtensionVariantOperator)Variant.Operator.{Fixer.VariantOperator(op.name)}, (GDExtensionVariantType)Variant.Type.{className}, (GDExtensionVariantType)Variant.Type.Nil)");
@@ -624,15 +689,16 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         file.WriteLine();
     }
 
-    void Enum(Api.Enum e, StreamWriter file, Documentation.Constant[] constants = null)
+    private void Enum(Api.Enum e, StreamWriter file, Constant[]? constants = null)
     {
+        // TODO
         int prefixLength = Fixer.SharedPrefixLength(e.values.Select(x => x.name).ToArray());
         if (e.isBitfield ?? false)
         {
             file.WriteLine($"\t[Flags]");
         }
 
-        file.WriteLine($"\tpublic enum {Fixer.Type(e.name, api)} {{");
+        file.WriteLine($"\tpublic enum {Fixer.CSType(e.name, api)} {{");
         foreach (Api.Value v in e.values)
         {
             if (constants != null)
@@ -651,9 +717,9 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         file.WriteLine();
     }
 
-    string ValueToPointer(string name, string type)
+    private string ValueToPointer(string name, string type)
     {
-        string f = Fixer.Type(type, api);
+        string f = Fixer.CSType(type, api);
         if (type == "String")
         {
             return $"StringMarshall.ToNative({name})";
@@ -668,15 +734,15 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         }
     }
 
-    bool IsClassType(string type)
+    private bool IsClassType(string type)
     {
-        string f = Fixer.Type(type, api);
+        string f = Fixer.CSType(type, api);
         return f == "Array" || f.StartsWith("Array<") || f == "Variant";
     }
 
-    string ReturnLocationType(string type, string name)
+    private string ReturnLocationType(string type, string name)
     {
-        string f = Fixer.Type(type, api);
+        string f = Fixer.CSType(type, api);
         if(f == "Variant")
         {
             return $"var {name} = new Variant()";
@@ -699,9 +765,9 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         }
     }
 
-    string ReturnStatementValue(string type)
+    private string ReturnStatementValue(string type)
     {
-        string f = Fixer.Type(type, api);
+        string f = Fixer.CSType(type, api);
         if (type == "String")
         {
             return "StringMarshall.ToManaged(__res)";
@@ -782,14 +848,14 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         }
     }
 
-    enum MethodType
+    private enum MethodType
     {
         Class,
         Native,
         Utility,
     }
 
-    static bool IsValidDefaultValue(string value, string type)
+    private static bool IsValidDefaultValue(string value, string type)
     {
         if (value.Contains('(')) { return false; }
         if (value == "{}") { return false; }
@@ -801,7 +867,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         return true;
     }
 
-    string FixDefaultValue(string value, string type)
+    private string FixDefaultValue(string value, string type)
     {
         if (value.StartsWith("Array["))
         {
@@ -814,11 +880,12 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         if (value == "") { return $"new {type}()"; }
         if (type == "Variant" && value == "null") { return "Variant.Nil"; }
         if (value == "null") { return "null"; }
-        return $"({Fixer.Type(type, api)}){value}";
+        return $"({Fixer.CSType(type, api)}){value}";
     }
 
-    void Method(Api.Method meth, string className, StreamWriter file, MethodType type, List<string> methodRegistrations, Documentation.Method doc, bool isSingleton = false, bool isBuiltinPointer = false)
+    private void Method(Api.Method meth, string className, StreamWriter file, MethodType type, List<string> methodRegistrations, Documentation.Method doc, bool isSingleton = false, bool isBuiltinPointer = false)
     {
+        // TODO
         var header = "";
         if (doc != null)
         {
@@ -844,7 +911,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
 
         if (!string.IsNullOrEmpty(ret))
         {
-            header += Fixer.Type(ret, api);
+            header += Fixer.CSType(ret, api);
         }
         else
         {
@@ -890,7 +957,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
                 {
                     header += ", ";
                 }
-                header += $"{Fixer.Type(arg.type, api)} {Fixer.Name(arg.name)}{suffix}";
+                header += $"{Fixer.CSType(arg.type, api)} {Fixer.Name(arg.name)}{suffix}";
             }
         }
 
@@ -1079,11 +1146,11 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         file.WriteLine();
     }
 
-    void EqualAndHash(string className, StreamWriter file)
+    private void EqualAndHash(string className, StreamWriter file)
     {
         file.WriteLine("\tpublic override bool Equals(object obj) {");
         file.WriteLine("\t\tif (obj == null) { return false; }");
-        file.WriteLine($"\t\tif (obj is {Fixer.Type(className, api)} other == false) {{ return false; }}");
+        file.WriteLine($"\t\tif (obj is {Fixer.CSType(className, api)} other == false) {{ return false; }}");
         file.WriteLine("\t\treturn this == other;");
         file.WriteLine("\t}");
         file.WriteLine();
@@ -1095,7 +1162,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         file.WriteLine();
     }
 
-    Api.Method? GetMethod(string cName, string name)
+    private Api.Method? GetMethod(string cName, string name)
     {
         foreach (Api.Class c in api.classes)
             if (cName == c.name)
@@ -1121,7 +1188,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         return null;
     }
 
-    void Classes()
+    private void Classes()
     {
         string dir = this.csDir + "/Classes";
         Directory.CreateDirectory(dir);
@@ -1140,8 +1207,9 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         }
     }
 
-    void Class(Api.Class c, string dir)
+    private void Class(Api.Class c, string dir)
     {
+        // TODO
         string className = c.name;
         switch (className)
         {
@@ -1292,7 +1360,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
 
                 bool hasEnumOfSameName = (c.enums?.Where(x => x.name == Fixer.Name(Fixer.SnakeToPascal(prop.name))).FirstOrDefault())?.name != null;
 
-                file.Write($"\tpublic {Fixer.Type(type, api)} {Fixer.Name(Fixer.SnakeToPascal(prop.name)) + (hasEnumOfSameName ? "Value" : "")} {{ ");
+                file.Write($"\tpublic {Fixer.CSType(type, api)} {Fixer.Name(Fixer.SnakeToPascal(prop.name)) + (hasEnumOfSameName ? "Value" : "")} {{ ");
 
                 if (prop.index.HasValue)
                 {
@@ -1300,7 +1368,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
                     {
                         throw new NotImplementedException("get cast from Setter");
                     }
-                    cast = $"({Fixer.Type(getter.Value.arguments![0].type, api)})";
+                    cast = $"({Fixer.CSType(getter.Value.arguments![0].type, api)})";
                 }
 
                 if (getter != null)
@@ -1349,7 +1417,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
                     for (var j = 0; j < sig.arguments.Length; j++)
                     {
                         Api.Argument p = sig.arguments[j];
-                        file.Write($"{Fixer.Type(p.type, api)} {Fixer.Name(p.name)}{(j < sig.arguments.Length - 1 ? ", " : "")}");
+                        file.Write($"{Fixer.CSType(p.type, api)} {Fixer.Name(p.name)}{(j < sig.arguments.Length - 1 ? ", " : "")}");
                     }
                 }
 
@@ -1370,7 +1438,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
                     for (var j = 0; j < sig.arguments.Length; j++)
                     {
                         Api.Argument p = sig.arguments[j];
-                        file.Write($"{Fixer.Type(p.type, api)} {Fixer.Name(p.name)}{(j < sig.arguments.Length - 1 ? ", " : "")}");
+                        file.Write($"{Fixer.CSType(p.type, api)} {Fixer.Name(p.name)}{(j < sig.arguments.Length - 1 ? ", " : "")}");
                     }
                 }
                 file.WriteLine(");");
@@ -1415,7 +1483,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         file.Close();
     }
 
-    void Variant()
+    private void Variant()
     {
         Api.Enum type = default;
         Api.Enum operators = default;
@@ -1445,7 +1513,7 @@ public class Convert(Api api, string csDir, string cppDir, string docDir, string
         {
             int prefixLength = Fixer.SharedPrefixLength(e.values.Select(x => x.name).ToArray());
 
-            file.WriteLine($"\tpublic enum {Fixer.Type(e.name, api)} {{");
+            file.WriteLine($"\tpublic enum {Fixer.CSType(e.name, api)} {{");
             for (var i = 0; i < e.values.Length; i++)
             {
                 Api.Value v = e.values[i];

@@ -14,7 +14,7 @@ public record Class
 	public Method[] methods;
 	public Member[] members;
 	public Signal[] signals;
-	public Constant[] constants;
+	public Constant[]? constants;
 }
 
 [XmlRootAttribute("class", IsNullable = false)]
@@ -25,10 +25,10 @@ public record BuiltinClass
 	public string brief_description;
 	public string description;
 	public Link[] tutorials;
-	public Constructor[] constructors;
+	public Constructor?[] constructors;
 	public Method[] methods;
 	public Member[] members;
-	public Constant[] constants;
+	public Constant[]? constants;
 	public Operator[] operators;
 }
 

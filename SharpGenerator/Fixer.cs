@@ -1,11 +1,59 @@
 using System.Text.RegularExpressions;
 using System;
+using System.Data.SqlTypes;
 
 namespace SharpGenerator;
 public static class Fixer
 {
 
-    public static string Type(string name, Api api)
+    public static string CPPType(string name, Api api)
+    {
+        // TODO: Remove?
+        // if (name.StartsWith("enum::"))
+        // {
+        //     name = name[6..];
+        //     if (name.Contains('.'))
+        //     {
+        //         var className = name[..name.IndexOf('.')];
+        //         var enumName = name[(name.IndexOf('.') + 1)..];
+        //         bool isBuiletinClass = api.builtinClasses.Where(x => x.name == className).Cast<Api.BuiltinClass?>().FirstOrDefault() is not null;
+        //         if (className != "Variant" && !isBuiletinClass)
+        //         {
+        //             var amount = api.classes.Where(x => x.name == className).First().enums.Where(x => x.name == enumName).Count();
+        //             if (amount == 0)
+        //             {
+        //                 Program.Warn($"ENUM {name} not found");
+        //                 return "long";
+        //             }
+        //         }
+        //     }
+        // }
+        // if (name.Contains("typedarray::"))
+        // {
+        //     return $"Array<{CSType(name[12..], api)}>";
+        // }
+        // name = name.Replace("::", ".");
+        // if (name.Contains("VariantType."))
+        // {
+        //     return "Variant";
+        // }
+        // if (name.StartsWith("bitfield::")) { name = name.Replace("bitfield.", ""); }
+        // if (name.StartsWith("uint64_t")) { name = name.Replace("uint64_t", "UInt64"); }
+        // if (name.StartsWith("uint16_t")) { name = name.Replace("uint16_t", "UInt16"); }
+        // if (name.StartsWith("uint8_t")) { name = name.Replace("uint8_t", "byte"); }
+        // if (name.StartsWith("int32_t")) { name = name.Replace("int32_t", "int"); }
+        // if (name.StartsWith("real_t")) { name = name.Replace("real_t", "float"); }
+        // if (name.StartsWith("int")) { name = name.Replace("int", "long"); }
+        // if (name.StartsWith("VariantType")) { name = name.Replace("VariantType", "Variant.Type"); }
+        
+        if (name.StartsWith("float")) { name = name.Replace("float", "double"); }
+        if (name.Equals("String")) { name = name.Replace("string", "wchar_t"); }
+
+
+        return name;
+    }
+
+    public static string CSType(string name, Api api)
     {
         if (name.StartsWith("enum::"))
         {
@@ -14,10 +62,10 @@ public static class Fixer
             {
                 var className = name[..name.IndexOf('.')];
                 var enumName = name[(name.IndexOf('.') + 1)..];
-                bool isBuiletinClass = api.builtinClasses.Where(x => x.name == className).Cast<Api.BuiltinClass?>().FirstOrDefault() is not null;
-                if (className != "Variant" && !isBuiletinClass)
+                bool isBuiltinClass = api.builtinClasses.Where(x => x.name == className).Cast<Api.BuiltinClass?>().FirstOrDefault() is not null;
+                if (className != "Variant" && !isBuiltinClass)
                 {
-                    var amount = api.classes.Where(x => x.name == className).First().enums.Where(x => x.name == enumName).Count();
+                    var amount = api.classes.First(x => x.name == className).enums.Count(x => x.name == enumName);
                     if (amount == 0)
                     {
                         Program.Warn($"ENUM {name} not found");
@@ -29,7 +77,7 @@ public static class Fixer
         name = name.Replace("const ", "");
         if (name.Contains("typedarray::"))
         {
-            return $"Array<{Type(name[12..], api)}>";
+            return $"Array<{CSType(name[12..], api)}>";
         }
         name = name.Replace("::", ".");
         if (name.Contains("VariantType."))
@@ -48,8 +96,8 @@ public static class Fixer
         if (name.StartsWith("VariantType")) { name = name.Replace("VariantType", "Variant.Type"); }
 
         return name == "Object" ? "GodotObject" : name;
-    }
-
+    }    
+    
     public static string MethodName(string name)
     {
         var res = "";
@@ -130,6 +178,35 @@ public static class Fixer
         };
     }
 
+    public static bool IsPod(string type)
+    {
+        return type switch
+        {
+            "int" => true,
+            "float" => true,
+            "bool" => true,
+            "wchar_t" => true,
+            _ => false,
+        };
+    }
+    
+    public static (string? type, string? returnText) GetReturnDataForType(string type)
+    {
+        const string returnString = """
+                                     auto length = godot::internal::gdextension_interface_string_to_wide_chars({0}, nullptr, 0);
+                                     auto text = new wchar_t[length];
+                                     godot::internal::gdextension_interface_string_to_wide_chars({0}, text, length);
+                                     return text;
+                                     """;
+        // if (IsPod(type)) return (null, null, true);
+        
+        return type switch
+        {
+            "wchar_t" => (type, returnString), 
+            _ => ("GDExtensionTypePtr", null),
+        };
+    }
+    
     public static string VariantName(string name)
     {
         return name switch

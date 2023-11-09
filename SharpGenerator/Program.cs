@@ -106,37 +106,38 @@ internal class Program
         XDocument mappingDoc = XDocument.Load(templateFile);
 
         // Define the XML namespace
-        XNamespace ns = "urn:SharpGen.Config";
+        XNamespace sharpGenNamespace = "urn:SharpGen.Config";
 
         // Find the mapping element using the namespace
-        XElement mappingElement = mappingDoc.Root?.Element(ns + "mapping");
-        XElement bindingElement = mappingDoc.Root?.Element(ns + "bindings");
+        XElement mappingConfig = mappingDoc.Root!;
+        XElement? mappingElement = mappingConfig!.Element(sharpGenNamespace + "mapping");
+        XElement? bindingElement = mappingConfig!.Element(sharpGenNamespace + "bindings");
         
         var functions = new Dictionary<string, CppType>();
 
         if (mappingElement == null)
         {
             // If the "mapping" element doesn't exist, you can create it and add content
-            mappingElement = new XElement(ns + "mapping");
-            mappingDoc.Root?.Add(mappingElement);
+            mappingElement = new XElement(sharpGenNamespace + "mapping");
+            mappingConfig.Add(mappingElement);
         }
 
         if (bindingElement == null)
         {
             // If the "mapping" element doesn't exist, you can create it and add content
-            bindingElement = new XElement(ns + "bindings");
-            mappingDoc.Root?.Add(bindingElement);
+            bindingElement = new XElement(sharpGenNamespace + "bindings");
+            mappingConfig.Add(bindingElement);
         }
 
         {
-            var functionMapElement = new XElement(ns + "map");
+            var functionMapElement = new XElement(sharpGenNamespace + "map");
             functionMapElement.SetAttributeValue("function", "add_extension_library");
             functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
             functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
             mappingElement.Add(functionMapElement);
         }
         {
-            var functionMapElement = new XElement(ns + "map");
+            var functionMapElement = new XElement(sharpGenNamespace + "map");
             functionMapElement.SetAttributeValue("function", "get_library");
             functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
             functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
@@ -152,126 +153,121 @@ internal class Program
 
         var processedTypes = new HashSet<string>();
 
-        foreach (CppField field in interfaceFunctions)
-        {
-            string functionName = field.Name.Replace(gdextensionInterfacePrefix, "");
+        // foreach (CppField field in interfaceFunctions)
+        // {
+        //     string functionName = field.Name.Replace(gdextensionInterfacePrefix, "");
+        //
+        //     CppType type = field.Type;
+        //     
+        //     CppFunctionType functionType = ExtractFunctionType(type);
+        //
+        //     bool isIgnored = false;
+        //
+        //
+        //     foreach (string ignoredType in ignoredTypes)
+        //     {
+        //         if (GetTypeString(functionType.ReturnType).Contains(ignoredType))
+        //         {
+        //             isIgnored = true;
+        //             break;
+        //         }
+        //         
+        //         if (!functionType.Parameters.Any(p => GetTypeString(p.Type).Contains(ignoredType)))
+        //         {
+        //             continue;
+        //         }
+        //
+        //         isIgnored = true;
+        //         break;
+        //     }
+        //
+        //     if (isIgnored) continue;
+        //
+        //     if (IsFunction(functionType.ReturnType))
+        //     {
+        //         string returnTypeName = functionType.ReturnType.FullName;
+        //         if (processedTypes.Add(returnTypeName))
+        //         {
+        //             var functionBindingElement = new XElement(ns + "bind");
+        //             functionBindingElement.SetAttributeValue("from", returnTypeName);
+        //             functionBindingElement.SetAttributeValue("to", "System.IntPtr");
+        //             bindingElement.Add(functionBindingElement);
+        //         }            
+        //
+        //         if (!functions.ContainsKey(functionType.ReturnType.GetDisplayName()))
+        //         {
+        //             functions.Add(functionType.ReturnType.GetDisplayName(), functionType.ReturnType);
+        //         }
+        //         
+        //     }
+        //
+        //     var parameters = new List<string>();
+        //     var parameterNames = new List<string>();
+        //     
+        //     foreach (CppParameter parameter in functionType.Parameters)
+        //     {
+        //         if (IsFunction(parameter.Type))
+        //         {
+        //             if (!functions.ContainsKey(parameter.Type.GetDisplayName()))
+        //             {
+        //                 functions.Add(parameter.Type.GetDisplayName(), parameter.Type);
+        //             }
+        //         }
+        //         
+        //         parameters.Add(string.Format($"{GetTypeString(parameter.Type)}", parameter.Name));
+        //         parameterNames.Add(parameter.Name);
+        //     }
+        //
+        //     var functionSignature =
+        //         $"{functionType.ReturnType.GetDisplayName()} {functionName}({string.Join(", ", parameters)})";
+        //     
+        //     AddFunction(functionName, functionSignature, $"godot::internal::{field.Name}", functionType, parameterNames);
+        // }
 
-            CppType type = field.Type;
-            
-            CppFunctionType functionType = ExtractFunctionType(type);
-
-            bool isIgnored = false;
-
-
-            foreach (string ignoredType in ignoredTypes)
-            {
-                if (GetTypeString(functionType.ReturnType).Contains(ignoredType))
-                {
-                    isIgnored = true;
-                    break;
-                }
-                
-                if (!functionType.Parameters.Any(p => GetTypeString(p.Type).Contains(ignoredType)))
-                {
-                    continue;
-                }
-
-                isIgnored = true;
-                break;
-            }
-
-            if (isIgnored) continue;
-
-            if (IsFunction(functionType.ReturnType))
-            {
-                string returnTypeName = functionType.ReturnType.FullName;
-                if (processedTypes.Add(returnTypeName))
-                {
-                    var functionBindingElement = new XElement(ns + "bind");
-                    functionBindingElement.SetAttributeValue("from", returnTypeName);
-                    functionBindingElement.SetAttributeValue("to", "System.IntPtr");
-                    bindingElement.Add(functionBindingElement);
-                }            
-
-                if (!functions.ContainsKey(functionType.ReturnType.GetDisplayName()))
-                {
-                    functions.Add(functionType.ReturnType.GetDisplayName(), functionType.ReturnType);
-                }
-                
-            }
-
-            var parameters = new List<string>();
-            var parameterNames = new List<string>();
-            
-            foreach (CppParameter parameter in functionType.Parameters)
-            {
-                if (IsFunction(parameter.Type))
-                {
-                    if (!functions.ContainsKey(parameter.Type.GetDisplayName()))
-                    {
-                        functions.Add(parameter.Type.GetDisplayName(), parameter.Type);
-                    }
-                }
-                
-                parameters.Add(string.Format($"{GetTypeString(parameter.Type)}", parameter.Name));
-                parameterNames.Add(parameter.Name);
-            }
-
-            var functionSignature =
-                $"{functionType.ReturnType.GetDisplayName()} {functionName}({string.Join(", ", parameters)})";
-            
-            AddFunction(functionName, functionSignature, $"godot::internal::{field.Name}", functionType, parameterNames);
-        }
-
-        foreach (string functionKey in functions.Keys)
-        {
-            CppFunctionType functionType = ExtractFunctionType(functions[functionKey]);
-
-            string functionName;
-            if (functionKey == "void (*)(void*, uint32_t)*")
-            {
-                dotnetApiHeaderBuilder.AppendLine("typedef void (*NativeGroupTask)(void*, uint32_t);");
-                functionName = "NativeGroupTask";
-            }
-            else if (functionKey == "void (*)(void*)*")
-            {
-                dotnetApiHeaderBuilder.AppendLine("typedef void (*NativeTask)(void*);");
-                functionName = "NativeTask";
-            }
-            else
-            {
-                functionName = functionKey;
-            }
-
-            var parameters = new List<string>
-            {
-                "func",
-            };
-            var parameterNames = new List<string>();
-            
-            foreach ((CppParameter val, int index) parameter in functionType!.Parameters.Select((val, index) => (val, index)))
-            {
-                string parameterName = parameter.val.Name;
-                if (string.IsNullOrWhiteSpace(parameterName))
-                {
-                    parameterName = $"arg{parameter.index}";
-                }
-                parameters.Add(string.Format($"{GetTypeString(parameter.val.Type)}", parameterName));
-                parameterNames.Add(parameterName);
-            }
-
-            string callFunctionName = $"call_{functionName}";
-            
-            var functionSignature =
-                $"{functionType.ReturnType.GetDisplayName()} {callFunctionName}({functionName} {string.Join(", ", parameters)})";
-
-            AddFunction(callFunctionName, functionSignature, "func", functionType, parameterNames);
-        }
-        
-
-        mappingDoc.Save(Path.GetFullPath(Path.Join(rootFolder,
-            "GodotSharpGDExtension.CSharp/Mappings/GDExtension.xml")));
-        
+        // foreach (string functionKey in functions.Keys)
+        // {
+        //     CppFunctionType functionType = ExtractFunctionType(functions[functionKey]);
+        //
+        //     string functionName;
+        //     if (functionKey == "void (*)(void*, uint32_t)*")
+        //     {
+        //         dotnetApiHeaderBuilder.AppendLine("typedef void (*NativeGroupTask)(void*, uint32_t);");
+        //         functionName = "NativeGroupTask";
+        //     }
+        //     else if (functionKey == "void (*)(void*)*")
+        //     {
+        //         dotnetApiHeaderBuilder.AppendLine("typedef void (*NativeTask)(void*);");
+        //         functionName = "NativeTask";
+        //     }
+        //     else
+        //     {
+        //         functionName = functionKey;
+        //     }
+        //
+        //     var parameters = new List<string>
+        //     {
+        //         "func",
+        //     };
+        //     var parameterNames = new List<string>();
+        //     
+        //     foreach ((CppParameter val, int index) parameter in functionType!.Parameters.Select((val, index) => (val, index)))
+        //     {
+        //         string parameterName = parameter.val.Name;
+        //         if (string.IsNullOrWhiteSpace(parameterName))
+        //         {
+        //             parameterName = $"arg{parameter.index}";
+        //         }
+        //         parameters.Add(string.Format($"{GetTypeString(parameter.val.Type)}", parameterName));
+        //         parameterNames.Add(parameterName);
+        //     }
+        //
+        //     string callFunctionName = $"call_{functionName}";
+        //     
+        //     var functionSignature =
+        //         $"{functionType.ReturnType.GetDisplayName()} {callFunctionName}({functionName} {string.Join(", ", parameters)})";
+        //
+        //     AddFunction(callFunctionName, functionSignature, "func", functionType, parameterNames);
+        // }
         
         dotnetApiHeaderBuilder.AppendLine("}");
 
@@ -339,6 +335,29 @@ internal class Program
         var api = Api.Create(pathToGenJson);
         var convert = new Convert(api, ginDir, $"{rootFolder}GodotSharpGDExtension.Native/src/generated", docs, configName);
         convert.Emit();
+
+        foreach (KeyValuePair<string,List<string>> classFunction in convert.BuiltinClassFunctions)
+        {
+            var includeElement = new XElement(sharpGenNamespace + "include");
+            includeElement.SetAttributeValue("file", $"generated/BuiltinClasses/{classFunction.Key}.hpp");
+            includeElement.SetAttributeValue("namespace", "GodotSharpGDExtension");
+            includeElement.SetAttributeValue("attach", "true");
+            mappingConfig.Add(includeElement);
+            
+            //mappingConfig
+            foreach (string functionName in classFunction.Value)
+            {
+                var functionMapElement = new XElement(sharpGenNamespace + "map");
+                functionMapElement.SetAttributeValue("function", functionName);
+                functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
+                functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
+                mappingElement.Add(functionMapElement);                
+            }
+        }
+        
+        mappingDoc.Save(Path.GetFullPath(Path.Join(rootFolder,
+            "GodotSharpGDExtension.CSharp/Mappings/GDExtension.xml")));
+        
         return;
 
         void AddFunction(string functionName, string functionSignature, string functionCall,
@@ -360,7 +379,7 @@ internal class Program
                 $"\t{returnString}{functionCall}({string.Join(", ", parameterNames)});");
             dotnetApiCodeBuilder.AppendLine("}");
             
-            var functionMapElement = new XElement(ns + "map");
+            var functionMapElement = new XElement(sharpGenNamespace + "map");
             functionMapElement.SetAttributeValue("function", functionName);
             functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
             functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
