@@ -1,0 +1,185 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<config id="GDExtension" xmlns="urn:SharpGen.Config">
+  <assembly>GodotSharpGDExtension.Interface</assembly>
+  <namespace>GodotSharpGDExtension</namespace>
+  <depends>SharpGen.Runtime</depends>
+  <sdk name="StdLib" />
+  <include-dir override="true">$(THIS_CONFIG_PATH)/../../godot-cpp/gdextension</include-dir>
+  <include-dir override="true">$(THIS_CONFIG_PATH)/../../godot-cpp/include</include-dir>
+  <include-dir override="true">$(THIS_CONFIG_PATH)/../../GodotSharpGDExtension.Native/src</include-dir>
+  <include file="dotnet_api.h" namespace="GodotSharpGDExtension" attach="true" />
+  <include file="gdextension_interface.h" namespace="GodotSharpGDExtension" attach="true" />
+  <bindings>
+    <bind from="GDExtensionPtrConstructor" to="System.IntPtr" />
+    <bind from="GDExtensionVariantFromTypeConstructorFunc" to="System.IntPtr" />
+    <bind from="GDExtensionTypeFromVariantConstructorFunc" to="System.IntPtr" />
+    <bind from="GDExtensionInterfaceFunctionPtr" to="System.IntPtr" />
+    <bind from="GDExtensionVariantFromTypeConstructorFunc" to="System.IntPtr" />
+    <bind from="GDExtensionTypeFromVariantConstructorFunc" to="System.IntPtr" />
+    <bind from="GDExtensionPtrOperatorEvaluator" to="System.IntPtr" />
+    <bind from="GDExtensionPtrBuiltInMethod" to="System.IntPtr" />
+    <bind from="GDExtensionPtrConstructor" to="System.IntPtr" />
+    <bind from="GDExtensionPtrDestructor" to="System.IntPtr" />
+    <bind from="GDExtensionPtrSetter" to="System.IntPtr" />
+    <bind from="GDExtensionPtrGetter" to="System.IntPtr" />
+    <bind from="GDExtensionPtrIndexedSetter" to="System.IntPtr" />
+    <bind from="GDExtensionPtrIndexedGetter" to="System.IntPtr" />
+    <bind from="GDExtensionPtrKeyedSetter" to="System.IntPtr" />
+    <bind from="GDExtensionPtrKeyedGetter" to="System.IntPtr" />
+    <bind from="GDExtensionPtrKeyedChecker" to="System.IntPtr" />
+    <bind from="GDExtensionPtrUtilityFunction" to="System.IntPtr" />
+  </bindings>
+  <extension>
+    <create class="GodotSharpGDExtension.GDExtensionInterface" visibility="public static" />
+  </extension>
+  <mapping>
+    <map param="\w+::r_\w+" attribute="out" />
+    <map param="classdb_register_extension_class_signal::p_argument_info" attribute="buffer" />
+    <map function="add_extension_library" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="get_library" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="get_proc_address" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="get_godot_version" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="mem_alloc" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="mem_realloc" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="mem_free" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="print_error" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="print_error_with_message" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="print_warning" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="print_warning_with_message" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="print_script_error" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="print_script_error_with_message" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="get_native_struct_size" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_new_copy" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_new_nil" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_destroy" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_call" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_call_static" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_evaluate" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_set" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_set_named" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_set_keyed" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_set_indexed" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_named" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_keyed" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_indexed" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_iter_init" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_iter_next" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_iter_get" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_hash" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_recursive_hash" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_hash_compare" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_booleanize" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_duplicate" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_stringify" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_type" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_has_method" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_has_member" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_has_key" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_type_name" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_can_convert" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_can_convert_strict" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="get_variant_from_type_constructor" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="get_variant_to_type_constructor" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_operator_evaluator" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_builtin_method" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_constructor" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_destructor" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_construct" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_setter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_getter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_indexed_setter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_indexed_getter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_keyed_setter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_keyed_getter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_keyed_checker" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_constant_value" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="variant_get_ptr_utility_function" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_new_with_latin1_chars" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_new_with_utf8_chars" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_new_with_wide_chars" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_new_with_latin1_chars_and_len" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_new_with_utf8_chars_and_len" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_new_with_wide_chars_and_len" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_to_latin1_chars" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_to_utf8_chars" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_to_wide_chars" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_operator_plus_eq_string" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_operator_plus_eq_cstr" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="string_operator_plus_eq_wcstr" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="xml_parser_open_buffer" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="file_access_store_buffer" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="file_access_get_buffer" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="worker_thread_pool_add_native_group_task" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="worker_thread_pool_add_native_task" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_byte_array_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_byte_array_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_color_array_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_color_array_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_float32_array_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_float32_array_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_float64_array_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_float64_array_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_int32_array_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_int32_array_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_int64_array_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_int64_array_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_string_array_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_string_array_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_vector2_array_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_vector2_array_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_vector3_array_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="packed_vector3_array_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="array_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="array_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="array_ref" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="array_set_typed" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="dictionary_operator_index" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="dictionary_operator_index_const" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="object_method_bind_call" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="object_method_bind_ptrcall" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="object_destroy" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="global_get_singleton" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="object_get_instance_binding" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="object_set_instance_binding" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="object_set_instance" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="object_get_class_name" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="object_cast_to" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="object_get_instance_from_id" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="object_get_instance_id" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="ref_get_object" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="ref_set_object" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="script_instance_create" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_construct_object" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_get_method_bind" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_get_class_tag" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_register_extension_class" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_register_extension_class_method" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_register_extension_class_integer_constant" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_register_extension_class_property" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_register_extension_class_property_group" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_register_extension_class_property_subgroup" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_register_extension_class_signal" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="classdb_unregister_extension_class" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="get_library_path" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="editor_add_plugin" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="editor_remove_plugin" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionInterfaceFunctionPtr" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionVariantFromTypeConstructorFunc" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionTypeFromVariantConstructorFunc" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrOperatorEvaluator" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrBuiltInMethod" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrConstructor" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrDestructor" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrSetter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrGetter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrIndexedSetter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrIndexedGetter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrKeyedSetter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrKeyedGetter" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrKeyedChecker" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_GDExtensionPtrUtilityFunction" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_NativeGroupTask" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+    <map function="call_NativeTask" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+  </mapping>
+</config>

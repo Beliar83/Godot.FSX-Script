@@ -22,4 +22,8 @@
 	<ItemGroup>
 		<SharpGenMapping Include="Mappings\GDExtension.xml" />
 	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\ScriptInterop.Interface\ScriptInterop.Interface.csproj" />
+	</ItemGroup>
 </Project>
