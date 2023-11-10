@@ -1,5 +1,5 @@
 using System.Xml.Serialization;
-using Microsoft.VisualBasic;
+using CaseExtensions;
 using SharpGenerator.Documentation;
 
 namespace SharpGenerator;
@@ -28,20 +28,20 @@ public class Convert
 
     private readonly Dictionary<string, HashSet<string>> registrations = new()
     {
-        ["builtin"] = new() { "StringName", "Variant" },
-        ["utility"] = new(),
-        ["core"] = new(),
-        ["servers"] = new(),
-        ["scene"] = new(),
-        ["editor"] = new(),
+        ["builtin"] = new HashSet<string> { "StringName", "Variant" },
+        ["utility"] = new HashSet<string>(),
+        ["core"] = new HashSet<string>(),
+        ["servers"] = new HashSet<string>(),
+        ["scene"] = new HashSet<string>(),
+        ["editor"] = new HashSet<string>(),
     };
 
     private readonly Api api;
-    private readonly XmlSerializer classXml = new(typeof(Documentation.Class));
-    private readonly XmlSerializer builtinXml = new(typeof(Documentation.BuiltinClass));
+    private readonly XmlSerializer classXml = new(typeof(Class));
+    private readonly XmlSerializer builtinXml = new(typeof(BuiltinClass));
     private readonly string csDir;
     private readonly string cppDir;
-    private readonly string docDir;
+    private readonly string? docDir;
     private readonly string configName;
     private static readonly Dictionary<string, int> BuiltinClassSizes = new();
 
@@ -52,12 +52,12 @@ public class Convert
         this.cppDir = cppDir;
         this.docDir = docDir;
         this.configName = configName;
-        foreach (Api.BuiltinClassSizes classSizes in api.builtinClassSizes)
+        foreach (Api.BuiltinClassSizesOfConfig classSizes in api.BuiltinClassSizes)
         {
-            if (classSizes.buildConfiguration != configName) continue;
-            foreach (Api.Size size in classSizes.sizes)
+            if (classSizes.BuildConfiguration != configName) continue;
+            foreach (Api.ClassSize size in classSizes.Sizes)
             {
-                BuiltinClassSizes[size.name] = size.size;
+                BuiltinClassSizes[size.Name] = size.Size;
             }
         }
     }
@@ -73,28 +73,28 @@ public class Convert
             objectTypes.Add(o);
         }
 
-        foreach (Api.Class c in api.classes)
+        foreach (Api.Class c in api.Classes)
         {
-            objectTypes.Add(c.name);
+            objectTypes.Add(c.Name);
         }
 
         BuiltinClasses();
         Classes();
 
         Directory.CreateDirectory(csDir + "/Enums");
-        foreach (Api.Enum e in api.globalEnums)
+        foreach (Api.Enum e in api.GlobalEnums)
         {
             GlobalEnum(e, csDir + "/Enums");
         }
 
         Directory.CreateDirectory(csDir + "/NativeStructures");
-        foreach (Api.NativeStructure native in api.nativeStructures)
+        foreach (Api.NativeStructure native in api.NativeStructures)
         {
-            StreamWriter file = File.CreateText(csDir + "/NativeStructures/" + Fixer.CSType(native.name, api) + ".cs");
+            StreamWriter file = File.CreateText(csDir + "/NativeStructures/" + Fixer.CSType(native.Name, api) + ".cs");
             file.WriteLine("namespace GodotSharpGDExtension;");
             file.WriteLine(value: "[StructLayout(LayoutKind.Sequential)]");
-            file.WriteLine($"public unsafe struct {native.name} {{");
-            foreach (string member in native.format.Split(";"))
+            file.WriteLine($"public unsafe struct {native.Name} {{");
+            foreach (string member in native.Format.Split(";"))
             {
                 string[] pair = member.Split(" ");
                 string name = Fixer.Name(pair[1]);
@@ -124,11 +124,11 @@ public class Convert
             file.Close();
         }
         Directory.CreateDirectory(csDir + "/UtilityFunctions");
-        Class docGlobalScope = GetDocs("@GlobalScope");
+        Class? docGlobalScope = GetDocs("@GlobalScope");
         var files = new Dictionary<string, (StreamWriter, List<string>)>();
-        foreach (Api.Method f in api.untilityFunction)
+        foreach (Api.Method f in api.UtilityFunction)
         {
-            string cat = string.Concat(f.category![0].ToString().ToUpper(), f.category.AsSpan(1));
+            string cat = string.Concat(f.Category![0].ToString().ToUpper(), f.Category.AsSpan(1));
             if (files.TryGetValue(cat, out (StreamWriter, List<string>) file) == false)
             {
                 file = (File.CreateText(csDir + "/UtilityFunctions/" + cat + ".cs"), new List<string>());
@@ -137,10 +137,10 @@ public class Convert
                 file.Item1.WriteLine($"public static unsafe partial class {cat} {{");
                 registrations["utility"].Add(cat);
             }
-            Documentation.Method d = null;
+            Method? d = null;
             if (docGlobalScope is { methods: not null })
             {
-                d = docGlobalScope.methods.FirstOrDefault(x => x.name == f.name);
+                d = docGlobalScope.methods.FirstOrDefault(x => x.name == f.Name);
             }
             Method(f, "", file.Item1, MethodType.Utility, file.Item2, d);
         }
@@ -163,7 +163,7 @@ public class Convert
         register.WriteLine("public static class Register {");
         foreach ((string key, HashSet<string> list) in registrations)
         {
-            register.WriteLine($"\tpublic static void Register{Fixer.SnakeToPascal(key)}() {{");
+            register.WriteLine($"\tpublic static void Register{key.ToPascalCase()}() {{");
             foreach (string r in list)
             {
                 register.WriteLine($"\t\t{r}.Register();");
@@ -176,44 +176,41 @@ public class Convert
         Variant();
     }
 
-    private Documentation.Class GetDocs(string name)
+    private Class? GetDocs(string? name)
     {
         if (docDir == null) { return null; }
         string path = docDir + name + ".xml";
         if (File.Exists(path))
         {
             FileStream file = File.OpenRead(path);
-            var d = (Documentation.Class)classXml.Deserialize(file)!;
+            var d = (Class)classXml.Deserialize(file)!;
             file.Close();
             return d;
         }
-        else
-        {
-            return null;
-        }
+
+        return null;
     }
 
-    private Documentation.BuiltinClass GetBuiltinDocs(string name)
+    private BuiltinClass? GetBuiltinDocs(string name)
     {
         if (docDir == null) { return null; }
         string path = docDir + name + ".xml";
-        if (File.Exists(path))
-        {
-            FileStream file = File.OpenRead(path);
-            var d = (Documentation.BuiltinClass)builtinXml.Deserialize(file)!;
-            file.Close();
-            return d;
-        }
-        else
+        if (!File.Exists(path))
         {
             return null;
         }
+
+        FileStream file = File.OpenRead(path);
+        var d = (BuiltinClass)builtinXml.Deserialize(file)!;
+        file.Close();
+        return d;
+
     }
 
     private void GlobalEnum(Api.Enum e, string dir)
     {
-        if (e.name.Contains('.')) { return; }
-        string name = Fixer.CSType(e.name, api).Replace(".", "");
+        if (e.Name.Contains('.')) { return; }
+        string name = Fixer.CSType(e.Name, api).Replace(".", "");
         StreamWriter file = File.CreateText(dir + "/" + Fixer.CSType(name, api) + ".cs");
         file.WriteLine("namespace GodotSharpGDExtension {");
         Enum(e, file);
@@ -223,13 +220,13 @@ public class Convert
 
     private void BuiltinClasses()
     {
-        string csDir = this.csDir + "/BuiltinClasses";
-        string cppDir = this.cppDir + "/BuiltinClasses";
-        Directory.CreateDirectory(csDir);
-        Directory.CreateDirectory(cppDir);
-        foreach (Api.BuiltinClass c in api.builtinClasses)
+        string builtinClassesCsDir = this.csDir + "/BuiltinClasses";
+        string builtinClassesCppDir = this.cppDir + "/BuiltinClasses";
+        Directory.CreateDirectory(builtinClassesCsDir);
+        Directory.CreateDirectory(builtinClassesCppDir);
+        foreach (Api.BuiltinClass c in api.BuiltinClasses)
         {
-            switch (c.name)
+            switch (c.Name)
             {
                 case "int":
                 case "float":
@@ -238,42 +235,40 @@ public class Convert
                 case "Nil":
                     break;
                 default:
-                    BuiltinClass(c, csDir, cppDir, builtinObjectTypes.Contains(c.name));
+                    BuiltinClass(c, builtinClassesCsDir, builtinClassesCppDir, builtinObjectTypes.Contains(c.Name));
                     break;
             }
         }
     }
 
-    private void BuiltinClass(Api.BuiltinClass c, string csDir, string cppDir, bool hasPointer)
+    private void BuiltinClass(Api.BuiltinClass c, string builtinClassesCsDir, string builtinClassesCppDir, bool hasPointer)
     {
-        string className = c.name;
+        string className = c.Name;
         if (className == "Object") className = "GodotObject";
-        StreamWriter csFile = File.CreateText(csDir + "/" + Fixer.CSType(className, api) + ".cs");
-        StreamWriter cppHeaderFile = File.CreateText(cppDir + "/" + Fixer.CSType(className, api) + ".hpp");
-        StreamWriter cppSourceFile = File.CreateText(cppDir + "/" + Fixer.CSType(className, api) + ".cpp");
+        StreamWriter csFile = File.CreateText(builtinClassesCsDir + "/" + Fixer.CSType(className, api) + ".cs");
+        StreamWriter cppHeaderFile = File.CreateText(builtinClassesCppDir + "/" + Fixer.CSType(className, api) + ".hpp");
+        StreamWriter cppSourceFile = File.CreateText(builtinClassesCppDir + "/" + Fixer.CSType(className, api) + ".cpp");
         registrations["builtin"].Add(Fixer.CSType(className, api));
 
         var classFunctions = new List<string>();
         BuiltinClassFunctions[className] = classFunctions;
         
-        BuiltinClass doc = GetBuiltinDocs(className);
+        BuiltinClass? doc = GetBuiltinDocs(className);
 
-        var constructorRegistrations = new List<string>();
-        var operatorRegistrations = new List<string>();
         var methodRegistrations = new List<string>();
 
-        int size = BuiltinClassSizes[c.name];
+        int size = BuiltinClassSizes[c.Name];
         
-        foreach (Api.BuiltinClassSizes config in api.builtinClassSizes)
+        foreach (Api.BuiltinClassSizesOfConfig config in api.BuiltinClassSizes)
         {
-            if (config.buildConfiguration != configName)
+            if (config.BuildConfiguration != configName)
             {
                 continue;
             }
 
-            foreach (Api.Size sizePair in config.sizes)
+            foreach (Api.ClassSize sizePair in config.Sizes)
             {
-                if (sizePair.name != className)
+                if (sizePair.Name != className)
                 {
                     continue;
                 }
@@ -314,100 +309,98 @@ public class Convert
         csFile.WriteLine($"\tpublic {className}(IntPtr ptr) => InternalPointer = ptr;");
         csFile.WriteLine();
 
-        if (c.isKeyed)
+        if (c.IsKeyed)
         {
             //Dictionary
             //todo: manually as extension?
         }
 
-        if (c.indexingReturnType != null)
+        if (c.IndexingReturnType != null)
         {
             //array?
             //todo: manually as extension?
         }
 
-        var membersWithFunctions = new List<string>();
-
-        if (c.members != null)
+        if (c.Members != null)
         {
-            foreach (Api.Member member in c.members)
+            foreach (Api.BuiltinMember member in c.Members)
             {
                 Member? d = null;
-                if (doc != null && doc.members != null)
+                if (doc is { members: not null })
                 {
-                    d = doc.members.FirstOrDefault(x => x.name == member.name);
+                    d = doc.members.FirstOrDefault(x => x.name == member.Name);
                 }
                 Member(member, csFile, cppHeaderFile, cppSourceFile, className, d, classFunctions);
             }
         }
         
-        if (c.constants != null)
+        if (c.Constants != null)
         {
-            foreach (Api.Constant con in c.constants)
+            foreach (Api.Constant con in c.Constants)
             {
                 if (doc is { constants: not null })
                 {
-                    Constant d = doc.constants.FirstOrDefault(x => x.name == con.name);
-                    if (d != null && d.comment != null)
+                    Constant? d = doc.constants.FirstOrDefault(x => x.name == con.Name);
+                    if (d is { comment: not null })
                     {
                         string com = Fixer.XMLComment(d.comment);
                         csFile.WriteLine(com);
                     }
                 }
-                csFile.WriteLine($"\tpublic static {Fixer.CSType(con.type, api)} {Fixer.SnakeToPascal(con.name)} => {Fixer.Value(con.value)};");
+                csFile.WriteLine($"\tpublic static {Fixer.CSType(con.Type, api)} {con.Name.ToLower().ToPascalCase()} => {Fixer.Value(con.Value)};");
             }
             csFile.WriteLine();
         }
 
-        if (c.constructors != null)
+        if (c.Constructors != null)
         {
-            for (var i = 0; i < c.constructors.Length; i++)
+            for (var i = 0; i < c.Constructors.Length; i++)
             {
-                Api.Constructor constructor = c.constructors[i];
+                Api.Constructor constructor = c.Constructors[i];
                 Constructor? d = null;
-                if (doc != null && doc.constructors != null)
+                if (doc is { constructors: not null })
                 {
                     d = doc.constructors[i];
                 }
-                Constructor(c, constructor, csFile, cppHeaderFile, cppSourceFile, constructorRegistrations, d, hasPointer, size, classFunctions);
+                Constructor(c, constructor, csFile, cppHeaderFile, cppSourceFile, d, size, classFunctions);
             }
         }
         else
         {
-            var emptyApiConstructor = new Api.Constructor { arguments = Array.Empty<Api.Argument>(), index = 0};
+            var emptyApiConstructor = new Api.Constructor { Arguments = Array.Empty<Api.Argument>(), Index = 0};
             var emptyDocConstructor = new Constructor();
-            Constructor(c, emptyApiConstructor, csFile, cppHeaderFile, cppSourceFile, constructorRegistrations, emptyDocConstructor, hasPointer, size, classFunctions);
+            Constructor(c, emptyApiConstructor, csFile, cppHeaderFile, cppSourceFile, emptyDocConstructor, size, classFunctions);
         }
 
-        if (c.operators != null)
+        if (c.Operators != null)
         {
-            foreach (Api.Operator op in c.operators)
+            foreach (Api.Operator op in c.Operators)
             {
                 Operator? d = null;
-                if (doc != null && doc.operators != null)
+                if (doc is { operators: not null })
                 {
-                    d = doc.operators.FirstOrDefault(x => x.name == $"operator {op.name}");
+                    d = doc.operators.FirstOrDefault(x => x.name == $"operator {op.Name}");
                 }
-                Operator(op, className, csFile, operatorRegistrations, d);
+                Operator(op, className, csFile, cppHeaderFile, cppSourceFile, d, classFunctions);
             }
         }
 
-        if (c.enums != null)
+        if (c.Enums != null)
         {
-            foreach (Api.Enum e in c.enums)
+            foreach (Api.Enum e in c.Enums)
             {
                 Enum(e, csFile, doc?.constants);
             }
         }
 
-        if (c.methods != null)
+        if (c.Methods != null)
         {
-            foreach (Api.Method meth in c.methods)
+            foreach (Api.Method meth in c.Methods)
             {
-                Documentation.Method d = null;
-                if (doc != null && doc.methods != null)
+                Method? d = null;
+                if (doc is { methods: not null })
                 {
-                    d = doc.methods.FirstOrDefault(x => x.name == meth.name);
+                    d = doc.methods.FirstOrDefault(x => x.name == meth.Name);
                 }
                 Method(meth, className, csFile, MethodType.Native, methodRegistrations, d, isBuiltinPointer: hasPointer);
             }
@@ -430,18 +423,18 @@ public class Convert
         }
 
 
-        for (var i = 0; i < constructorRegistrations.Count; i++)
-        {
-            csFile.WriteLine($"\tstatic IntPtr __constructorPointer{i} => {constructorRegistrations[i]};");
-        }
-        for (var i = 0; i < operatorRegistrations.Count; i++)
-        {
-            csFile.WriteLine($"\tstatic IntPtr __operatorPointer{i} => {operatorRegistrations[i]};");
-        }
-        for (var i = 0; i < methodRegistrations.Count; i++)
-        {
-            csFile.WriteLine($"\tstatic IntPtr __methodPointer{i} => {methodRegistrations[i]};");
-        }
+        // for (var i = 0; i < constructorRegistrations.Count; i++)
+        // {
+        //     csFile.WriteLine($"\tstatic IntPtr __constructorPointer{i} => {constructorRegistrations[i]};");
+        // }
+        // for (var i = 0; i < operatorRegistrations.Count; i++)
+        // {
+        //     csFile.WriteLine($"\tstatic IntPtr __operatorPointer{i} => {operatorRegistrations[i]};");
+        // }
+        // for (var i = 0; i < methodRegistrations.Count; i++)
+        // {
+        //     csFile.WriteLine($"\tstatic IntPtr __methodPointer{i} => {methodRegistrations[i]};");
+        // }
 
         if (hasPointer)
         {
@@ -453,27 +446,6 @@ public class Convert
         csFile.WriteLine("\tpublic static void Register() {");
         csFile.WriteLine("\t\tif (_registered) return;");
         csFile.WriteLine("\t\t_registered = true;");
-        if (hasPointer)
-        {
-            // file.WriteLine($"\t\t__destructor = GDExtensionInterface.VariantGetPtrDestructor((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)});");
-        }
-        foreach (string member in membersWithFunctions)
-        {
-            // file.WriteLine($"\t\tvar _stringName{member} = new StringName(\"{member}\");");
-            // file.WriteLine($"\t\t{member}Getter = GDExtensionInterface.VariantGetPtrGetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
-            // file.WriteLine($"\t\t{member}Setter = GDExtensionInterface.VariantGetPtrSetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
-        }
-        for (var i = 0; i < operatorRegistrations.Count; i++)
-        {
-            // file.WriteLine(operatorRegistrations[i]);
-        }
-        // if (c.constants != null)
-        // {
-        //     foreach (var con in c.constants)
-        //     {
-        //         file.WriteLine($"\t\t{Fixer.SnakeToPascal(con.name)} = {Fixer.Value(con.value)};");
-        //     }
-        // }
         csFile.WriteLine("\t}");
         csFile.WriteLine($" }} { (hasPointer ? "" : $"{Fixer.CSType(className, api)};")}");
         csFile.Close();
@@ -483,7 +455,7 @@ public class Convert
         cppSourceFile.Close();
     }
 
-    private void Member(Api.Member member, TextWriter csFile,
+    private void Member(Api.BuiltinMember builtinMember, TextWriter csFile,
         TextWriter cppHeaderFile, TextWriter cppSourceFile, string className, Member? doc, ICollection<string> classFunctions)
     {
         if (doc != null)
@@ -492,28 +464,29 @@ public class Convert
             csFile.WriteLine(com);
         }
 
-        var getterName = $"{className}_{member.name}_getter";
-        var setterName = $"{className}_{member.name}_setter";
+        var getterName = $"{className}_{builtinMember.Name}_getter";
+        var setterName = $"{className}_{builtinMember.Name}_setter";
 
-        string cppType = Fixer.CPPType(member.type, api);
-        bool isPod = Fixer.IsPod(member.type);
+        string cppType = Fixer.CPPType(builtinMember.Type, api);
+        string csType = Fixer.CSType(builtinMember.Type, api);
+        bool isPod = Fixer.IsPod(builtinMember.Type);
         
-        (string? memberType, string? returnText) = isPod ? (null, null) : Fixer.GetReturnDataForType(cppType);
+        (string? memberType, string? returnText) = isPod ? (null, null) : Fixer.GetReturnDataForType(cppType, "\t");
 
         
         
         memberType ??= cppType;
-        returnText ??= "return {0};";
+        returnText ??= "\treturn {0};";
         
         
         var getterSignature = $"{memberType} {getterName}(GDExtensionTypePtr p_base)";
         var setterSignature = $"void {setterName}(GDExtensionTypePtr p_base, {memberType} p_value)";
-        var getterCall = $"GDExtensionInterface.{Fixer.SnakeToPascal(getterName)}(InternalPointer)";
+        var getterCall = $"GDExtensionInterface.{getterName.ToPascalCase()}(InternalPointer)";
         csFile.WriteLine($$"""
-                           	public {{cppType}} {{Fixer.SnakeToPascal(member.name)}}
+                           	public {{csType}} {{builtinMember.Name.ToPascalCase()}}
                            	{
                            		get => {{(isPod ? getterCall : $"new({getterCall})")}};
-                           		set => GDExtensionInterface.{{Fixer.SnakeToPascal(setterName)}}(InternalPointer, {{(isPod ? "value" : "value.InternalPointer")}});
+                           		set => GDExtensionInterface.{{setterName.ToPascalCase()}}(InternalPointer, {{(isPod ? "value" : "value.InternalPointer")}});
                            	}
                            """);
         cppHeaderFile.WriteLine($"""
@@ -521,25 +494,17 @@ public class Convert
                                  GDE_EXPORT {setterSignature};
                                  """);
 
-
-        // foreach (string member in membersWithFunctions)
-        // {
-        //     csFile.WriteLine($"\tprivate static StringName _stringName{member} => *(StringName*)GDExtensionInterface.CreateStringName (\"{member}\");");
-        //     csFile.WriteLine($"\tstatic IntPtr {member}Getter => GDExtensionInterface.VariantGetPtrGetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
-        //     csFile.WriteLine($"\tstatic IntPtr {member}Setter => GDExtensionInterface.VariantGetPtrSetter((GDExtensionVariantType)Variant.Type.{Fixer.Type(className, api)}, _stringName{member}.internalPointer);");
-        // }            
-
         cppSourceFile.WriteLine();
         cppSourceFile.WriteLine($"{getterSignature} {{");
-        cppSourceFile.WriteLine($"static auto func = godot::internal::gdextension_interface_variant_get_ptr_getter(GDEXTENSION_VARIANT_TYPE_{cppType.ToUpper()}, godot::StringName(\"{member.name}\")._native_ptr());");
+        cppSourceFile.WriteLine($"\tstatic auto func = godot::internal::gdextension_interface_variant_get_ptr_getter({Fixer.VariantEnumType(builtinMember.Type)}, godot::StringName(\"{builtinMember.Name}\")._native_ptr());");
         cppSourceFile.WriteLine(
             isPod 
-                ? $"{memberType} value;"
-                : $"auto value = godot::internal::gdextension_interface_mem_alloc({BuiltinClassSizes[member.type]});");
+                ? $"\t{memberType} value = {{}};"
+                : $"\tauto value = godot::internal::gdextension_interface_mem_alloc({BuiltinClassSizes[builtinMember.Type]});");
         cppSourceFile.WriteLine(
             isPod
-            ? "func(p_base, &value);"
-            : "func(p_base, value);");
+            ? "\tfunc(p_base, &value);"
+            : "\tfunc(p_base, value);");
         cppSourceFile.WriteLine(returnText, "value");
         cppSourceFile.WriteLine("}");
 
@@ -549,7 +514,7 @@ public class Convert
     }
 
     private void Constructor(Api.BuiltinClass c, Api.Constructor constructor, TextWriter csFile, TextWriter cppHeaderFile,
-        TextWriter cppSourceFile, ICollection<string> constructorRegistrations, Constructor? doc, bool hasPointer,
+        TextWriter cppSourceFile, Constructor? doc,
         int size, ICollection<string> classFunctions)
     {
         if (doc != null)
@@ -557,27 +522,26 @@ public class Convert
             string com = Fixer.XMLComment(doc.description);
             csFile.WriteLine(com);
         }
-        csFile.Write($"\tpublic {Fixer.CSType(c.name, api)}(");
         var csArgs = new List<string>();
         var nativeArgs = new List<string>();
         var csArgPAsses = new List<string>();
         var nativeArgPasses = new List<string>();
 
         
-        if (constructor.arguments != null)
+        if (constructor.Arguments != null)
         {
-            foreach (Api.Argument arg in constructor.arguments)
+            foreach (Api.Argument arg in constructor.Arguments)
             {
-                bool isPod = Fixer.IsPod(arg.type);
-                csArgs.Add($"{Fixer.CSType(arg.type, api)} {Fixer.Name(arg.name)}");
-                nativeArgs.Add($"{(isPod ? Fixer.CPPType(arg.type, api) : "GDExtensionTypePtr")} {arg.name}");
-                csArgPAsses.Add(isPod ? arg.name : $"{arg.name}.InternalPointer");
-                nativeArgPasses.Add(isPod ? $"&{arg.name}" : arg.name);
+                bool isPod = Fixer.IsPod(arg.Type);
+                csArgs.Add($"{Fixer.CSType(arg.Type, api)} {Fixer.Name(arg.Name)}");
+                nativeArgs.Add($"{(isPod ? Fixer.CPPType(arg.Type, api) : "GDExtensionTypePtr")} {arg.Name}");
+                csArgPAsses.Add(isPod ? arg.Name : $"{arg.Name}.InternalPointer");
+                nativeArgPasses.Add(isPod ? $"&{arg.Name}" : arg.Name);
             }
         }
         const string argSeparator = ", ";
 
-        var nativeFunctionName = $"{c.name}_constructor_{constructor.index}";
+        var nativeFunctionName = $"{c.Name}_constructor_{constructor.Index}";
         
         var functionSignature = $"GDExtensionTypePtr {nativeFunctionName}({string.Join(argSeparator, nativeArgs)})";
         
@@ -592,21 +556,22 @@ public class Convert
         // return base;
 
         cppSourceFile.WriteLine($"{functionSignature} {{");
-        cppSourceFile.WriteLine($"\tstatic auto constructor = godot::internal::gdextension_interface_variant_get_ptr_constructor(GDEXTENSION_VARIANT_TYPE_{c.name.ToUpper()}, {constructor.index});");
-        cppSourceFile.WriteLine($"\tauto base = new uint8_t[{size}];");
+        cppSourceFile.WriteLine($"\tstatic auto constructor = godot::internal::gdextension_interface_variant_get_ptr_constructor(GDEXTENSION_VARIANT_TYPE_{c.Name.ToScreamingSnakeWithGodotAbbreviations()}, {constructor.Index});");
+        cppSourceFile.WriteLine($"\tauto new_instance = new uint8_t[{size}];");
         if (nativeArgPasses.Any())
         {
             cppSourceFile.WriteLine($"\tstd::array<GDExtensionConstTypePtr, {nativeArgPasses.Count}> call_args = {{{string.Join(argSeparator, nativeArgPasses)}}};");
         }
-        cppSourceFile.Write("\tconstructor(base");
+        cppSourceFile.Write("\tconstructor(new_instance");
         cppSourceFile.WriteLine(nativeArgPasses.Any() ? ", call_args.data());" : ", nullptr);");
-        cppSourceFile.WriteLine("\treturn base;");
+        cppSourceFile.WriteLine("\treturn new_instance;");
         cppSourceFile.WriteLine("}");
         cppSourceFile.WriteLine();
         
+        csFile.Write($"\tpublic {Fixer.CSType(c.Name, api)}(");
         csFile.Write(string.Join(argSeparator, csArgs));
         csFile.WriteLine(") {");
-        csFile.Write($"\t\tInternalPointer = GDExtensionInterface.{Fixer.SnakeToPascal(nativeFunctionName)}(");
+        csFile.Write($"\t\tInternalPointer = GDExtensionInterface.{nativeFunctionName.ToPascalCase()}(");
         csFile.Write(string.Join(argSeparator, csArgPAsses));
         csFile.WriteLine(");");
         csFile.WriteLine("\t}");
@@ -639,79 +604,124 @@ public class Convert
         classFunctions.Add(nativeFunctionName);
     }
 
-    private void Operator(Api.Operator op, string className, StreamWriter file, List<string> operatorRegistrations, Operator? doc)
+    private void Operator(Api.Operator op, string className, TextWriter csFile, TextWriter cppHeaderFile, TextWriter cppSourceFile, Operator? doc, ICollection<string> classFunctions)
     {
-        // TODO
-        if (op.rightType != null)
+        string cppLeftType = Fixer.CPPType(className, api);
+        string cppReturnType = Fixer.CPPType(op.ReturnType, api);
+        if (op.RightType != null)
         {
-            if (op.rightType == "Variant") { return; }
-            string name = op.name switch
+            if (op.RightType == "Variant") { return; }
+
+            var cppOperatorName = $"operator_{op.Name.VariantOperatorCpp()}";
+
+            var nativeFunctionName = $"{className}_{cppOperatorName}_{op.RightType}";
+            
+            string name = op.Name switch
             {
                 "or" => "operator |",
                 "and" => "operator &",
                 "xor" => "operator ^",
-                "**" => "OperatorPower",
-                "in" => "OperatorIn",
-                _ => $"operator {op.name}",
+                "**" => "operator_power",
+                "in" => "operator_in",
+                _ => $"operator {op.Name}",
             };
             if (doc != null)
             {
-                file.WriteLine(Fixer.XMLComment(doc.description));
+                csFile.WriteLine(Fixer.XMLComment(doc.description));
             }
-            file.WriteLine($"\tpublic static {Fixer.CSType(op.returnType, api)} {name}({Fixer.CSType(className, api)} left, {Fixer.CSType(op.rightType, api)} right) {{");
-            var m = $"__operatorPointer{operatorRegistrations.Count}";
-            file.WriteLine($"\t\tvar __op = {m};");
-            operatorRegistrations.Add($"GDExtensionInterface.VariantGetPtrOperatorEvaluator((GDExtensionVariantOperator)Variant.Operator.{Fixer.VariantOperator(op.name)}, (GDExtensionVariantType)Variant.Type.{className}, (GDExtensionVariantType)Variant.Type.{Fixer.VariantName(op.rightType)})");
-            file.WriteLine($"\t\tIntPtr __res = GDExtensionInterface.CallGDExtensionPtrOperatorEvaluator(__op, {ValueToPointer("left", className)}, {ValueToPointer("right", op.rightType)});");
-            file.WriteLine($"\t\treturn {ReturnStatementValue(op.returnType)};");
+
+            bool isReturnTypePod = Fixer.IsPod(op.ReturnType);
+            
+            (string? returnType, string? returnText) = isReturnTypePod ? (null, null) : Fixer.GetReturnDataForType(op.ReturnType, "\t");
+        
+        
+            returnType ??= cppReturnType;
+            returnText ??= "\treturn {0};";
+            var cppFunctionSignature = $"{returnType} {nativeFunctionName}({cppLeftType} left, {Fixer.CPPType(op.RightType, api)} right)";
+            cppHeaderFile.WriteLine($"{cppFunctionSignature};");
+            
+            cppSourceFile.WriteLine($"{cppFunctionSignature} {{");
+            cppSourceFile.WriteLine($"\tstatic auto operator_func = godot::internal::gdextension_interface_variant_get_ptr_operator_evaluator({op.Name.VariantOperatorEnum()}, {Fixer.VariantEnumType(className)}, {Fixer.VariantEnumType(op.RightType)});");
+            cppSourceFile.WriteLine(isReturnTypePod ? $"\t{cppReturnType} ret = {{}};" : $"\tauto ret = new uint8_t[{BuiltinClassSizes[op.ReturnType]}];");
+            bool isRightTypePod = Fixer.IsPod(op.RightType);
+            bool isLeftTypePod = Fixer.IsPod(className);
+            cppSourceFile.WriteLine($"\toperator_func({(isLeftTypePod ? "&left" : "left")}, {(isRightTypePod ? "&right" : "right")}, {(isReturnTypePod ? "&ret" : "ret")});");
+            cppSourceFile.WriteLine(returnText, "ret");
+            cppSourceFile.WriteLine("}");
+            
+            classFunctions.Add(nativeFunctionName);
+            
+            csFile.WriteLine($"\tpublic static {Fixer.CSType(op.ReturnType, api)} {name}({Fixer.CSType(className, api)} left, {Fixer.CSType(op.RightType, api)} right) {{");
+            csFile.WriteLine($"\t\t{(isReturnTypePod ? op.ReturnType : "IntPtr")} result = GDExtensionInterface.{nativeFunctionName.ToPascalCase()}({(isLeftTypePod ? "left" : "left.InternalPointer")}, {(isRightTypePod ? "right" : "right.InternalPointer")});");
+            csFile.WriteLine($"\t\treturn {(isReturnTypePod ? "result" : $"new {op.ReturnType}(result)")};");            
+            
         }
         else
         {
-            string name = op.name switch
+            var cppOperatorName = $"operator_{op.Name.VariantOperatorCpp()}";
+
+            var nativeFunctionName = $"{className}_{cppOperatorName}";
+            
+            string name = op.Name switch
             {
                 "unary-" => "operator -",
                 "not" => "operator !",
                 "unary+" => "operator +",
-                _ => $"operator {op.name}",
+                _ => $"operator {op.Name}",
             };
             if (doc != null)
             {
-                file.WriteLine(Fixer.XMLComment(doc.description));
+                csFile.WriteLine(Fixer.XMLComment(doc.description));
             }
-            file.WriteLine($"\tpublic static {Fixer.CSType(op.returnType, api)} {name}({Fixer.CSType(className, api)} value) {{");
-            var m = $"__operatorPointer{operatorRegistrations.Count}";
-            file.WriteLine($"\t\tvar __op = {m};");
-            operatorRegistrations.Add($"GDExtensionInterface.VariantGetPtrOperatorEvaluator((GDExtensionVariantOperator)Variant.Operator.{Fixer.VariantOperator(op.name)}, (GDExtensionVariantType)Variant.Type.{className}, (GDExtensionVariantType)Variant.Type.Nil)");
-            file.WriteLine($"\t\tIntPtr __res = GDExtensionInterface.CallGDExtensionPtrOperatorEvaluator(__op, {ValueToPointer("value", className)}, IntPtr.Zero);");
-            file.WriteLine($"\t\treturn {ReturnStatementValue(op.returnType)};");
+            
+            bool isReturnTypePod = Fixer.IsPod(op.ReturnType);
+            
+            (string? returnType, string? returnText) = isReturnTypePod ? (null, null) : Fixer.GetReturnDataForType(op.ReturnType, "\t");
+        
+        
+            returnType ??= cppReturnType;
+            returnText ??= "\treturn {0};";
+            var cppFunctionSignature = $"{returnType} {nativeFunctionName}({cppLeftType} left)";
+            cppHeaderFile.WriteLine($"{cppFunctionSignature};");
+            
+            cppSourceFile.WriteLine($"{cppFunctionSignature} {{");
+            cppSourceFile.WriteLine($"\tstatic auto operator_func = godot::internal::gdextension_interface_variant_get_ptr_operator_evaluator({op.Name.VariantOperatorEnum()}, {Fixer.VariantEnumType(className)}, {Fixer.VariantEnumType("NIL")});");
+            cppSourceFile.WriteLine(isReturnTypePod ? $"\t{cppReturnType} ret = {{}};" : $"\tauto ret = new uint8_t[{BuiltinClassSizes[op.ReturnType]}];");
+            bool isLeftTypePod = Fixer.IsPod(className);
+            cppSourceFile.WriteLine($"\toperator_func({(isLeftTypePod ? "&left" : "left")}, nullptr, {(isReturnTypePod ? "&ret" : "ret")});");
+            cppSourceFile.WriteLine(returnText, "ret");
+            cppSourceFile.WriteLine("}");
+            
+            classFunctions.Add(nativeFunctionName);
+            
+            csFile.WriteLine($"\tpublic static {Fixer.CSType(op.ReturnType, api)} {name}({Fixer.CSType(className, api)} left) {{");
+            csFile.WriteLine($"\t\t{(isReturnTypePod ? op.ReturnType : "IntPtr")} result = GDExtensionInterface.{nativeFunctionName.ToPascalCase()}({(isLeftTypePod ? "left" : "left.InternalPointer")});");
+            csFile.WriteLine($"\t\treturn {(isReturnTypePod ? "result" : $"new {op.ReturnType}(result)")};");
         }
-        file.WriteLine("\t}");
-        file.WriteLine();
+        csFile.WriteLine("\t}");
+        csFile.WriteLine();
     }
 
     private void Enum(Api.Enum e, StreamWriter file, Constant[]? constants = null)
     {
         // TODO
-        int prefixLength = Fixer.SharedPrefixLength(e.values.Select(x => x.name).ToArray());
-        if (e.isBitfield ?? false)
+        int prefixLength = Fixer.SharedPrefixLength(e.Values.Select(x => x.Name).ToArray());
+        if (e.IsBitfield ?? false)
         {
             file.WriteLine($"\t[Flags]");
         }
 
-        file.WriteLine($"\tpublic enum {Fixer.CSType(e.name, api)} {{");
-        foreach (Api.Value v in e.values)
+        file.WriteLine($"\tpublic enum {Fixer.CSType(e.Name, api)} {{");
+        foreach (Api.ValueData v in e.Values)
         {
-            if (constants != null)
+            Constant? d = constants?.FirstOrDefault(x => x.@enum != null && x.@enum == e.Name && x.name == v.Name);
+            if (d is { comment: not null })
             {
-                Constant d = constants.FirstOrDefault(x => x.@enum != null && x.@enum == e.name && x.name == v.name);
-                if (d != null && d.comment != null)
-                {
-                    file.WriteLine(Fixer.XMLComment(d.comment, 2));
-                }
+                file.WriteLine(Fixer.XMLComment(d.comment, 2));
             }
-            string name = Fixer.SnakeToPascal(v.name[prefixLength..]);
+            string name = v.Name[prefixLength..].ToPascalCase();
             if (char.IsDigit(name[0])) { name = "_" + name; }
-            file.WriteLine($"\t\t{name} = {v.value},");
+            file.WriteLine($"\t\t{name} = {v.Value},");
         }
         file.WriteLine("\t}");
         file.WriteLine();
@@ -724,45 +734,12 @@ public class Convert
         {
             return $"StringMarshall.ToNative({name})";
         }
-        else if (objectTypes.Contains(type) || builtinObjectTypes.Contains(f))
+
+        if (objectTypes.Contains(type) || builtinObjectTypes.Contains(f))
         {
             return $"{name}.internalPointer";
         }
-        else
-        {
-            return $"(IntPtr)(&{Fixer.Name(name)})";
-        }
-    }
-
-    private bool IsClassType(string type)
-    {
-        string f = Fixer.CSType(type, api);
-        return f == "Array" || f.StartsWith("Array<") || f == "Variant";
-    }
-
-    private string ReturnLocationType(string type, string name)
-    {
-        string f = Fixer.CSType(type, api);
-        if(f == "Variant")
-        {
-            return $"var {name} = new Variant()";
-        }
-        if (IsClassType(type))
-        {
-            return $"{f} {name} = new {f}();";
-        }
-        if (builtinObjectTypes.Contains(f))
-        {
-            return $"{f}.InternalStruct {name}";
-        }
-        else if (objectTypes.Contains(type) || type == "String")
-        {
-            return $"IntPtr {name}";
-        }
-        else
-        {
-            return $"{f} {name}";
-        }
+        return $"(IntPtr)(&{Fixer.Name(name)})";
     }
 
     private string ReturnStatementValue(string type)
@@ -772,7 +749,8 @@ public class Convert
         {
             return "StringMarshall.ToManaged(__res)";
         }
-        else if (builtinObjectTypes.Contains(f))
+
+        if (builtinObjectTypes.Contains(f))
         {
             if (f == "Array")
             {
@@ -780,72 +758,69 @@ public class Convert
             }
             return $"new {f}(__res)";
         }
-        else if(f == "Variant")
+        if(f == "Variant")
         {
             return $"__res";
         }
-        else if (f == "GodotObject")
+        if (f == "GodotObject")
         {
             return "GodotObject.ConstructUnknown(__res)";
         }
-        else if (objectTypes.Contains(type))
+        if (objectTypes.Contains(type))
         {
             return $"({f})GodotObject.ConstructUnknown(__res)";
         }
+        string marshalText;
+        string castText;
+        int lastIndex = type.LastIndexOf("::", StringComparison.Ordinal);
+        var enumTypes = new List<string>
+        {
+            "enum",
+            "bitfield",
+        };
+            
+        if (lastIndex != -1 && enumTypes.Contains(type[..(lastIndex)]))
+        {
+            castText = $"({type[(lastIndex + 2)..]})";
+            marshalText = "Marshal.ReadInt32(__res)";
+        }
+        else if (lastIndex != -1 && type[..lastIndex] == "typedarray")
+        {
+            castText = $"new {f}(__res)";
+            marshalText = "";
+        }
         else
         {
-            string marshalText;
-            string castText;
-            int lastIndex = type.LastIndexOf("::", StringComparison.Ordinal);
-            var enumTypes = new List<string>
+            switch (type)
             {
-                "enum",
-                "bitfield",
-            };
-            
-            if (lastIndex != -1 && enumTypes.Contains(type[..(lastIndex)]))
-            {
-                castText = $"({type[(lastIndex + 2)..]})";
-                marshalText = "Marshal.ReadInt32(__res)";
-            }
-            else if (lastIndex != -1 && type[..lastIndex] == "typedarray")
-            {
-                castText = $"new {f}(__res)";
-                marshalText = "";
-            }
-            else
-            {
-                switch (type)
+                case "int":
                 {
-                    case "int":
-                    {
-                        castText = "";
-                        marshalText = "Marshal.ReadInt32(__res)";
-                        break;
-                    }
-                    case "long":
-                    {
-                        castText = "";
-                        marshalText = "Marshal.ReadInt64(__res)";
-                        break;
-                    }
-                    case "bool":
-                    {
-                        castText = "";
-                        marshalText = "Marshal.ReadByte(__res) != 0";
-                        break;
-                    }
-                    default:
-                    {
-                        castText = "";
-                        marshalText = $"Marshal.PtrToStructure<{type}>(__res)";
-                        break;
-                    };
+                    castText = "";
+                    marshalText = "Marshal.ReadInt32(__res)";
+                    break;
+                }
+                case "long":
+                {
+                    castText = "";
+                    marshalText = "Marshal.ReadInt64(__res)";
+                    break;
+                }
+                case "bool":
+                {
+                    castText = "";
+                    marshalText = "Marshal.ReadByte(__res) != 0";
+                    break;
+                }
+                default:
+                {
+                    castText = "";
+                    marshalText = $"Marshal.PtrToStructure<{type}>(__res)";
+                    break;
                 }
             }
-            
-            return $"{castText}{marshalText}";
         }
+            
+        return $"{castText}{marshalText}";
     }
 
     private enum MethodType
@@ -871,40 +846,45 @@ public class Convert
     {
         if (value.StartsWith("Array["))
         {
-            return $"new()";
+            return "new()";
         }
         if (value.Contains('(')) { return $"new {value}"; }
-        if (value == "{}") { return "new Dictionary()"; }
-        if (value == "[]") { return "new()"; }
+        switch (value)
+        {
+            case "{}":
+                return "new Dictionary()";
+            case "[]":
+                return "new()";
+            case "":
+                return $"new {type}()";
+            case "null":
+                return "null";
+        }
+
         if (value.Contains('&')) { return $"new StringName({value[1..]})"; }
-        if (value == "") { return $"new {type}()"; }
         if (type == "Variant" && value == "null") { return "Variant.Nil"; }
-        if (value == "null") { return "null"; }
         return $"({Fixer.CSType(type, api)}){value}";
     }
 
-    private void Method(Api.Method meth, string className, StreamWriter file, MethodType type, List<string> methodRegistrations, Documentation.Method doc, bool isSingleton = false, bool isBuiltinPointer = false)
+    private void Method(Api.Method meth, string className, StreamWriter file, MethodType type, List<string> methodRegistrations, Method? doc, bool isSingleton = false, bool isBuiltinPointer = false)
     {
         // TODO
         var header = "";
-        if (doc != null)
+        if (doc is { description: not null })
         {
-            if (doc.description != null)
-            {
-                header += Fixer.XMLComment(doc.description) + Environment.NewLine;
-            }
+            header += Fixer.XMLComment(doc.description) + Environment.NewLine;
         }
         header += "\tpublic ";
-        string ret = meth.returnType ?? meth.returnValue?.type ?? "";
-        if ((meth.isStatic ?? false) || type == MethodType.Utility || isSingleton)
+        string ret = meth.ReturnType ?? meth.ReturnValue?.Type ?? "";
+        if ((meth.IsStatic ?? false) || type == MethodType.Utility || isSingleton)
         {
             header += "static ";
         }
-        if (meth.isVirtual)
+        if (meth.IsVirtual)
         {
             header += "virtual ";
         }
-        if (meth.name == "to_string")
+        if (meth.Name == "to_string")
         {
             header += "new ";
         }
@@ -917,35 +897,35 @@ public class Convert
         {
             header += "void";
         }
-        header += $" {Fixer.MethodName(meth.name)}(";
-        if (meth.arguments != null)
+        header += $" {Fixer.MethodName(meth.Name)}(";
+        if (meth.Arguments != null)
         {
-            for (var i = 0; i < meth.arguments.Length; i++)
+            for (var i = 0; i < meth.Arguments.Length; i++)
             {
-                Api.Argument arg = meth.arguments[i];
+                Api.Argument arg = meth.Arguments[i];
                 var suffix = "";
-                if (arg.defaultValue != null)
+                if (arg.DefaultValue != null)
                 {
                     var validDefault = true;
-                    for (int j = i; j < meth.arguments.Length; j++)
+                    for (int j = i; j < meth.Arguments.Length; j++)
                     {
-                        validDefault &= IsValidDefaultValue(meth.arguments[j].defaultValue!, meth.arguments[j].type);
+                        validDefault &= IsValidDefaultValue(meth.Arguments[j].DefaultValue!, meth.Arguments[j].Type);
                     }
                     if (validDefault)
                     {
-                        suffix = $" = {FixDefaultValue(arg.defaultValue, arg.type)}";
+                        suffix = $" = {FixDefaultValue(arg.DefaultValue, arg.Type)}";
                     }
                     else
                     {
-                        file.Write(header + $") => {Fixer.MethodName(meth.name)}(");
+                        file.Write(header + $") => {Fixer.MethodName(meth.Name)}(");
                         for (var j = 0; j < i; j++)
                         {
-                            file.Write($"{Fixer.Name(meth.arguments[j].name)}, ");
+                            file.Write($"{Fixer.Name(meth.Arguments[j].Name)}, ");
                         }
-                        for (int j = i; j < meth.arguments.Length; j++)
+                        for (int j = i; j < meth.Arguments.Length; j++)
                         {
-                            file.Write($"{FixDefaultValue(meth.arguments[j].defaultValue!, meth.arguments[j].type)}");
-                            if (j < meth.arguments.Length - 1)
+                            file.Write($"{FixDefaultValue(meth.Arguments[j].DefaultValue!, meth.Arguments[j].Type)}");
+                            if (j < meth.Arguments.Length - 1)
                             {
                                 file.Write(", ");
                             }
@@ -957,21 +937,21 @@ public class Convert
                 {
                     header += ", ";
                 }
-                header += $"{Fixer.CSType(arg.type, api)} {Fixer.Name(arg.name)}{suffix}";
+                header += $"{Fixer.CSType(arg.Type, api)} {Fixer.Name(arg.Name)}{suffix}";
             }
         }
 
         file.Write(header);
-        if (meth.isVararg)
+        if (meth.IsVararg)
         {
-            if (meth.arguments != null)
+            if (meth.Arguments != null)
             {
                 file.Write(", ");
             }
             file.Write("params Variant[] arguments");
         }
         file.WriteLine(") {");
-        if ((meth.isStatic ?? false) || type == MethodType.Utility || isSingleton)
+        if ((meth.IsStatic ?? false) || type == MethodType.Utility || isSingleton)
         {
             file.WriteLine("\t\tRegister();");
         }
@@ -980,7 +960,7 @@ public class Convert
         switch (type)
         {
             case MethodType.Class:
-                if (meth.isVirtual || meth.hash is null)
+                if (meth.IsVirtual || meth.Hash is null)
                 {
                     if (!string.IsNullOrEmpty(ret))
                     {
@@ -990,18 +970,18 @@ public class Convert
                     return;
                 }
                 m = $"__methodPointer{methodRegistrations.Count}";
-                methodRegistrations.Add($"GDExtensionInterface.ClassdbGetMethodBind(__godot_name.internalPointer, new StringName(\"{meth.name}\").internalPointer, {meth.hash ?? 0})");
+                methodRegistrations.Add($"GDExtensionInterface.ClassdbGetMethodBind(__godot_name.internalPointer, new StringName(\"{meth.Name}\").internalPointer, {meth.Hash ?? 0})");
                 break;
             case MethodType.Native:
                 m = $"__methodPointer{methodRegistrations.Count}";
-                methodRegistrations.Add($"GDExtensionInterface.VariantGetPtrBuiltinMethod((GDExtensionVariantType)Variant.Type.{className}, new StringName(\"{meth.name}\").internalPointer, {meth.hash ?? 0})");
+                methodRegistrations.Add($"GDExtensionInterface.VariantGetPtrBuiltinMethod((GDExtensionVariantType)Variant.Type.{className}, new StringName(\"{meth.Name}\").internalPointer, {meth.Hash ?? 0})");
                 break;
             case MethodType.Utility:
                 m = $"__methodPointer{methodRegistrations.Count}";
-                methodRegistrations.Add($"GDExtensionInterface.VariantGetPtrUtilityFunction(new StringName(\"{meth.name}\").internalPointer, {meth.hash ?? 0})");
+                methodRegistrations.Add($"GDExtensionInterface.VariantGetPtrUtilityFunction(new StringName(\"{meth.Name}\").internalPointer, {meth.Hash ?? 0})");
                 break;
         }
-        if (meth.isVararg)
+        if (meth.IsVararg)
         {
             string t;
             if (type == MethodType.Class)
@@ -1012,44 +992,44 @@ public class Convert
             {
                 t = "IntPtr";
             }
-            if (meth.arguments != null)
+            if (meth.Arguments != null)
             {
-                file.WriteLine($"\t\tvar __args = stackalloc {t}[{meth.arguments.Length} + arguments.Length];");
+                file.WriteLine($"\t\tvar __args = stackalloc {t}[{meth.Arguments.Length} + arguments.Length];");
             }
             else
             {
                 file.WriteLine($"\t\tvar __args = stackalloc {t}[arguments.Length];");
             }
         }
-        else if (meth.arguments != null)
+        else if (meth.Arguments != null)
         {
-            file.WriteLine($"\t\tvar __args = stackalloc IntPtr[{meth.arguments.Length}];");
+            file.WriteLine($"\t\tvar __args = stackalloc IntPtr[{meth.Arguments.Length}];");
         }
-        if (meth.arguments != null)
+        if (meth.Arguments != null)
         {
-            for (var i = 0; i < meth.arguments.Length; i++)
+            for (var i = 0; i < meth.Arguments.Length; i++)
             {
-                Api.Argument arg = meth.arguments[i];
+                Api.Argument arg = meth.Arguments[i];
                 file.Write($"\t\t__args[{i}] = ");
-                if (meth.isVararg)
+                if (meth.IsVararg)
                 {
-                    string val = arg.type != "Variant" ? $"new Variant({Fixer.Name(arg.name)})" : Fixer.Name(arg.name);
+                    string val = arg.Type != "Variant" ? $"new Variant({Fixer.Name(arg.Name)})" : Fixer.Name(arg.Name);
                     file.WriteLine($"{val}.internalPointer;");
                 }
                 else
                 {
-                    file.WriteLine($"{ValueToPointer(Fixer.Name(arg.name), arg.type)};");
+                    file.WriteLine($"{ValueToPointer(Fixer.Name(arg.Name), arg.Type)};");
                 }
             }
         }
-        if (meth.isVararg)
+        if (meth.IsVararg)
         {
-            string offset = meth.arguments != null ? $"{meth.arguments.Length} + " : "";
+            string offset = meth.Arguments != null ? $"{meth.Arguments.Length} + " : "";
             file.WriteLine($"\t\tfor (var i = 0; i < arguments.Length; i++) {{");
             file.WriteLine($"\t\t\t__args[{offset}i] = arguments[i].internalPointer;");
             file.WriteLine("\t\t};");
         }
-        if (meth.isStatic == false && type == MethodType.Native && isBuiltinPointer == false)
+        if (meth.IsStatic == false && type == MethodType.Native && isBuiltinPointer == false)
         {
             file.WriteLine($"\t\tvar __temp = this;");
         }
@@ -1057,7 +1037,7 @@ public class Convert
         {
 
             string call;
-            if (meth.isVararg)
+            if (meth.IsVararg)
             {
                 call = $"\t\tGDExtensionInterface.ObjectMethodBindCall({m}, ";
             }
@@ -1083,7 +1063,7 @@ public class Convert
 
         if (type != MethodType.Utility)
         {
-            if (meth.isStatic ?? false)
+            if (meth.IsStatic ?? false)
             {
                 file.Write("IntPtr.Zero");
             }
@@ -1101,7 +1081,7 @@ public class Convert
             }
         }
 
-        if (meth.arguments != null || meth.isVararg)
+        if (meth.Arguments != null || meth.IsVararg)
         {
             file.Write(", *__args");
         }
@@ -1109,28 +1089,28 @@ public class Convert
         {
             file.Write(", IntPtr.Zero");
         }
-        if (type == MethodType.Class && meth.isVararg)
+        if (type == MethodType.Class && meth.IsVararg)
         {
-            file.Write($", {(meth.arguments != null ? $"{meth.arguments.Length} + " : "")}arguments.Length");
+            file.Write($", {(meth.Arguments != null ? $"{meth.Arguments.Length} + " : "")}arguments.Length");
         }
 
         if (type != MethodType.Class)
         {
             file.Write(", ");
-            if (meth.isVararg)
+            if (meth.IsVararg)
             {
-                file.Write($"{(meth.arguments != null ? $"{meth.arguments.Length} + " : "")}arguments.Length");
+                file.Write($"{(meth.Arguments != null ? $"{meth.Arguments.Length} + " : "")}arguments.Length");
             }
-            else if (meth.arguments != null)
+            else if (meth.Arguments != null)
             {
-                file.Write($"{meth.arguments.Length}");
+                file.Write($"{meth.Arguments.Length}");
             }
             else
             {
                 file.Write("0");
             }
         }
-        if (type == MethodType.Class && meth.isVararg)
+        if (type == MethodType.Class && meth.IsVararg)
         {
             file.Write(", out IntPtr __res");
             // file.Write(", out GDExtensionCallError __err");
@@ -1164,21 +1144,21 @@ public class Convert
 
     private Api.Method? GetMethod(string cName, string name)
     {
-        foreach (Api.Class c in api.classes)
-            if (cName == c.name)
+        foreach (Api.Class c in api.Classes)
+            if (cName == c.Name)
             {
-                if (c.methods != null)
+                if (c.Methods != null)
                 {
-                    foreach (Api.Method m in c.methods!)
+                    foreach (Api.Method m in c.Methods!)
                     {
-                        if (m.name == name)
+                        if (m.Name == name)
                         {
                             return m;
                         }
                     }
                 }
 
-                string inherits = c.inherits;
+                string? inherits = c.Inherits;
                 if (inherits == "Object") inherits = "GodotObject";
                 if (inherits != null)
                 {
@@ -1190,11 +1170,11 @@ public class Convert
 
     private void Classes()
     {
-        string dir = this.csDir + "/Classes";
+        string dir = csDir + "/Classes";
         Directory.CreateDirectory(dir);
-        foreach (Api.Class c in api.classes)
+        foreach (Api.Class c in api.Classes)
         {
-            switch (c.name)
+            switch (c.Name)
             {
                 case "int":
                 case "float":
@@ -1210,7 +1190,7 @@ public class Convert
     private void Class(Api.Class c, string dir)
     {
         // TODO
-        string className = c.name;
+        string className = c.Name;
         switch (className)
         {
             case "GDScriptNativeClass":
@@ -1222,22 +1202,20 @@ public class Convert
             case "Object":
                 className = "GodotObject";
                 break;
-            default:
-                break;
         }
 
         StreamWriter file = File.CreateText(dir + "/" + className + ".cs");
-        registrations[c.apiType].Add(className);
+        registrations[c.ApiType].Add(className);
 
-        Class doc = GetDocs(className);
+        Class? doc = GetDocs(className);
 
         var methodRegistrations = new List<string>();
 
         file.WriteLine("namespace GodotSharpGDExtension;");
         file.WriteLine();
         file.Write("public unsafe ");
-        bool isSingleton = api.singletons.Any(x => x.type == className);
-        string inherits = c.inherits ?? "Wrapped";
+        bool isSingleton = api.Singletons.Any(x => x.Type == className);
+        string inherits = c.Inherits ?? "Wrapped";
         if (inherits == "Object")
         {
             inherits = "GodotObject";
@@ -1257,34 +1235,31 @@ public class Convert
             file.WriteLine();
         }
 
-        if (c.constants != null)
+        if (c.Constants != null)
         {
-            foreach (Api.Value con in c.constants)
+            foreach (Api.ValueData con in c.Constants)
             {
-                if (doc != null)
+                Constant? d = doc?.constants?.FirstOrDefault(x => x.name == con.Name);
+                if (d is { comment: not null })
                 {
-                    Constant d = doc.constants.FirstOrDefault(x => x.name == con.name);
-                    if (d != null && d.comment != null)
-                    {
-                        string com = Fixer.XMLComment(d.comment);
-                        file.WriteLine(com);
-                    }
+                    string com = Fixer.XMLComment(d.comment);
+                    file.WriteLine(com);
                 }
-                if (con.name.StartsWith("NOTIFICATION_"))
+                if (con.Name.StartsWith("NOTIFICATION_"))
                 {
-                    file.WriteLine($"\tpublic const Notification {Fixer.SnakeToPascal(con.name)} = (Notification){con.value};");
+                    file.WriteLine($"\tpublic const Notification {con.Name.ToPascalCase()} = (Notification){con.Value};");
                 }
                 else
                 {
-                    file.WriteLine($"\tpublic const int {con.name} = {con.value};");
+                    file.WriteLine($"\tpublic const int {con.Name} = {con.Value};");
                 }
             }
             file.WriteLine();
         }
 
-        if (c.enums != null)
+        if (c.Enums != null)
         {
-            foreach (Api.Enum e in c.enums)
+            foreach (Api.Enum e in c.Enums)
             {
                 Enum(e, file, doc?.constants);
             }
@@ -1292,101 +1267,103 @@ public class Convert
 
         var addedMethods = new List<Api.Method>();
 
-        if (c.properties != null)
+        if (c.Properties != null)
         {
-            foreach (Api.Property prop in c.properties)
+            foreach (Api.Property prop in c.Properties)
             {
-                string type = prop.type;
+                string type = prop.Type;
                 var cast = "";
 
-                Api.Method? getter = GetMethod(className, prop.getter);
-                Api.Method? Setter = GetMethod(className, prop.setter);
+                Api.Method? getter = GetMethod(className, prop.Getter);
+                Api.Method? setter = GetMethod(className, prop.Setter);
 
-                if (getter == null && Setter == null)
+                if (getter == null && setter == null)
                 {
-                    var valType = new Api.ReturnValue
+                    var valType = new Api.MethodReturnValue
                     {
-                        meta = type,
-                        type = type,
+                        Meta = type,
+                        Type = type,
                     };
-                    if (!string.IsNullOrEmpty(prop.getter))
+                    if (!string.IsNullOrEmpty(prop.Getter))
                     {
                         getter = new Api.Method
                         {
-                            arguments = null,
-                            category = null,
-                            hash = null,
-                            name = prop.getter,
-                            returnType = type,
-                            returnValue = valType,
-                            isStatic = false,
+                            Arguments = null,
+                            Category = null,
+                            Hash = null,
+                            Name = prop.Getter,
+                            ReturnType = type,
+                            ReturnValue = valType,
+                            IsStatic = false,
                         };
                         addedMethods.Add(getter.Value);
                     }
-                    if (!string.IsNullOrEmpty(prop.setter))
+                    if (!string.IsNullOrEmpty(prop.Setter))
                     {
-                        Setter = new Api.Method
+                        setter = new Api.Method
                         {
-                            arguments = new Api.Argument[1]
+                            Arguments = new Api.Argument[]
                             {
-                            new Api.Argument
+                            new()
                             {
-                                defaultValue = null,
-                                name = "value",
-                                type = type,
-                                meta = type,
+                                DefaultValue = null,
+                                Name = "value",
+                                Type = type,
+                                Meta = type,
                             },
                             },
-                            category = null,
-                            hash = null,
-                            name = prop.setter,
-                            returnType = type,
-                            returnValue = valType,
-                            isStatic = false,
+                            Category = null,
+                            Hash = null,
+                            Name = prop.Setter,
+                            ReturnType = type,
+                            ReturnValue = valType,
+                            IsStatic = false,
                         };
-                        addedMethods.Add(Setter.Value);
+                        addedMethods.Add(setter.Value);
                     }
                 }
-                if (doc != null && doc.members != null)
+                if (doc is { members: not null })
                 {
-                    Member d = doc.members.FirstOrDefault(x => x.name == prop.name);
-                    if (d != null && d.comment != null)
+                    Member? d = doc.members.FirstOrDefault(x => x.name == prop.Name);
+                    if (d is { comment: not null })
                     {
                         string com = Fixer.XMLComment(d.comment);
                         file.WriteLine(com);
                     }
                 }
-                if (getter != null) { type = getter.Value.returnValue!.Value.type; } else { type = Setter!.Value.arguments![0].type; }
+                type = getter != null 
+                    ? getter.Value.ReturnValue!.Value.Type 
+                    : setter!.Value.Arguments![0].Type;
 
-                bool hasEnumOfSameName = (c.enums?.Where(x => x.name == Fixer.Name(Fixer.SnakeToPascal(prop.name))).FirstOrDefault())?.name != null;
+                bool hasEnumOfSameName = (c.Enums?.Where(x => x.Name == Fixer.Name(prop.Name.ToPascalCase())).FirstOrDefault())?.Name != null;
 
-                file.Write($"\tpublic {Fixer.CSType(type, api)} {Fixer.Name(Fixer.SnakeToPascal(prop.name)) + (hasEnumOfSameName ? "Value" : "")} {{ ");
+                file.Write($"\tpublic {Fixer.CSType(type, api)} {Fixer.Name(prop.Name.ToPascalCase()) + (hasEnumOfSameName ? "Value" : "")} {{ ");
 
-                if (prop.index.HasValue)
+                if (prop.Index.HasValue)
                 {
                     if (getter == null)
                     {
                         throw new NotImplementedException("get cast from Setter");
                     }
-                    cast = $"({Fixer.CSType(getter.Value.arguments![0].type, api)})";
+                    cast = $"({Fixer.CSType(getter.Value.Arguments![0].Type, api)})";
                 }
 
                 if (getter != null)
                 {
-                    file.Write($"get => {Fixer.MethodName(prop.getter)}(");
-                    if (prop.index.HasValue)
+                    file.Write($"get => {Fixer.MethodName(prop.Getter)}(");
+                    if (prop.Index.HasValue)
                     {
-                        file.Write($"{cast}{prop.index.Value}");
+                        file.Write($"{cast}{prop.Index.Value}");
                     }
                     file.Write("); ");
                 }
 
-                if (Setter != null)
+                if (setter != null)
                 {
-                    file.Write($"set => {Fixer.MethodName(prop.setter)}(");
-                    if (prop.index.HasValue)
+                    file.Write($"set => {Fixer.MethodName(prop.Setter)}(");
+                    if (prop.Index.HasValue)
                     {
-                        file.Write($"{cast}{prop.index.Value}, ");
+                        file.Write($"{cast}{prop.Index.Value}, ");
                     }
                     file.Write("value); ");
                 }
@@ -1396,56 +1373,56 @@ public class Convert
         }
 
 
-        addedMethods.AddRange(c.methods ?? Array.Empty<Api.Method>());
+        addedMethods.AddRange(c.Methods ?? Array.Empty<Api.Method>());
 
         foreach (Api.Method meth in addedMethods)
         {
-            Documentation.Method d = null;
-            if (doc != null && doc.methods != null)
+            Method? d = null;
+            if (doc is { methods: not null })
             {
-                d = doc.methods.FirstOrDefault(x => x.name == meth.name);
+                d = doc.methods.FirstOrDefault(x => x.name == meth.Name);
             }
             Method(meth, className, file, MethodType.Class, methodRegistrations, d, isSingleton: isSingleton);
         }
-        if (c.signals != null)
+        if (c.Signals != null)
         {
-            foreach (Api.Signal sig in c.signals)
+            foreach (Api.Signal sig in c.Signals)
             {
-                file.Write($"\tpublic void EmitSignal{Fixer.SnakeToPascal(sig.name)}(");
-                if (sig.arguments != null)
+                file.Write($"\tpublic void EmitSignal{sig.Name.ToPascalCase()}(");
+                if (sig.Arguments != null)
                 {
-                    for (var j = 0; j < sig.arguments.Length; j++)
+                    for (var j = 0; j < sig.Arguments.Length; j++)
                     {
-                        Api.Argument p = sig.arguments[j];
-                        file.Write($"{Fixer.CSType(p.type, api)} {Fixer.Name(p.name)}{(j < sig.arguments.Length - 1 ? ", " : "")}");
+                        Api.Argument p = sig.Arguments[j];
+                        file.Write($"{Fixer.CSType(p.Type, api)} {Fixer.Name(p.Name)}{(j < sig.Arguments.Length - 1 ? ", " : "")}");
                     }
                 }
 
-                file.Write($") => EmitSignal(\"{sig.name}\"{(sig.arguments != null ? ", " : "")}");
-                if (sig.arguments != null)
+                file.Write($") => EmitSignal(\"{sig.Name}\"{(sig.Arguments != null ? ", " : "")}");
+                if (sig.Arguments != null)
                 {
-                    for (var j = 0; j < sig.arguments.Length; j++)
+                    for (var j = 0; j < sig.Arguments.Length; j++)
                     {
-                        Api.Argument p = sig.arguments[j];
-                        file.Write($"{Fixer.Name(p.name)}{(j < sig.arguments.Length - 1 ? ", " : "")}");
+                        Api.Argument p = sig.Arguments[j];
+                        file.Write($"{Fixer.Name(p.Name)}{(j < sig.Arguments.Length - 1 ? ", " : "")}");
                     }
                 }
                 file.WriteLine(");");
                 file.WriteLine();
-                file.Write($"\tpublic delegate void Signal{Fixer.SnakeToPascal(sig.name)}(");
-                if (sig.arguments != null)
+                file.Write($"\tpublic delegate void Signal{sig.Name.ToPascalCase()}(");
+                if (sig.Arguments != null)
                 {
-                    for (var j = 0; j < sig.arguments.Length; j++)
+                    for (var j = 0; j < sig.Arguments.Length; j++)
                     {
-                        Api.Argument p = sig.arguments[j];
-                        file.Write($"{Fixer.CSType(p.type, api)} {Fixer.Name(p.name)}{(j < sig.arguments.Length - 1 ? ", " : "")}");
+                        Api.Argument p = sig.Arguments[j];
+                        file.Write($"{Fixer.CSType(p.Type, api)} {Fixer.Name(p.Name)}{(j < sig.Arguments.Length - 1 ? ", " : "")}");
                     }
                 }
                 file.WriteLine(");");
                 file.WriteLine();
-                file.WriteLine($"\tpublic event Signal{Fixer.SnakeToPascal(sig.name)} {Fixer.SnakeToPascal(sig.name)}{{");
-                file.WriteLine($"\t\tadd => Connect(\"{sig.name}\", Callable.From(value, this));");
-                file.WriteLine($"\t\tremove => Disconnect(\"{sig.name}\", Callable.From(value, this));");
+                file.WriteLine($"\tpublic event Signal{sig.Name.ToPascalCase()} {sig.Name.ToPascalCase()}{{");
+                file.WriteLine($"\t\tadd => Connect(\"{sig.Name}\", Callable.From(value, this));");
+                file.WriteLine($"\t\tremove => Disconnect(\"{sig.Name}\", Callable.From(value, this));");
                 file.WriteLine("}");
                 file.WriteLine();
             }
@@ -1474,10 +1451,7 @@ public class Convert
         file.WriteLine();
         file.WriteLine("\tpublic new static void Register() {");
         file.WriteLine($"\t\tif (!RegisterConstructor(\"{className}\", Construct)) return;");
-        if (inherits is not null)
-        {
-            file.WriteLine($"\t\tGodotSharpGDExtension.{inherits}.Register();");
-        }
+        file.WriteLine($"\t\tGodotSharpGDExtension.{inherits}.Register();");
         file.WriteLine("\t}");
         file.WriteLine("}");
         file.Close();
@@ -1487,9 +1461,9 @@ public class Convert
     {
         Api.Enum type = default;
         Api.Enum operators = default;
-        foreach (Api.Enum e in api.globalEnums)
+        foreach (Api.Enum e in api.GlobalEnums)
         {
-            switch (e.name)
+            switch (e.Name)
             {
                 case "Variant.Type":
                     type = e;
@@ -1499,26 +1473,26 @@ public class Convert
                     break;
             }
         }
-        type.name = "Type";
-        operators.name = "Operator";
+        type.Name = "Type";
+        operators.Name = "Operator";
         StreamWriter file = File.CreateText(csDir + "/" + "Variant.cs");
         file.WriteLine("namespace GodotSharpGDExtension;");
         file.WriteLine();
         file.WriteLine("public sealed unsafe partial class Variant {");
         file.WriteLine();
 
-        var types = new string[type.values.Length - 1];
+        var types = new string[type.Values.Length - 1];
 
         foreach (Api.Enum e in new[] { type, operators })
         {
-            int prefixLength = Fixer.SharedPrefixLength(e.values.Select(x => x.name).ToArray());
+            int prefixLength = Fixer.SharedPrefixLength(e.Values.Select(x => x.Name).ToArray());
 
-            file.WriteLine($"\tpublic enum {Fixer.CSType(e.name, api)} {{");
-            for (var i = 0; i < e.values.Length; i++)
+            file.WriteLine($"\tpublic enum {Fixer.CSType(e.Name, api)} {{");
+            for (var i = 0; i < e.Values.Length; i++)
             {
-                Api.Value v = e.values[i];
+                Api.ValueData v = e.Values[i];
 
-                string name = Fixer.SnakeToPascal(v.name[prefixLength..]);
+                string name = v.Name[prefixLength..].ToPascalCase();
                 name = name switch
                 {
                     "Aabb" => "AABB",
@@ -1530,7 +1504,7 @@ public class Convert
                 {
                     types[i] = name;
                 }
-                file.WriteLine($"\t\t{name} = {v.value},");
+                file.WriteLine($"\t\t{name} = {v.Value},");
             }
             file.WriteLine("\t}");
             file.WriteLine();

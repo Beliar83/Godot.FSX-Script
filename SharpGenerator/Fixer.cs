@@ -1,6 +1,7 @@
 using System.Text.RegularExpressions;
 using System;
 using System.Data.SqlTypes;
+using CaseExtensions;
 
 namespace SharpGenerator;
 public static class Fixer
@@ -49,8 +50,7 @@ public static class Fixer
         if (name.StartsWith("float")) { name = name.Replace("float", "double"); }
         if (name.Equals("String")) { name = name.Replace("string", "wchar_t"); }
 
-
-        return name;
+        return IsPod(name) ? name : "GDExtensionTypePtr";
     }
 
     public static string CSType(string name, Api api)
@@ -62,10 +62,10 @@ public static class Fixer
             {
                 var className = name[..name.IndexOf('.')];
                 var enumName = name[(name.IndexOf('.') + 1)..];
-                bool isBuiltinClass = api.builtinClasses.Where(x => x.name == className).Cast<Api.BuiltinClass?>().FirstOrDefault() is not null;
+                bool isBuiltinClass = api.BuiltinClasses.Where(x => x.Name == className).Cast<Api.BuiltinClass?>().FirstOrDefault() is not null;
                 if (className != "Variant" && !isBuiltinClass)
                 {
-                    var amount = api.classes.First(x => x.name == className).enums.Count(x => x.name == enumName);
+                    var amount = api.Classes.First(x => x.Name == className).Enums.Count(x => x.Name == enumName);
                     if (amount == 0)
                     {
                         Program.Warn($"ENUM {name} not found");
@@ -106,7 +106,7 @@ public static class Fixer
         {
             res += parts[i] + ".";
         }
-        var last = Fixer.SnakeToPascal(parts[^1]);
+        var last = parts[^1].ToPascalCase();
         return res + last switch
         {
             "GetType" => "GetTypeGD",
@@ -141,9 +141,19 @@ public static class Fixer
         };
     }
 
-    public static string VariantOperator(string type)
+    public static string VariantOperatorEnum(this string operatorName)
     {
-        return type switch
+        return $"GDEXTENSION_VARIANT_OP_{operatorName.VariantOperatorCSharp().ToSnakeCase().ToUpper()}";
+    }    
+    
+    public static string VariantOperatorCpp(this string operatorName)
+    {
+        return operatorName.VariantOperatorCSharp().ToSnakeCase();
+    }
+    
+    public static string VariantOperatorCSharp(this string operatorName)
+    {
+        return operatorName switch
         {
             "==" => "Equal",
             "!=" => "NotEqual",
@@ -174,7 +184,7 @@ public static class Fixer
             "not" => "Not",
             /* containment */
             "in" => "In",
-            _ => type,
+            _ => operatorName,
         };
     }
 
@@ -190,14 +200,14 @@ public static class Fixer
         };
     }
     
-    public static (string? type, string? returnText) GetReturnDataForType(string type)
+    public static (string? type, string? returnText) GetReturnDataForType(string type, string linePrefix = "")
     {
-        const string returnString = """
-                                     auto length = godot::internal::gdextension_interface_string_to_wide_chars({0}, nullptr, 0);
-                                     auto text = new wchar_t[length];
-                                     godot::internal::gdextension_interface_string_to_wide_chars({0}, text, length);
-                                     return text;
-                                     """;
+        var returnString = $"""
+                            {linePrefix}auto length = godot::internal::gdextension_interface_string_to_wide_chars({0}, nullptr, 0);
+                            {linePrefix}auto text = new wchar_t[length];
+                            {linePrefix}godot::internal::gdextension_interface_string_to_wide_chars({0}, text, length);
+                            {linePrefix}return text;
+                            """;
         // if (IsPod(type)) return (null, null, true);
         
         return type switch
@@ -229,28 +239,39 @@ public static class Fixer
         return value;
     }
 
-    public static string SnakeToPascal(string name)
+    public static readonly Dictionary<string, string> Words = new()
     {
-        var res = "";
-        foreach (var w in name.Split('_'))
+        ["AABB"] = "{0}",
+        ["2D"] = "{1}",
+        ["3D"] = "{2}",
+        ["RID"] = "{3}",
+        ["NIL"] = "{4}",
+    };
+
+    public static string ToScreamingSnakeWithGodotAbbreviations(this string name)
+    {
+        name = ApplySnakeCaseWithGodotAbbreviationsBase(name);
+
+        return name.ToUpperInvariant();
+    }    
+    
+    public static string ToSnakeCaseWithGodotAbbreviations(this string name)
+    {
+        name = ApplySnakeCaseWithGodotAbbreviationsBase(name);
+
+        return name.ToLowerInvariant();
+    }
+
+    private static string ApplySnakeCaseWithGodotAbbreviationsBase(string name)
+    {
+        foreach ((string abbreviation, string formatSpecifier) in Words)
         {
-            if (w.Length == 0)
-            {
-                res += "_";
-            }
-            else
-            {
-                res += w[0].ToString().ToUpper() + w[1..].ToLower();
-            }
+            name = name.Replace(abbreviation, formatSpecifier);
         }
-        for (var i = 0; i < res.Length - 1; i++)
-        {
-            if (char.IsDigit(res[i]) && res[i + 1] == 'd')
-            {
-                res = string.Concat(res.AsSpan(0, i + 1), "D", res.AsSpan()[(i + 2)..]);
-            }
-        }
-        return res;
+
+        name = name.ToSnakeCase();
+
+        return string.Format(name, Words.Keys.ToArray());
     }
 
     public static int SharedPrefixLength(string[] names)
@@ -275,7 +296,7 @@ public static class Fixer
 
     static string XMLConstant(string value)
     {
-        value = SnakeToPascal(value);
+        value = value.ToPascalCase();
         return value switch
         {
             "@gdscript.nan" => "NaN",
@@ -296,7 +317,7 @@ public static class Fixer
         (@"\[method (?<a>\S+?)\]", x => $"<see cref=\"{MethodName(x.Groups["a"].Captures[0].Value)}\"/>"),
         (@"\[member (?<a>\S+?)\]", x => $"<see cref=\"{x.Groups["a"].Captures[0].Value}\"/>"),
         (@"\[enum (?<a>\S+?)\]",x => $"<see cref=\"{x.Groups["a"].Captures[0].Value}\"/>"),
-        (@"\[signal (?<a>\S+?)\]", x => $"<see cref=\"EmitSignal{SnakeToPascal( x.Groups["a"].Captures[0].Value)}\"/>"), //currently just two functions
+        (@"\[signal (?<a>\S+?)\]", x => $"<see cref=\"EmitSignal{x.Groups["a"].Captures[0].Value.ToPascalCase()}\"/>"), //currently just two functions
 		(@"\[theme_item (?<a>\S+?)\]", x => $"<see cref=\"{x.Groups["a"].Captures[0].Value}\"/>"), //no clue
 		//(@"cref=""Url=\$docsUrl/(?<a>.+?)/>", x => $"href=\"https://docs.godotengine.org/en/stable/{x.Groups["a"].Captures[0].Value}\"/>"),
 		(@"\[url=(?<a>.+?)\](?<b>.+?)\[/url]", x => $"<see href=\"{x.Groups["a"].Captures[0].Value}\">{x.Groups["b"].Captures[0].Value}</see>"),
@@ -362,5 +383,10 @@ public static class Fixer
         }
         result += tabs + "/// </summary>";
         return result.ReplaceLineEndings();
+    }
+
+    public static string VariantEnumType(string type)
+    {
+        return $"GDEXTENSION_VARIANT_TYPE_{type.ToScreamingSnakeWithGodotAbbreviations()}";
     }
 }

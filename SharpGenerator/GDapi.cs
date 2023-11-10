@@ -1,234 +1,231 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
-#nullable enable
+
 namespace SharpGenerator
 {
 	[System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "JSON Format")]
 	public sealed class Api
 	{
-		public static Api? Create(string path)
+		public static Api Create(string path)
 		{
-			var file = File.OpenRead(path);
-			var api = JsonSerializer.Deserialize<Api>(file);
+			FileStream file = File.OpenRead(path);
+
+			var jsonSerializerOptions = new JsonSerializerOptions(JsonSerializerDefaults.General) { PropertyNameCaseInsensitive = true };
+			var api = JsonSerializer.Deserialize<Api>(file,jsonSerializerOptions)!;
 			file.Close();
 			return api;
 		}
 		public record struct Argument
 		{
-			public string name { get; set; }
-			public string type { get; set; }
+			public string Name { get; set; }
+			public string Type { get; set; }
 			[JsonPropertyName("default_value")]
-			public string? defaultValue { get; set; }
-			public string? meta { get; set; }
+			public string? DefaultValue { get; set; }
+			public string? Meta { get; set; }
 		}
 
-		public record struct ReturnValue
+		public record struct MethodReturnValue
 		{
-			public string type { get; set; }
-			public string? meta { get; set; }
+			public string Type { get; set; }
+			public string? Meta { get; set; }
 		}
 
 		public record struct Constant
 		{
-			public string name { get; set; }
-			public string type { get; set; }
-			public string value { get; set; }
+			public string Name { get; set; }
+			public string Type { get; set; }
+			public string Value { get; set; }
 		}
 
-		public record struct Size
+		public record struct ClassSize
 		{
-			public string name { get; set; }
-			public int size { get; set; }
+			public string Name { get; set; }
+			public int Size { get; set; }
 		}
 
 		public record struct Signal
 		{
-			public string name { get; set; }
-			public Argument[]? arguments { get; set; }
+			public string Name { get; set; }
+			public Argument[]? Arguments { get; set; }
 		}
 
 		public record struct Property
 		{
-			public string type { get; set; }
-			public string name { get; set; }
-			public string setter { get; set; }
-			public string getter { get; set; }
-			public int? index { get; set; }
+			public string Type { get; set; }
+			public string Name { get; set; }
+			public string Setter { get; set; }
+			public string Getter { get; set; }
+			public int? Index { get; set; }
 		}
 
 		public record struct Singleton
 		{
-			public string name { get; set; }
-			public string type { get; set; }
+			public string Name { get; set; }
+			public string Type { get; set; }
 		}
 
 		public record struct NativeStructure
 		{
-			public string name { get; set; }
-			public string format { get; set; }
+			public string Name { get; set; }
+			public string Format { get; set; }
 		}
 
-		public record struct Header
+		public record struct HeaderData
 		{
 			[JsonPropertyName("version_major")]
-			public int versionMajor { get; set; }
+			public int VersionMajor { get; set; }
 			[JsonPropertyName("version_minor")]
-			public int versionMinor { get; set; }
+			public int VersionMinor { get; set; }
 			[JsonPropertyName("version_patch")]
-			public int versionPatch { get; set; }
+			public int VersionPatch { get; set; }
 			[JsonPropertyName("version_status")]
-			public string versionStatus { get; set; }
+			public string VersionStatus { get; set; }
 			[JsonPropertyName("version_build")]
-			public string versionBuild { get; set; }
+			public string VersionBuild { get; set; }
 			[JsonPropertyName("version_full_name")]
-			public string versionFullName { get; set; }
+			public string VersionFullName { get; set; }
 		}
 
-		public record struct BuiltinClassSizes
+		public record struct BuiltinClassSizesOfConfig
 		{
 			[JsonPropertyName("build_configuration")]
-			public string buildConfiguration { get; set; }
+			public string BuildConfiguration { get; set; }
 
-			public Size[] sizes { get; set; }
+			public ClassSize[] Sizes { get; set; }
 		}
 
 		public record struct MemberOffset
 		{
-			public string member { get; set; }
-			public int offset { get; set; }
-			public string? meta { get; set; }
+			public string Member { get; set; }
+			public int Offset { get; set; }
+			public string? Meta { get; set; }
 		}
 
-		public record struct Member
+		public record struct BuiltinMember
 		{
-			public string name { get; set; }
-			public string type { get; set; }
+			public string Name { get; set; }
+			public string Type { get; set; }
 		}
 
 		public record struct ClassOffsets
 		{
-			public string name { get; set; }
-			public MemberOffset[] members { get; set; }
+			public string Name { get; set; }
+			public MemberOffset[] Members { get; set; }
 		}
 
-		public record struct BuiltinClassMemberOffsets
+		public record struct BuiltinClassMemberOffsetsOfConfig
 		{
 			[JsonPropertyName("build_configuration")]
-			public string buildConfiguration { get; set; }
-			public ClassOffsets[] classes { get; set; }
+			public string BuildConfiguration { get; set; }
+			public ClassOffsets[] Classes { get; set; }
 		}
 
-		public record struct Value
+		public record struct ValueData
 		{
-			public string name { get; set; }
-			public int value { get; set; }
+			public string Name { get; set; }
+			public int Value { get; set; }
 		}
 
 		public record struct Enum
 		{
-			public string name { get; set; }
+			public string Name { get; set; }
 			[JsonPropertyName("is_bitfield")]
-			public bool? isBitfield { get; set; }
-			public Value[] values { get; set; }
+			public bool? IsBitfield { get; set; }
+			public ValueData[] Values { get; set; }
 		}
 
 		public record struct Method
 		{
-			public string name { get; set; }
+			public string Name { get; set; }
 			[JsonPropertyName("return_type")]
-			public string returnType { get; set; }
+			public string? ReturnType { get; set; }
 			[JsonPropertyName("is_vararg")]
-			public bool isVararg { get; set; }
+			public bool IsVararg { get; set; }
 			[JsonPropertyName("is_const")]
-			public bool isConst { get; set; }
+			public bool IsConst { get; set; }
 			[JsonPropertyName("is_static")]
-			public bool? isStatic { get; set; }
+			public bool? IsStatic { get; set; }
 			[JsonPropertyName("is_virtual")]
-			public bool isVirtual { get; set; }
-			public uint? hash { get; set; }
-			[JsonPropertyName("return_value")] public ReturnValue? returnValue { get; set; }
-			public Argument[]? arguments { get; set; }
+			public bool IsVirtual { get; set; }
+			public uint? Hash { get; set; }
+			[JsonPropertyName("return_value")] public MethodReturnValue? ReturnValue { get; set; }
+			public Argument[]? Arguments { get; set; }
 
-			public string? category { get; set; }
+			public string? Category { get; set; }
 		}
 
 		public record struct Operator
 		{
-			public string name { get; set; }
-			[JsonPropertyName("right_type")] public string? rightType { get; set; }
-			[JsonPropertyName("return_type")] public string returnType { get; set; }
+			public string Name { get; set; }
+			[JsonPropertyName("right_type")] public string? RightType { get; set; }
+			[JsonPropertyName("return_type")] public string ReturnType { get; set; }
 		}
 
 		public record Constructor
 		{
-			public int index { get; set; }
-			public Argument[]? arguments { get; set; }
+			public int Index { get; set; }
+			public Argument[]? Arguments { get; set; }
 		}
 
 		public record struct BuiltinClass
 		{
-			public string name { get; set; }
-			[JsonPropertyName("is_keyed")] public bool isKeyed { get; set; }
-			[JsonPropertyName("indexing_return_type")] public string? indexingReturnType { get; set; }
-			public Member[]? members { get; set; }
-			public Constant[]? constants { get; set; }
-			public Enum[]? enums { get; set; }
-			public Operator[]? operators { get; set; }
-			public Method[]? methods { get; set; }
-			public Constructor[]? constructors { get; set; }
-			[JsonPropertyName("has_destructor")] public bool hasDestructor { get; set; }
+			public string Name { get; set; }
+			[JsonPropertyName("is_keyed")] public bool IsKeyed { get; set; }
+			[JsonPropertyName("indexing_return_type")] public string? IndexingReturnType { get; set; }
+			public BuiltinMember[]? Members { get; set; }
+			public Constant[]? Constants { get; set; }
+			public Enum[]? Enums { get; set; }
+			public Operator[]? Operators { get; set; }
+			public Method[]? Methods { get; set; }
+			public Constructor[]? Constructors { get; set; }
+			[JsonPropertyName("has_destructor")] public bool HasDestructor { get; set; }
 		}
 
 		public record struct Class
 		{
-			public string name { get; set; }
-			[JsonPropertyName("is_refcounted")] public bool isRefcounted { get; set; }
-			[JsonPropertyName("is_instantiable")] public bool isInstantiable { get; set; }
-			public string? inherits { get; set; }
-			[JsonPropertyName("api_type")] public string apiType { get; set; }
-			public Value[] constants { get; set; }
-			public Enum[] enums { get; set; }
-			public Method[] methods { get; set; }
-			public Signal[] signals { get; set; }
-			public Property[] properties { get; set; }
+			public string Name { get; set; }
+			[JsonPropertyName("is_refcounted")] public bool IsRefcounted { get; set; }
+			[JsonPropertyName("is_instantiable")] public bool IsInstantiable { get; set; }
+			public string? Inherits { get; set; }
+			[JsonPropertyName("api_type")] public string ApiType { get; set; }
+			public ValueData[]? Constants { get; set; }
+			public Enum[]? Enums { get; set; }
+			public Method[]? Methods { get; set; }
+			public Signal[]? Signals { get; set; }
+			public Property[]? Properties { get; set; }
 		}
 
-		public Header header { get; set; }
-		[JsonPropertyName("builtin_class_sizes")] public BuiltinClassSizes[] builtinClassSizes { get; set; } = Array.Empty<BuiltinClassSizes>();
-		public BuiltinClassSizes? ClassSize(string build_configuration)
+		public HeaderData Header { get; set; }
+		[JsonPropertyName("builtin_class_sizes")] public BuiltinClassSizesOfConfig[] BuiltinClassSizes { get; set; } = Array.Empty<BuiltinClassSizesOfConfig>();
+		public BuiltinClassSizesOfConfig? ClassSizes(string buildConfiguration)
 		{
-			foreach (var item in builtinClassSizes)
+			foreach (BuiltinClassSizesOfConfig item in BuiltinClassSizes)
 			{
-				if (item.buildConfiguration == build_configuration)
+				if (item.BuildConfiguration == buildConfiguration)
 				{
 					return item;
 				}
 			}
 			return null;
 		}
-		[JsonPropertyName("builtin_class_member_offsets")] public BuiltinClassMemberOffsets[] builtinClassMemberOffsets { get; set; } = Array.Empty<BuiltinClassMemberOffsets>();
-		public BuiltinClassMemberOffsets? ClassMemberOffsets(string build_configuration)
+		[JsonPropertyName("builtin_class_member_offsets")] public BuiltinClassMemberOffsetsOfConfig[] BuiltinClassMemberOffsets { get; set; } = Array.Empty<BuiltinClassMemberOffsetsOfConfig>();
+		public BuiltinClassMemberOffsetsOfConfig? ClassMemberOffsets(string buildConfiguration)
 		{
-			foreach (var item in builtinClassMemberOffsets)
+			foreach (BuiltinClassMemberOffsetsOfConfig item in BuiltinClassMemberOffsets)
 			{
-				if (item.buildConfiguration == build_configuration)
+				if (item.BuildConfiguration == buildConfiguration)
 				{
 					return item;
 				}
 			}
 			return null;
 		}
-		[JsonPropertyName("global_constants")] public object[] globalConstants { get; set; } = Array.Empty<object>();
-		[JsonPropertyName("global_enums")] public Enum[] globalEnums { get; set; } = Array.Empty<Enum>();
-		[JsonPropertyName("utility_functions")] public Method[] untilityFunction { get; set; } = Array.Empty<Method>();
-		[JsonPropertyName("builtin_classes")] public BuiltinClass[] builtinClasses { get; set; } = Array.Empty<BuiltinClass>();
-		public Class[] classes { get; set; } = Array.Empty<Class>();
-		public Singleton[] singletons { get; set; } = Array.Empty<Singleton>();
-		[JsonPropertyName("native_structures")] public NativeStructure[] nativeStructures { get; set; } = Array.Empty<NativeStructure>();
+		[JsonPropertyName("global_constants")] public object[] GlobalConstants { get; set; } = Array.Empty<object>();
+		[JsonPropertyName("global_enums")] public Enum[] GlobalEnums { get; set; } = Array.Empty<Enum>();
+		[JsonPropertyName("utility_functions")] public Method[] UtilityFunction { get; set; } = Array.Empty<Method>();
+		[JsonPropertyName("builtin_classes")] public BuiltinClass[] BuiltinClasses { get; set; } = Array.Empty<BuiltinClass>();
+		public Class[] Classes { get; set; } = Array.Empty<Class>();
+		public Singleton[] Singletons { get; set; } = Array.Empty<Singleton>();
+		[JsonPropertyName("native_structures")] public NativeStructure[] NativeStructures { get; set; } = Array.Empty<NativeStructure>();
 	}
 }

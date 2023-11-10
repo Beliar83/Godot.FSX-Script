@@ -110,8 +110,9 @@ internal class Program
 
         // Find the mapping element using the namespace
         XElement mappingConfig = mappingDoc.Root!;
-        XElement? mappingElement = mappingConfig!.Element(sharpGenNamespace + "mapping");
-        XElement? bindingElement = mappingConfig!.Element(sharpGenNamespace + "bindings");
+        XElement? mappingElement = mappingConfig.Element(sharpGenNamespace + "mapping");
+        XElement? bindingElement = mappingConfig.Element(sharpGenNamespace + "bindings");
+        XElement? namingElement = mappingConfig.Element(sharpGenNamespace + "naming");
         
         var functions = new Dictionary<string, CppType>();
 
@@ -128,7 +129,22 @@ internal class Program
             bindingElement = new XElement(sharpGenNamespace + "bindings");
             mappingConfig.Add(bindingElement);
         }
+        
+        if (namingElement == null)
+        {
+            // If the "mapping" element doesn't exist, you can create it and add content
+            namingElement = new XElement(sharpGenNamespace + "naming");
+            mappingConfig.Add(namingElement);
+        }
 
+        foreach (string abbreviation in Fixer.Words.Keys)
+        {
+            var namingMapElement = new XElement(sharpGenNamespace + "short");
+            namingMapElement.SetAttributeValue("name", abbreviation);
+            namingMapElement.Value = abbreviation;
+            namingElement.Add(namingMapElement);
+        }
+        
         {
             var functionMapElement = new XElement(sharpGenNamespace + "map");
             functionMapElement.SetAttributeValue("function", "add_extension_library");
