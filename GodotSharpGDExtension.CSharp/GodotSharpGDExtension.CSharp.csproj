@@ -8,7 +8,8 @@
 		<RootNamespace>GodotSharpGDExtension</RootNamespace>
 		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
 		<AssemblyName>GodotSharpGDExtension</AssemblyName>
-		<TargetFramework>net7.0</TargetFramework>		
+		<TargetFramework>net7.0</TargetFramework>	
+		<Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -20,7 +21,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<SharpGenMapping Include="Mappings\GDExtension.xml" />
+<!--		<SharpGenMapping Include="Mappings\GDExtension.xml" />-->
 	</ItemGroup>
 
 	<ItemGroup>

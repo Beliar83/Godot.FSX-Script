@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Xml.Serialization;
 using CaseExtensions;
 using SharpGenerator.Documentation;
@@ -43,8 +44,7 @@ public class Convert
     private readonly string cppDir;
     private readonly string? docDir;
     private readonly string configName;
-    private static readonly Dictionary<string, int> BuiltinClassSizes = new();
-
+    
     public Convert(Api api, string csDir, string cppDir, string docDir, string configName)
     {
         this.api = api;
@@ -64,6 +64,7 @@ public class Convert
 
     public Dictionary<string, List<string>> BuiltinClassFunctions { get; } = new();
     public Dictionary<string, List<string>> ClassFunctions { get; } = new();
+    public static readonly Dictionary<string, int> BuiltinClassSizes = new();
 
     public void Emit()
     {
@@ -248,6 +249,32 @@ public class Convert
         StreamWriter csFile = File.CreateText(builtinClassesCsDir + "/" + Fixer.CSType(className, api) + ".cs");
         StreamWriter cppHeaderFile = File.CreateText(builtinClassesCppDir + "/" + Fixer.CSType(className, api) + ".hpp");
         StreamWriter cppSourceFile = File.CreateText(builtinClassesCppDir + "/" + Fixer.CSType(className, api) + ".cpp");
+        
+        cppHeaderFile.WriteLine("""
+                                //---------------------------------------------
+                                // This file is generated. Changes will be lost
+                                //---------------------------------------------
+                                #pragma once
+                                
+                                #include "godot_dotnet.h"
+                                #include "gdextension_interface.h"
+                                #include "godot_cpp/core/defs.hpp"
+                                
+                                """);
+        cppSourceFile.WriteLine($"""
+                                //---------------------------------------------
+                                // This file is generated. Changes will be lost
+                                //---------------------------------------------
+                                
+                                #include "{Fixer.CSType(className, api)}.hpp"
+                                
+                                #include <array>
+                                
+                                #include "godot_dotnet.h"
+                                #include "godot_cpp/variant/string_name.hpp"
+                                #include "godot_cpp/godot.hpp"
+                                """);
+        
         registrations["builtin"].Add(Fixer.CSType(className, api));
 
         var classFunctions = new List<string>();
@@ -277,18 +304,6 @@ public class Convert
             }
             break;
         }
-
-        cppHeaderFile.WriteLine("#pragma once");
-        cppHeaderFile.WriteLine();
-        cppHeaderFile.WriteLine("#include \"gdextension_interface.h\"");
-        cppHeaderFile.WriteLine("#include \"godot_cpp/core/defs.hpp\"");
-        cppHeaderFile.WriteLine();
-        
-        cppSourceFile.WriteLine($"#include \"{Fixer.CSType(className, api)}.hpp\"");
-        cppSourceFile.WriteLine();
-        cppSourceFile.WriteLine("#include <array>");
-        cppSourceFile.WriteLine("#include \"godot_cpp/variant/string_name.hpp\"");
-        cppSourceFile.WriteLine("#include \"godot_cpp/godot.hpp\"");
         
         // TODO: remove?
         // if (hasPointer == false)
@@ -471,12 +486,12 @@ public class Convert
         string csType = Fixer.CSType(builtinMember.Type, api);
         bool isPod = Fixer.IsPod(builtinMember.Type);
         
-        (string? memberType, string? returnText) = isPod ? (null, null) : Fixer.GetReturnDataForType(cppType, "\t");
+        (string? memberType, string? conversion) = isPod ? (null, null) : Fixer.GetConvertToDotnetDataForType(cppType);
 
         
         
         memberType ??= cppType;
-        returnText ??= "\treturn {0};";
+        conversion ??= "{0}";
         
         
         var getterSignature = $"{memberType} {getterName}(GDExtensionTypePtr p_base)";
@@ -505,7 +520,7 @@ public class Convert
             isPod
             ? "\tfunc(p_base, &value);"
             : "\tfunc(p_base, value);");
-        cppSourceFile.WriteLine(returnText, "value");
+        cppSourceFile.WriteLine($"\treturn {conversion};", "value");
         cppSourceFile.WriteLine("}");
 
         classFunctions.Add(getterName);
@@ -532,11 +547,17 @@ public class Convert
         {
             foreach (Api.Argument arg in constructor.Arguments)
             {
-                bool isPod = Fixer.IsPod(arg.Type);
+                string cppType = Fixer.CPPType(arg.Type, api);
+                bool isPod = Fixer.IsPod(cppType);
+                (string? type, string? conversion) = isPod ? (null, null) : Fixer.GetConvertFromDotnetDataForType(cppType);
+
+                type ??= cppType;
+                conversion ??= isPod ? "&{0}" : "{0}";
+                
                 csArgs.Add($"{Fixer.CSType(arg.Type, api)} {Fixer.Name(arg.Name)}");
-                nativeArgs.Add($"{(isPod ? Fixer.CPPType(arg.Type, api) : "GDExtensionTypePtr")} {arg.Name}");
+                nativeArgs.Add($"{type} {arg.Name}");
                 csArgPAsses.Add(isPod ? arg.Name : $"{arg.Name}.InternalPointer");
-                nativeArgPasses.Add(isPod ? $"&{arg.Name}" : arg.Name);
+                nativeArgPasses.Add(string.Format(conversion, arg.Name));
             }
         }
         const string argSeparator = ", ";
@@ -608,13 +629,22 @@ public class Convert
     {
         string cppLeftType = Fixer.CPPType(className, api);
         string cppReturnType = Fixer.CPPType(op.ReturnType, api);
+        bool isReturnTypePod = Fixer.IsPod(op.ReturnType);
+            
+        (string? returnType, string? conversion) = isReturnTypePod ? (null, null) : Fixer.GetConvertToDotnetDataForType(op.ReturnType);
+        
+        
+        returnType ??= cppReturnType;
+        conversion ??= "{0}";
+        
+        
         if (op.RightType != null)
         {
             if (op.RightType == "Variant") { return; }
 
-            var cppOperatorName = $"operator_{op.Name.VariantOperatorCpp()}";
+            var cppOperatorName = $"{op.Name.VariantOperatorCpp()}";
 
-            var nativeFunctionName = $"{className}_{cppOperatorName}_{op.RightType}";
+            var nativeFunctionName = $"{className}_{cppOperatorName}_{op.RightType}_operator";
             
             string name = op.Name switch
             {
@@ -629,14 +659,6 @@ public class Convert
             {
                 csFile.WriteLine(Fixer.XMLComment(doc.description));
             }
-
-            bool isReturnTypePod = Fixer.IsPod(op.ReturnType);
-            
-            (string? returnType, string? returnText) = isReturnTypePod ? (null, null) : Fixer.GetReturnDataForType(op.ReturnType, "\t");
-        
-        
-            returnType ??= cppReturnType;
-            returnText ??= "\treturn {0};";
             var cppFunctionSignature = $"{returnType} {nativeFunctionName}({cppLeftType} left, {Fixer.CPPType(op.RightType, api)} right)";
             cppHeaderFile.WriteLine($"{cppFunctionSignature};");
             
@@ -646,8 +668,6 @@ public class Convert
             bool isRightTypePod = Fixer.IsPod(op.RightType);
             bool isLeftTypePod = Fixer.IsPod(className);
             cppSourceFile.WriteLine($"\toperator_func({(isLeftTypePod ? "&left" : "left")}, {(isRightTypePod ? "&right" : "right")}, {(isReturnTypePod ? "&ret" : "ret")});");
-            cppSourceFile.WriteLine(returnText, "ret");
-            cppSourceFile.WriteLine("}");
             
             classFunctions.Add(nativeFunctionName);
             
@@ -674,13 +694,6 @@ public class Convert
                 csFile.WriteLine(Fixer.XMLComment(doc.description));
             }
             
-            bool isReturnTypePod = Fixer.IsPod(op.ReturnType);
-            
-            (string? returnType, string? returnText) = isReturnTypePod ? (null, null) : Fixer.GetReturnDataForType(op.ReturnType, "\t");
-        
-        
-            returnType ??= cppReturnType;
-            returnText ??= "\treturn {0};";
             var cppFunctionSignature = $"{returnType} {nativeFunctionName}({cppLeftType} left)";
             cppHeaderFile.WriteLine($"{cppFunctionSignature};");
             
@@ -689,8 +702,6 @@ public class Convert
             cppSourceFile.WriteLine(isReturnTypePod ? $"\t{cppReturnType} ret = {{}};" : $"\tauto ret = new uint8_t[{BuiltinClassSizes[op.ReturnType]}];");
             bool isLeftTypePod = Fixer.IsPod(className);
             cppSourceFile.WriteLine($"\toperator_func({(isLeftTypePod ? "&left" : "left")}, nullptr, {(isReturnTypePod ? "&ret" : "ret")});");
-            cppSourceFile.WriteLine(returnText, "ret");
-            cppSourceFile.WriteLine("}");
             
             classFunctions.Add(nativeFunctionName);
             
@@ -698,17 +709,18 @@ public class Convert
             csFile.WriteLine($"\t\t{(isReturnTypePod ? op.ReturnType : "IntPtr")} result = GDExtensionInterface.{nativeFunctionName.ToPascalCase()}({(isLeftTypePod ? "left" : "left.InternalPointer")});");
             csFile.WriteLine($"\t\treturn {(isReturnTypePod ? "result" : $"new {op.ReturnType}(result)")};");
         }
+        cppSourceFile.WriteLine($"\treturn {conversion};", "ret");
+        cppSourceFile.WriteLine("}");
         csFile.WriteLine("\t}");
         csFile.WriteLine();
     }
 
     private void Enum(Api.Enum e, StreamWriter file, Constant[]? constants = null)
     {
-        // TODO
         int prefixLength = Fixer.SharedPrefixLength(e.Values.Select(x => x.Name).ToArray());
         if (e.IsBitfield ?? false)
         {
-            file.WriteLine($"\t[Flags]");
+            file.WriteLine("\t[Flags]");
         }
 
         file.WriteLine($"\tpublic enum {Fixer.CSType(e.Name, api)} {{");
@@ -752,20 +764,18 @@ public class Convert
 
         if (builtinObjectTypes.Contains(f))
         {
-            if (f == "Array")
-            {
-                return $"new {f}(GDExtensionMain.MoveToUnmanaged(__res))";
-            }
-            return $"new {f}(__res)";
+            return f == "Array" 
+                ? $"new {f}(GDExtensionMain.MoveToUnmanaged(__res))" 
+                : $"new {f}(__res)";
         }
-        if(f == "Variant")
+        switch (f)
         {
-            return $"__res";
+            case "Variant":
+                return "__res";
+            case "GodotObject":
+                return "GodotObject.ConstructUnknown(__res)";
         }
-        if (f == "GodotObject")
-        {
-            return "GodotObject.ConstructUnknown(__res)";
-        }
+
         if (objectTypes.Contains(type))
         {
             return $"({f})GodotObject.ConstructUnknown(__res)";
@@ -833,13 +843,24 @@ public class Convert
     private static bool IsValidDefaultValue(string value, string type)
     {
         if (value.Contains('(')) { return false; }
-        if (value == "{}") { return false; }
-        if (value == "[]") { return false; }
         if (value.Contains('&')) { return false; }
-        if (value == "") { return type == "String"; }
-        if (type == "Variant") { return false; }
-        if (type == "StringName") { return false; }
-        return true;
+        switch (value)
+        {
+            case "{}":
+            case "[]":
+                return false;
+            case "":
+                return type == "String";
+        }
+
+        switch (type)
+        {
+            case "Variant":
+            case "StringName":
+                return false;
+            default:
+                return true;
+        }
     }
 
     private string FixDefaultValue(string value, string type)

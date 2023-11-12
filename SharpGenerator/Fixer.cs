@@ -46,9 +46,29 @@ public static class Fixer
         // if (name.StartsWith("real_t")) { name = name.Replace("real_t", "float"); }
         // if (name.StartsWith("int")) { name = name.Replace("int", "long"); }
         // if (name.StartsWith("VariantType")) { name = name.Replace("VariantType", "Variant.Type"); }
+
+        if (name.Equals("float"))
+        {
+            name = "double";
+            
+        }
+
+        if (name.Equals("int"))
+        {
+            name = "int64_t"; 
+            
+        }        
         
-        if (name.StartsWith("float")) { name = name.Replace("float", "double"); }
-        if (name.Equals("String")) { name = name.Replace("string", "wchar_t"); }
+        if (name.Equals("int32_t"))
+        {
+            name = "int32_t"; 
+            
+        }
+
+        if (name.Equals("String"))
+        {
+            name = "const wchar_t*";
+        }
 
         return IsPod(name) ? name : "GDExtensionTypePtr";
     }
@@ -92,7 +112,7 @@ public static class Fixer
         if (name.StartsWith("real_t")) { name = name.Replace("real_t", "float"); }
         if (name.StartsWith("float")) { name = name.Replace("float", "double"); }
         if (name.StartsWith("int")) { name = name.Replace("int", "long"); }
-        if (name.StartsWith("String")) { name = name.Replace("int", "string"); }
+        if (name.StartsWith("String")) { name = name.Replace("String", "string"); }
         if (name.StartsWith("VariantType")) { name = name.Replace("VariantType", "Variant.Type"); }
 
         return name == "Object" ? "GodotObject" : name;
@@ -190,29 +210,34 @@ public static class Fixer
 
     public static bool IsPod(string type)
     {
+        if (type.StartsWith("int")) return true;
+        if (type.Contains("wchar_t")) return true;
+        
         return type switch
         {
-            "int" => true,
             "float" => true,
+            "double" => true,
             "bool" => true,
-            "wchar_t" => true,
             _ => false,
         };
     }
     
-    public static (string? type, string? returnText) GetReturnDataForType(string type, string linePrefix = "")
+    public static (string? type, string? returnText) GetConvertFromDotnetDataForType(string type)
     {
-        var returnString = $"""
-                            {linePrefix}auto length = godot::internal::gdextension_interface_string_to_wide_chars({0}, nullptr, 0);
-                            {linePrefix}auto text = new wchar_t[length];
-                            {linePrefix}godot::internal::gdextension_interface_string_to_wide_chars({0}, text, length);
-                            {linePrefix}return text;
-                            """;
-        // if (IsPod(type)) return (null, null, true);
-        
         return type switch
         {
-            "wchar_t" => (type, returnString), 
+            "wchar_t" => (type, "convert_string_from_dotnet({0})"), 
+            "wchar_t*" => (type, "convert_string_from_dotnet({0})"), 
+            "const wchar_t*" => (type, "convert_string_from_dotnet({0})"), 
+            _ => ("GDExtensionTypePtr", null),
+        };
+    }    
+    
+    public static (string? type, string? conversion) GetConvertToDotnetDataForType(string type)
+    {
+        return type switch
+        {
+            "wchar_t" => (type, "convert_string_to_dotnet({0})"), 
             _ => ("GDExtensionTypePtr", null),
         };
     }

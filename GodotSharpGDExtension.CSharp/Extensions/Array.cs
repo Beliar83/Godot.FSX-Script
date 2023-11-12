@@ -2,7 +2,7 @@ using System.Collections;
 
 namespace GodotSharpGDExtension;
 
-public unsafe partial class Array : IList, ICollection
+public unsafe partial class GodotArray : Array, IList, ICollection
 {
 
     public object this[int index]
@@ -18,13 +18,13 @@ public unsafe partial class Array : IList, ICollection
     {
         get
         {
-            return Variant.VariantToObject(new Variant(GDExtensionMain.extensionInterface.array_operator_index.Data.Pointer(_internal_pointer, index)));
+            return Variant.VariantToObject(new Variant(GDExtensionMain.extensionInterface.GodotArray_operator_index.Data.Pointer(_internal_pointer, index)));
         }
         set
         {
-            var varentData = Variant.ObjectToVariant(value);
-            if (varentData is null) { return; }
-            Variant.SaveIntoPointer(varentData, GDExtensionMain.extensionInterface.array_operator_index.Data.Pointer(_internal_pointer, index));
+            var parentData = Variant.ObjectToVariant(value);
+            if (parentData is null) { return; }
+            Variant.SaveIntoPointer(parentData, GDExtensionMain.extensionInterface.GodotArray_operator_index.Data.Pointer(_internal_pointer, index));
         }
     }
 
@@ -51,12 +51,12 @@ public unsafe partial class Array : IList, ICollection
         return Has(Variant.ObjectToVariant(value));
     }
 
-    public void CopyTo(System.Array array, int index)
+    public void CopyTo(System.Array GodotArray, int index)
     {
-        var amount = System.Math.Max(Length - index, array.Length);
+        var amount = System.Math.Max(Length - index, GodotArray.Length);
         for (int i = 0; i < amount; i++)
         {
-            array.SetValue(this[i + index], i);
+            GodotArray.SetValue(this[i + index], i);
         }
     }
 

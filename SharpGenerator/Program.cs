@@ -349,9 +349,35 @@ internal class Program
         var docs = Path.Combine(Path.Combine(Environment.CurrentDirectory), "doc", "classes") + "/";
         var configName = "float_64";
         var api = Api.Create(pathToGenJson);
+
+        StreamWriter godotDotnetSourceFile = File.CreateText($"{rootFolder}GodotSharpGDExtension.Native/src/generated/godot_dotnet.cpp");
+
         var convert = new Convert(api, ginDir, $"{rootFolder}GodotSharpGDExtension.Native/src/generated", docs, configName);
         convert.Emit();
 
+        await godotDotnetSourceFile.WriteLineAsync($$"""
+                                                //---------------------------------------------
+                                                // This file is generated. Changes will be lost
+                                                //---------------------------------------------
+                                                
+                                                #include "godot_dotnet.h"
+                                                
+                                                wchar_t* convert_string_to_dotnet(GDExtensionTypePtr string) {
+                                                    const auto length = godot::internal::gdextension_interface_string_to_wide_chars(string, nullptr, 0);
+                                                    const auto dotnet_string = new wchar_t[length];
+                                                    godot::internal::gdextension_interface_string_to_wide_chars(string, dotnet_string, length);
+                                                    return dotnet_string;
+                                                }
+
+                                                GDExtensionTypePtr convert_string_from_dotnet(const wchar_t* string) {
+                                                    const auto new_string = new uint8_t[{{Convert.BuiltinClassSizes["String"]}}];
+                                                    godot::internal::gdextension_interface_string_new_with_wide_chars(new_string, string);
+                                                    return new_string;
+                                                }
+                                                """);
+        
+        godotDotnetSourceFile.Close();
+        
         foreach (KeyValuePair<string,List<string>> classFunction in convert.BuiltinClassFunctions)
         {
             var includeElement = new XElement(sharpGenNamespace + "include");
