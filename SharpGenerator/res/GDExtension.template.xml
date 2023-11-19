@@ -21,5 +21,7 @@
     <mapping>
         <map param="\w+::r_\w+" attribute="out" />
         <map param="classdb_register_extension_class_signal::p_argument_info" attribute="buffer"/>
+        <map param="\w+::varargs" attribute="buffer" />
+        <map param="\w+::vararg_count" relation="length(varargs)" />
     </mapping>
 </config>

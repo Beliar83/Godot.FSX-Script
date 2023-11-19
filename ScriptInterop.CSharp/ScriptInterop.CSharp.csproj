@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\FSXScriptInterpreter\FSXScriptInterpreter.fsproj" />
+<!--      <ProjectReference Include="..\FSXScriptInterpreter\FSXScriptInterpreter.fsproj" />-->
       <ProjectReference Include="..\GodotSharpGDExtension.CSharp\GodotSharpGDExtension.CSharp.csproj" />
       <ProjectReference Include="..\ScriptInterop.Interface\ScriptInterop.Interface.csproj" />
     </ItemGroup>

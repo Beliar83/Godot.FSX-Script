@@ -9,7 +9,7 @@
 
 using System;
 using System.Reflection;
-using bottlenoselabs.C2CS.Runtime;
+// using bottlenoselabs.C2CS.Runtime;
 using GodotSharpGDExtension;
 
 #pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
@@ -23,7 +23,7 @@ namespace GDExtension
 		public static void asdads()
 		{
 			//classdb_register_extension_class
-			GodotSharpGDExtension.GDExtension.cal
+			// GodotSharpGDExtension.GDExtension.cal
 			// GodotSharpGDExtension.GDExtension.li
 		}
 	}

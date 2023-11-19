@@ -17,7 +17,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Folder Include="Extensions\" />
 	  <Folder Include="Generated\" />
+	  <Folder Include="Generated\NativeStructures\" />
 	</ItemGroup>
 
 	<ItemGroup>

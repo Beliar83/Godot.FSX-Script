@@ -438,8 +438,8 @@ void call_GDExtensionPtrConstructor(GDExtensionPtrConstructor func, GDExtensionU
 //    godot::internal::gdextension_interface_string_new_with_latin1_chars(name._native_ptr(), "value");
 //    auto l = godot::internal::gdextension_interface_string_to_utf8_chars(name._native_ptr(), buf, 0);
 //    godot::UtilityFunctions::print(l);
-    auto l = godot::internal::gdextension_interface_string_to_utf8_chars(p_args[0], buf, 0);
-    godot::UtilityFunctions::print(l);
+    // auto l = godot::internal::gdextension_interface_string_to_utf8_chars(p_args[0], buf, 0);
+    // godot::UtilityFunctions::print(l);
 //    godot::internal::gdextension_interface_string_new_with_latin1_chars(
 //            name._native_ptr(), "value"); //new godot::Variant(p_args[0]);
 //    godot::UtilityFunctions::print(args);

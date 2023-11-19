@@ -170,6 +170,10 @@ namespace SharpGenerator
 		public record struct BuiltinClass
 		{
 			public string Name { get; set; }
+
+			[JsonIgnore]
+			public string VariantName => Name.VariantEnumType();
+
 			[JsonPropertyName("is_keyed")] public bool IsKeyed { get; set; }
 			[JsonPropertyName("indexing_return_type")] public string? IndexingReturnType { get; set; }
 			public BuiltinMember[]? Members { get; set; }

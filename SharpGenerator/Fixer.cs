@@ -55,7 +55,7 @@ public static class Fixer
 
         if (name.Equals("int"))
         {
-            name = "int64_t"; 
+            name = "GDExtensionInt"; 
             
         }        
         
@@ -68,6 +68,11 @@ public static class Fixer
         if (name.Equals("String"))
         {
             name = "const wchar_t*";
+        }
+
+        if (name.Equals("bool"))
+        {
+            name = "GDExtensionBool";
         }
 
         return IsPod(name) ? name : "GDExtensionTypePtr";
@@ -112,7 +117,7 @@ public static class Fixer
         if (name.StartsWith("real_t")) { name = name.Replace("real_t", "float"); }
         if (name.StartsWith("float")) { name = name.Replace("float", "double"); }
         if (name.StartsWith("int")) { name = name.Replace("int", "long"); }
-        if (name.StartsWith("String")) { name = name.Replace("String", "string"); }
+        if (name.Equals("String", StringComparison.InvariantCultureIgnoreCase)) { return "string"; }
         if (name.StartsWith("VariantType")) { name = name.Replace("VariantType", "Variant.Type"); }
 
         return name == "Object" ? "GodotObject" : name;
@@ -215,6 +220,8 @@ public static class Fixer
         
         return type switch
         {
+            "GDExtensionBool" => true,
+            "GDExtensionInt" => true,
             "float" => true,
             "double" => true,
             "bool" => true,
@@ -222,23 +229,28 @@ public static class Fixer
         };
     }
     
-    public static (string? type, string? returnText) GetConvertFromDotnetDataForType(string type)
+    public static (string type, string? returnText, bool isPod) GetConvertFromDotnetDataForType(string type)
     {
         return type switch
         {
-            "wchar_t" => (type, "convert_string_from_dotnet({0})"), 
-            "wchar_t*" => (type, "convert_string_from_dotnet({0})"), 
-            "const wchar_t*" => (type, "convert_string_from_dotnet({0})"), 
-            _ => ("GDExtensionTypePtr", null),
+            "wchar_t" => (type, "convert_string_from_dotnet({0})", true), 
+            "wchar_t*" => (type, "convert_string_from_dotnet({0})", true), 
+            "const wchar_t*" => (type, "convert_string_from_dotnet({0})", true),
+            "bool" => (type, "convert_bool_from_dotnet({0})", true),
+            _ => IsPod(type) 
+                ? (type, null, true) 
+                : ("GDExtensionTypePtr", null, false),
         };
     }    
     
-    public static (string? type, string? conversion) GetConvertToDotnetDataForType(string type)
+    public static (string type, string? conversion, bool isPod) GetConvertToDotnetDataForType(string type)
     {
         return type switch
         {
-            "wchar_t" => (type, "convert_string_to_dotnet({0})"), 
-            _ => ("GDExtensionTypePtr", null),
+            "wchar_t" => (type, "convert_string_to_dotnet({0})", true),
+            "bool" => (type, "convert_bool_to_dotnet({0})", true),
+            _ => IsPod(type) 
+                ? (type, null, true) : ("GDExtensionTypePtr", null, false),
         };
     }
     
@@ -410,7 +422,7 @@ public static class Fixer
         return result.ReplaceLineEndings();
     }
 
-    public static string VariantEnumType(string type)
+    public static string VariantEnumType(this string type)
     {
         return $"GDEXTENSION_VARIANT_TYPE_{type.ToScreamingSnakeWithGodotAbbreviations()}";
     }

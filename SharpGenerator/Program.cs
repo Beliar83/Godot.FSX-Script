@@ -22,86 +22,26 @@ internal class Program
 
     public static async Task Main(string[] args)
     {
+        if (args.Length < 4)
+        {
+            Console.WriteLine($"Usage: {args[0]} <Path for generated C# files> <Path for generated C++ files> <Path to godot-cpp>");
+        }
+
+        string folderForGeneratedCSharpFiles = args[1];
+        string folderForGeneratedCppFiles = args[2];
+        string godotCppFolder = args[3];
+        
         Console.WriteLine($"Working Dir {Directory.GetCurrentDirectory()}");
         string rootFolder = "../../../../../";
         
-        string godotCppFolder = Path.GetFullPath($"{rootFolder}godot-cpp");
+        // string godotCppFolder = Path.GetFullPath($"{rootFolder}godot-cpp");
         Console.WriteLine($"GodotCpp Folder {godotCppFolder}");
-        string cppFilename = Path.Join(godotCppFolder, "include/godot_cpp/godot.hpp");
         var cppParserOptions = new CppParserOptions();
 
         cppParserOptions.IncludeFolders.Add(Path.Join(godotCppFolder, "gdextension"));
         cppParserOptions.IncludeFolders.Add(Path.Join(godotCppFolder, "gen/include"));
         cppParserOptions.IncludeFolders.Add(Path.Join(godotCppFolder, "include"));
-        CppCompilation compilation = CppParser.ParseFile(cppFilename, cppParserOptions);
 
-        const string gdextensionInterfacePrefix = "gdextension_interface_";
-        var interfaceFunctions = compilation
-            .Fields
-            .Where(f => f.Name.StartsWith(gdextensionInterfacePrefix)).ToList();
-
-        var dotnetApiHeaderBuilder = new StringBuilder();
-        var dotnetApiCodeBuilder = new StringBuilder();
-
-        dotnetApiHeaderBuilder.AppendLine("#pragma once");
-        dotnetApiHeaderBuilder.AppendLine();
-        dotnetApiHeaderBuilder.AppendLine("#include \"gdextension_interface.h\"");
-        dotnetApiHeaderBuilder.AppendLine();
-        dotnetApiHeaderBuilder.AppendLine("#ifndef __castxml__ // This avoids issues with clang version of CastXML not matching the one of VS. Also, it is not needed for the wrapper. ");
-        dotnetApiHeaderBuilder.AppendLine("#include \"godot_cpp/core/defs.hpp\"");
-        dotnetApiHeaderBuilder.AppendLine("#include <vector>");
-        dotnetApiHeaderBuilder.AppendLine("#else");
-        dotnetApiHeaderBuilder.AppendLine("#define GDE_EXPORT");
-        dotnetApiHeaderBuilder.AppendLine("#endif");
-        dotnetApiHeaderBuilder.AppendLine();
-        dotnetApiHeaderBuilder.AppendLine("typedef void (*de_init)(GDExtensionInitializationLevel p_level);");
-        dotnetApiHeaderBuilder.AppendLine();
-        dotnetApiHeaderBuilder.AppendLine("typedef struct {");
-        dotnetApiHeaderBuilder.AppendLine("    de_init initialize;");
-        dotnetApiHeaderBuilder.AppendLine("    de_init uninitialize;");
-        dotnetApiHeaderBuilder.AppendLine("} DotnetInitialization;");
-        dotnetApiHeaderBuilder.AppendLine();
-        dotnetApiHeaderBuilder.AppendLine("#ifndef __castxml__");
-        dotnetApiHeaderBuilder.AppendLine("static std::vector<DotnetInitialization*> initializations;");
-        dotnetApiHeaderBuilder.AppendLine("#endif");
-        dotnetApiHeaderBuilder.AppendLine();
-        dotnetApiHeaderBuilder.AppendLine("extern \"C\" {");
-        dotnetApiHeaderBuilder.AppendLine("GDE_EXPORT void register_class(const char* p_name, const char* p_parent_name, const GDExtensionClassCreationInfo* p_extension_funcs);");
-        dotnetApiHeaderBuilder.AppendLine("GDE_EXPORT GDExtensionConstStringNamePtr create_string_name(const char* name);");
-        dotnetApiHeaderBuilder.AppendLine("GDE_EXPORT void add_extension_library(DotnetInitialization* initialization);");
-        dotnetApiHeaderBuilder.AppendLine("GDE_EXPORT GDExtensionClassLibraryPtr get_library();");
-
-        dotnetApiCodeBuilder.AppendLine("#include \"dotnet_api.h\"");
-        dotnetApiCodeBuilder.AppendLine("#include \"godot_cpp/godot.hpp\"");
-        dotnetApiCodeBuilder.AppendLine();
-        dotnetApiCodeBuilder.AppendLine("std::vector<DotnetInitialization> initializations;");
-        dotnetApiCodeBuilder.AppendLine();
-        dotnetApiCodeBuilder.AppendLine("GDExtensionConstStringNamePtr create_string_name(const char* name) {");
-        dotnetApiCodeBuilder.AppendLine("    return new godot::StringName(name);");
-        dotnetApiCodeBuilder.AppendLine("}");
-        dotnetApiCodeBuilder.AppendLine();
-        dotnetApiCodeBuilder.AppendLine("void add_extension_library(de_init initialize, de_init uninitialize) {");
-        dotnetApiCodeBuilder.AppendLine("    DotnetInitialization initialization;");
-        dotnetApiCodeBuilder.AppendLine("    initialization.initialize = initialize;");
-        dotnetApiCodeBuilder.AppendLine("    initialization.uninitialize = uninitialize;");
-        dotnetApiCodeBuilder.AppendLine("    initializations.push_back(initialization);");
-        dotnetApiCodeBuilder.AppendLine("}");
-        dotnetApiCodeBuilder.AppendLine();
-        dotnetApiCodeBuilder.AppendLine("void add_extension_library(DotnetInitialization *initialization) {");
-        dotnetApiCodeBuilder.AppendLine("    initializations.push_back(initialization);");
-        dotnetApiCodeBuilder.AppendLine("}");
-        dotnetApiCodeBuilder.AppendLine("GDExtensionClassLibraryPtr get_library() {");
-        dotnetApiCodeBuilder.AppendLine("    return godot::internal::library;");
-        dotnetApiCodeBuilder.AppendLine("}");
-        
-        // dotnetApiCodeBuilder.AppendLine("void init_interface_functions(struct interface_functions *interface_functions) {");
-        
-        var ignoredTypes = new List<string>
-        {
-            "char16_t",
-            "char32_t",
-        };
-        
         string templateFile = Path.GetFullPath("res/GDExtension.template.xml");
         XDocument mappingDoc = XDocument.Load(templateFile);
 
@@ -113,8 +53,6 @@ internal class Program
         XElement? mappingElement = mappingConfig.Element(sharpGenNamespace + "mapping");
         XElement? bindingElement = mappingConfig.Element(sharpGenNamespace + "bindings");
         XElement? namingElement = mappingConfig.Element(sharpGenNamespace + "naming");
-        
-        var functions = new Dictionary<string, CppType>();
 
         if (mappingElement == null)
         {
@@ -159,138 +97,6 @@ internal class Program
             functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
             mappingElement.Add(functionMapElement);
         }
-        
-        
-        // if (mappingNode is null)
-        // {
-        //     Console.Error.WriteLineAsync("Could not find config/mapping node");
-        // }
-        // mappingNode.RemoveAll();
-
-        var processedTypes = new HashSet<string>();
-
-        // foreach (CppField field in interfaceFunctions)
-        // {
-        //     string functionName = field.Name.Replace(gdextensionInterfacePrefix, "");
-        //
-        //     CppType type = field.Type;
-        //     
-        //     CppFunctionType functionType = ExtractFunctionType(type);
-        //
-        //     bool isIgnored = false;
-        //
-        //
-        //     foreach (string ignoredType in ignoredTypes)
-        //     {
-        //         if (GetTypeString(functionType.ReturnType).Contains(ignoredType))
-        //         {
-        //             isIgnored = true;
-        //             break;
-        //         }
-        //         
-        //         if (!functionType.Parameters.Any(p => GetTypeString(p.Type).Contains(ignoredType)))
-        //         {
-        //             continue;
-        //         }
-        //
-        //         isIgnored = true;
-        //         break;
-        //     }
-        //
-        //     if (isIgnored) continue;
-        //
-        //     if (IsFunction(functionType.ReturnType))
-        //     {
-        //         string returnTypeName = functionType.ReturnType.FullName;
-        //         if (processedTypes.Add(returnTypeName))
-        //         {
-        //             var functionBindingElement = new XElement(ns + "bind");
-        //             functionBindingElement.SetAttributeValue("from", returnTypeName);
-        //             functionBindingElement.SetAttributeValue("to", "System.IntPtr");
-        //             bindingElement.Add(functionBindingElement);
-        //         }            
-        //
-        //         if (!functions.ContainsKey(functionType.ReturnType.GetDisplayName()))
-        //         {
-        //             functions.Add(functionType.ReturnType.GetDisplayName(), functionType.ReturnType);
-        //         }
-        //         
-        //     }
-        //
-        //     var parameters = new List<string>();
-        //     var parameterNames = new List<string>();
-        //     
-        //     foreach (CppParameter parameter in functionType.Parameters)
-        //     {
-        //         if (IsFunction(parameter.Type))
-        //         {
-        //             if (!functions.ContainsKey(parameter.Type.GetDisplayName()))
-        //             {
-        //                 functions.Add(parameter.Type.GetDisplayName(), parameter.Type);
-        //             }
-        //         }
-        //         
-        //         parameters.Add(string.Format($"{GetTypeString(parameter.Type)}", parameter.Name));
-        //         parameterNames.Add(parameter.Name);
-        //     }
-        //
-        //     var functionSignature =
-        //         $"{functionType.ReturnType.GetDisplayName()} {functionName}({string.Join(", ", parameters)})";
-        //     
-        //     AddFunction(functionName, functionSignature, $"godot::internal::{field.Name}", functionType, parameterNames);
-        // }
-
-        // foreach (string functionKey in functions.Keys)
-        // {
-        //     CppFunctionType functionType = ExtractFunctionType(functions[functionKey]);
-        //
-        //     string functionName;
-        //     if (functionKey == "void (*)(void*, uint32_t)*")
-        //     {
-        //         dotnetApiHeaderBuilder.AppendLine("typedef void (*NativeGroupTask)(void*, uint32_t);");
-        //         functionName = "NativeGroupTask";
-        //     }
-        //     else if (functionKey == "void (*)(void*)*")
-        //     {
-        //         dotnetApiHeaderBuilder.AppendLine("typedef void (*NativeTask)(void*);");
-        //         functionName = "NativeTask";
-        //     }
-        //     else
-        //     {
-        //         functionName = functionKey;
-        //     }
-        //
-        //     var parameters = new List<string>
-        //     {
-        //         "func",
-        //     };
-        //     var parameterNames = new List<string>();
-        //     
-        //     foreach ((CppParameter val, int index) parameter in functionType!.Parameters.Select((val, index) => (val, index)))
-        //     {
-        //         string parameterName = parameter.val.Name;
-        //         if (string.IsNullOrWhiteSpace(parameterName))
-        //         {
-        //             parameterName = $"arg{parameter.index}";
-        //         }
-        //         parameters.Add(string.Format($"{GetTypeString(parameter.val.Type)}", parameterName));
-        //         parameterNames.Add(parameterName);
-        //     }
-        //
-        //     string callFunctionName = $"call_{functionName}";
-        //     
-        //     var functionSignature =
-        //         $"{functionType.ReturnType.GetDisplayName()} {callFunctionName}({functionName} {string.Join(", ", parameters)})";
-        //
-        //     AddFunction(callFunctionName, functionSignature, "func", functionType, parameterNames);
-        // }
-        
-        dotnetApiHeaderBuilder.AppendLine("}");
-
-
-        // await File.WriteAllTextAsync($"{rootFolder}GodotSharpGDExtension.Native/src/dotnet_api.h", dotnetApiHeaderBuilder.ToString().Replace("\t", "    "));
-        // await File.WriteAllTextAsync($"{rootFolder}GodotSharpGDExtension.Native/src/dotnet_api.cpp", dotnetApiCodeBuilder.ToString().Replace("\t", "    "));
-        
 
         var pathToGenJson = Path.Combine(godotCppFolder, "gdextension", "extension_api.json");
         if (!File.Exists(pathToGenJson))
@@ -302,32 +108,25 @@ internal class Program
         {
             throw new Exception("Failed to find extension_api json");
         }
-
-        var ginDirParent = Path.Combine(Directory.GetCurrentDirectory(), rootFolder, "GodotSharpGDExtension.CSharp");
-        ginDirParent = Path.GetFullPath(ginDirParent);
-        if (!Directory.Exists(ginDirParent))
+        
+        // string generatedDir = Path.Combine(godotSharpGDExtensionCSharpDir, "Generated");
+        // Directory.
+        if (Directory.Exists(folderForGeneratedCSharpFiles))
         {
-            ginDirParent = Path.Combine(Directory.GetCurrentDirectory(), "GodotSharpGDExtension.CSharp");
+            Directory.Delete(folderForGeneratedCSharpFiles, true);
         }
 
-        if (!Directory.Exists(ginDirParent))
+        Directory.CreateDirectory(folderForGeneratedCSharpFiles);        
+        
+        if (Directory.Exists(folderForGeneratedCppFiles))
         {
-            ginDirParent = Path.Combine(Directory.GetCurrentDirectory(), "..", "GodotSharpGDExtension.CSharp");
+            Directory.Delete(folderForGeneratedCppFiles, true);
         }
 
-        ginDirParent = Path.GetFullPath(ginDirParent);
-        if (!Directory.Exists(Path.Combine(ginDirParent, "Extensions")))
-        {
-            throw new Exception("Don't know where to put files");
-        }
-
-        var ginDir = Path.Combine(ginDirParent, "Generated");
-        if (Directory.Exists(ginDir))
-        {
-            Directory.Delete(ginDir, true);
-        }
-
-        Directory.CreateDirectory(ginDir);
+        Directory.CreateDirectory(folderForGeneratedCppFiles);
+        Directory.CreateDirectory(Path.Join(folderForGeneratedCppFiles, "BuiltinClasses"));
+        Directory.CreateDirectory(Path.Join(folderForGeneratedCppFiles, "UtilityFunctions"));
+        Directory.CreateDirectory(Path.Join(folderForGeneratedCppFiles, "Classes"));
 
         // var processStartInfo = new ProcessStartInfo("dotnet",
         //     "run generate --config E:\\projekte\\LibGodotSharp\\GodotSharpGDExtension.CSharp\\CAstFfi\\config-generate-cs.json");
@@ -352,7 +151,7 @@ internal class Program
 
         StreamWriter godotDotnetSourceFile = File.CreateText($"{rootFolder}GodotSharpGDExtension.Native/src/generated/godot_dotnet.cpp");
 
-        var convert = new Convert(api, ginDir, $"{rootFolder}GodotSharpGDExtension.Native/src/generated", docs, configName);
+        var convert = new Convert(api, folderForGeneratedCSharpFiles, folderForGeneratedCppFiles, docs, configName);
         convert.Emit();
 
         await godotDotnetSourceFile.WriteLineAsync($$"""
@@ -361,6 +160,7 @@ internal class Program
                                                 //---------------------------------------------
                                                 
                                                 #include "godot_dotnet.h"
+                                                #include "godot_cpp/core/method_ptrcall.hpp"
                                                 
                                                 wchar_t* convert_string_to_dotnet(GDExtensionTypePtr string) {
                                                     const auto length = godot::internal::gdextension_interface_string_to_wide_chars(string, nullptr, 0);
@@ -373,6 +173,16 @@ internal class Program
                                                     const auto new_string = new uint8_t[{{Convert.BuiltinClassSizes["String"]}}];
                                                     godot::internal::gdextension_interface_string_new_with_wide_chars(new_string, string);
                                                     return new_string;
+                                                }
+                                                
+                                                GDExtensionBool convert_bool_from_dotnet(bool value) {
+                                                    GDExtensionBool encoded;
+                                                    godot::PtrToArg<bool>::encode(value, &encoded);
+                                                    return encoded;
+                                                }
+                                                
+                                                bool convert_bool_to_dotnet(GDExtensionBool value) {
+                                                    return godot::PtrToArg<bool>::convert(&value);
                                                 }
                                                 """);
         
@@ -401,68 +211,6 @@ internal class Program
             "GodotSharpGDExtension.CSharp/Mappings/GDExtension.xml")));
         
         return;
-
-        void AddFunction(string functionName, string functionSignature, string functionCall,
-            CppFunctionType functionType,
-            IEnumerable<string> parameterNames)
-        {
-            dotnetApiHeaderBuilder.AppendLine($"GDE_EXPORT {functionSignature};");
-            dotnetApiCodeBuilder.AppendLine($"{functionSignature} {{");
-            string typeString = GetTypeString(functionType.ReturnType);
-
-            var returnString = "";
-
-            if (typeString != "void")
-            {
-                returnString = "return ";
-            }
-
-            dotnetApiCodeBuilder.AppendLine(
-                $"\t{returnString}{functionCall}({string.Join(", ", parameterNames)});");
-            dotnetApiCodeBuilder.AppendLine("}");
-            
-            var functionMapElement = new XElement(sharpGenNamespace + "map");
-            functionMapElement.SetAttributeValue("function", functionName);
-            functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
-            functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
-            mappingElement.Add(functionMapElement);
-            
-        }
-
-        CppFunctionType ExtractFunctionType(CppType type)
-        {
-            while (type is not CppFunctionType)
-            {
-                switch (type)
-                {
-                    case CppFunctionType cppFunctionType:
-                        type = cppFunctionType;
-                        break;
-                    case CppTypeWithElementType cppTypeWithElementType:
-                        type = cppTypeWithElementType.ElementType;
-                        continue;
-                    case CppTypedef cppTypedef:
-                        type = cppTypedef.ElementType;
-                        continue;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(type));
-                }
-            }
-            return (CppFunctionType)type;
-        }
-    }
-
-    private static void CopyFilesRecursively(string sourcePath, string targetPath)
-    {
-        foreach (string dirPath in Directory.GetDirectories(sourcePath, "*", SearchOption.AllDirectories))
-        {
-            Directory.CreateDirectory(dirPath.Replace(sourcePath, targetPath));
-        }
-
-        foreach (string newPath in Directory.GetFiles(sourcePath, "*.*", SearchOption.AllDirectories))
-        {
-            File.Copy(newPath, newPath.Replace(sourcePath, targetPath), true);
-        }
     }
 
     /// <summary>

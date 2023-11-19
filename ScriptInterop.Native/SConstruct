@@ -18,7 +18,7 @@ env.Append(CPPPATH=["src/"])
 env.Append(CPPPATH=["third_party"])
 extension_sources = Glob("src/*.cpp")
 env_extension = env.Clone()
-env_extension.Append(CPPDEFINES=["HOSTFXR_PATH=" "STR(\\\"" + os.path.normpath(str(find_dotnet_root()) + "/host/fxr/6.0.24/" + env["LIBPREFIX"] + "hostfxr" + env["SHLIBSUFFIX"]).replace("\\", "\\\\") + "\\\")"])
+env_extension.Append(CPPDEFINES=["HOSTFXR_PATH=" "STR(\\\"" + os.path.normpath(str(find_dotnet_root()) + "/host/fxr/6.0.25/" + env["LIBPREFIX"] + "hostfxr" + env["SHLIBSUFFIX"]).replace("\\", "\\\\") + "\\\")"])
 
 library_name = ''
 
