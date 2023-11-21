@@ -238,7 +238,7 @@ public class Convert
                 case "String":
                     BuiltinClass? doc = GetBuiltinDocs(c.Name);
                     WriteVariantConversionFunctions(c, variantCsFile, variantCppHeaderFile, variantCppSourceFile,
-                        BuiltinClassSizes[c.Name], Fixer.CSType(c.Name, api), generalVariantClassFunctions);
+                        BuiltinClassSizes[c.Name], Fixer.CSType(c.Name, api), generalVariantClassFunctions, api);
                     WriteBuiltinConstructors(c, doc, variantCsFile, variantCppHeaderFile, variantCppSourceFile, BuiltinClassSizes[c.Name], generalVariantClassFunctions,
                         _ => new ValueTuple<string, string>("static Variant New", "variant_"), staticConstructorPattern);
                     break;
@@ -279,7 +279,7 @@ public class Convert
 
         int size = BuiltinClassSizes[builtinClass.Name];
 
-        WriteVariantConversionFunctions(builtinClass, variantCsFile, variantCppHeaderFile, variantCppSourceFile, size, csTypeName, classFunctions);
+        WriteVariantConversionFunctions(builtinClass, variantCsFile, variantCppHeaderFile, variantCppSourceFile, size, csTypeName, classFunctions, api);
 
         foreach (Api.BuiltinClassSizesOfConfig config in api.BuiltinClassSizes)
         {
@@ -459,25 +459,28 @@ public class Convert
 
     private static void WriteVariantConversionFunctions(Api.BuiltinClass builtinClass, TextWriter variantCsFile,
         TextWriter variantCppHeaderFile, TextWriter variantCppSourceFile, int size,
-        string csTypeName, ICollection<string> variantClassFunctions)
+        string csTypeName, ICollection<string> variantClassFunctions, Api api)
     {
         // TODO: Fix CSName and return
         var nativeToFunctionName = $"variant_to_{builtinClass.Name.ToPascalCase()}";
         variantClassFunctions.Add(nativeToFunctionName);
+
+        string godotCppType = Fixer.GodotCppType(builtinClass.Name, api);
+        (string typeForDotnetInterop, string conversion, bool isDotnetPod, bool isGodotPod) = Fixer.GetConvertToDotnetDataForType(godotCppType);
         
-        var cppToFunctionSignature = $"GDExtensionVariantPtr {{0}}{nativeToFunctionName}(GDExtensionVariantPtr variant)";
+        var cppToFunctionSignature = $"{typeForDotnetInterop} {{0}}{nativeToFunctionName}(GDExtensionVariantPtr variant)";
         variantCppHeaderFile.WriteLine($"GDE_EXPORT {string.Format(cppToFunctionSignature, "")};");
         variantCppSourceFile.WriteLine($"{string.Format(cppToFunctionSignature, "GodotSharpGDExtension::")} {{");
         variantCppSourceFile.WriteLine(
             $"const auto func = godot::internal::gdextension_interface_get_variant_to_type_constructor({builtinClass.VariantName});");
-        variantCppSourceFile.WriteLine($"auto new_instance = new uint8_t[{size}];");
-        variantCppSourceFile.WriteLine("func(new_instance, variant);");
-        variantCppSourceFile.WriteLine("return new_instance;");
+        variantCppSourceFile.WriteLine(isGodotPod ? $"{godotCppType} new_instance = {{}};" : $"auto new_instance = new uint8_t[{size}];");
+        variantCppSourceFile.WriteLine($"func({(isGodotPod ? "&new_instance" : "new_instance")}, variant);");
+        variantCppSourceFile.WriteLine($"return {conversion};", "new_instance");
         variantCppSourceFile.WriteLine("}");
-        variantCsFile.WriteLine($"\t\tpublic {csTypeName} To{csTypeName}()");
+        variantCsFile.WriteLine($"\t\tpublic {csTypeName} To{csTypeName.ToPascalCase()}()");
         variantCsFile.WriteLine("\t\t{");
         variantCsFile.WriteLine(
-            $"\t\t\treturn new {csTypeName}(GDExtensionInterface.{nativeToFunctionName.ToPascalCase()}(InternalPointer));");
+            $"\t\t\treturn {(isDotnetPod ? "" : $"new {csTypeName}(") }GDExtensionInterface.{nativeToFunctionName.ToPascalCase()}(InternalPointer) {(isDotnetPod ? "" : ")")};");
         variantCsFile.WriteLine("\t\t}");
     }
 
@@ -547,22 +550,18 @@ public class Convert
         var getterName = $"{className}_{builtinMember.Name}_getter";
         var setterName = $"{className}_{builtinMember.Name}_setter";
 
-        string cppType = Fixer.CPPType(builtinMember.Type, api);
+        string cppType = Fixer.GodotCppType(builtinMember.Type, api);
         string csType = Fixer.CSType(builtinMember.Type, api);
-        (string memberType, string? conversion, bool isPod) = Fixer.GetConvertToDotnetDataForType(cppType);
+        (string memberType, string? conversion, bool isDotnetPod, bool isGodotPod) = Fixer.GetConvertToDotnetDataForType(cppType);
 
-
-        conversion ??= "{0}";
-        
-        
         var getterSignature = $"{memberType} {{0}}{getterName}(GDExtensionTypePtr p_base)";
         var setterSignature = $"void {{0}}{setterName}(GDExtensionTypePtr p_base, {memberType} p_value)";
         var getterCall = $"GDExtensionInterface.{getterName.ToPascalCase()}(InternalPointer)";
         csFile.WriteLine($$"""
                            	public {{csType}} {{builtinMember.Name.ToPascalCase()}}
                            	{
-                           		get => {{(isPod ? getterCall : $"new({getterCall})")}};
-                           		set => GDExtensionInterface.{{setterName.ToPascalCase()}}(InternalPointer, {{(isPod ? "value" : "value.InternalPointer")}});
+                           		get => {{(isDotnetPod ? getterCall : $"new({getterCall})")}};
+                           		set => GDExtensionInterface.{{setterName.ToPascalCase()}}(InternalPointer, {{(isDotnetPod ? "value" : "value.InternalPointer")}});
                            	}
                            """);
         cppHeaderFile.WriteLine($"""
@@ -572,22 +571,23 @@ public class Convert
 
         cppSourceFile.WriteLine();
         cppSourceFile.WriteLine($"{string.Format(getterSignature, "GodotSharpGDExtension::")} {{");
-        cppSourceFile.WriteLine($"\tstatic auto func = godot::internal::gdextension_interface_variant_get_ptr_getter({className.VariantEnumType()}, godot::StringName(\"{builtinMember.Name}\")._native_ptr());");
+        string variantEnumType = className.VariantEnumType();
+        cppSourceFile.WriteLine($"\tstatic auto func = godot::internal::gdextension_interface_variant_get_ptr_getter({variantEnumType}, godot::StringName(\"{builtinMember.Name}\")._native_ptr());");
         cppSourceFile.WriteLine(
-            isPod 
+            isGodotPod 
                 ? $"\t{memberType} value = {{}};"
                 : $"\tauto value = godot::internal::gdextension_interface_mem_alloc({BuiltinClassSizes[builtinMember.Type]});");
         cppSourceFile.WriteLine(
-            isPod
+            isGodotPod
             ? "\tfunc(p_base, &value);"
             : "\tfunc(p_base, value);");
         cppSourceFile.WriteLine($"\treturn {conversion};", "value");
         cppSourceFile.WriteLine("}");
 
         cppSourceFile.WriteLine($"{string.Format(setterSignature, "GodotSharpGDExtension::")} {{");
-        cppSourceFile.WriteLine($"\tstatic auto func = godot::internal::gdextension_interface_variant_get_ptr_setter({className.VariantEnumType()}, godot::StringName(\"{builtinMember.Name}\")._native_ptr());");
+        cppSourceFile.WriteLine($"\tstatic auto func = godot::internal::gdextension_interface_variant_get_ptr_setter({variantEnumType}, godot::StringName(\"{builtinMember.Name}\")._native_ptr());");
         cppSourceFile.WriteLine(
-            isPod 
+            isGodotPod 
                 ? "\tfunc(p_base, &p_value);"
                 : "\tfunc(p_base, p_value);");
         cppSourceFile.WriteLine("}");        
@@ -611,22 +611,22 @@ public class Convert
         var nativeArgs = new List<string>();
         var csArgPasses = new List<string>();
         var nativeArgPasses = new List<string>();
-
+        var nativeArgConversions = new List<string>();
         
         if (constructor.Arguments != null)
         {
             foreach (Api.Argument arg in constructor.Arguments)
             {
-                string cppType = Fixer.CPPType(arg.Type, api);
-                (string type, string? conversion, bool isPod) = Fixer.GetConvertFromDotnetDataForType(cppType);
-
-                conversion ??= isPod ? "&{0}" : "{0}";
+                string cppType = Fixer.GodotCppType(arg.Type, api);
+                (string type, string? conversion, bool isInputPod, bool isConvertedPod) = Fixer.GetConvertFromDotnetDataForType(cppType);
 
                 string csArgName = Fixer.Name(arg.Name).ToCamelCase();
                 csArgs.Add($"{Fixer.CSType(arg.Type, api)} {csArgName}");
-                nativeArgs.Add($"{type} {arg.Name}");
-                csArgPasses.Add(isPod ? csArgName : $"{csArgName}.InternalPointer");
-                nativeArgPasses.Add(string.Format(conversion, arg.Name));
+                var cppArg = $"p_{arg.Name}"; 
+                nativeArgs.Add($"{type} {cppArg}");
+                csArgPasses.Add(isInputPod ? csArgName : $"{csArgName}.InternalPointer");
+                nativeArgConversions.Add($"auto {arg.Name} = {string.Format(conversion, cppArg)}");
+                nativeArgPasses.Add(isConvertedPod ? $"&{arg.Name}" : $"{arg.Name}");
             }
         }
         const string argSeparator = ", ";
@@ -648,6 +648,10 @@ public class Convert
         cppSourceFile.WriteLine($"{string.Format(cppFunctionSignature, "GodotSharpGDExtension::")} {{");
         cppSourceFile.WriteLine($"\tstatic auto constructor = godot::internal::gdextension_interface_variant_get_ptr_constructor({c.VariantName}, {constructor.Index});");
         cppSourceFile.WriteLine($"\tauto new_instance = new uint8_t[{size}];");
+        foreach (string argConversion in nativeArgConversions)
+        {
+            cppSourceFile.WriteLine($"\t{argConversion};");
+        }
         if (nativeArgPasses.Any())
         {
             cppSourceFile.WriteLine($"\tstd::array<GDExtensionConstTypePtr, {nativeArgPasses.Count}> call_args = {{{string.Join(argSeparator, nativeArgPasses)}}};");
@@ -700,24 +704,26 @@ public class Convert
 
     private void Operator(Api.Operator op, string className, TextWriter csFile, TextWriter cppHeaderFile, TextWriter cppSourceFile, Operator? doc, ICollection<string> classFunctions)
     {
-        string cppLeftType = Fixer.CPPType(className, api);
-        string cppReturnType = Fixer.CPPType(op.ReturnType, api);
+        string godotCppLeftType = Fixer.GodotCppType(className, api);
+        string godotCppReturnType = Fixer.GodotCppType(op.ReturnType, api);
             
-        (string? returnType, string? conversion, bool isReturnTypePod) = Fixer.GetConvertToDotnetDataForType(op.ReturnType);
+        (string returnTypeToDotnet, string returnConversion, bool isDotnetPod, bool isGodotPod) = Fixer.GetConvertToDotnetDataForType(godotCppReturnType);
 
-
-        conversion ??= "{0}";
-
+        (string leftTypeFromDotnet, string leftConversion, bool isLeftInputTypePod, bool isLeftConvertedTypePod) = Fixer.GetConvertFromDotnetDataForType(godotCppLeftType);
 
         string csReturnType = Fixer.CSType(op.ReturnType, api);
-        string? rightType = op.RightType;
-        if (rightType != null)
+        string variantEnumType = className.VariantEnumType();
+        string? rightClassName = op.RightType;
+        if (rightClassName != null)
         {
-            if (rightType == "Variant") { return; }
+            if (rightClassName == "Variant") { return; }
+            
+            string godotCppRightType = Fixer.GodotCppType(rightClassName, api);
+            (string rightTypeFromDotnet, string rightConversion, bool isRightInputTypePod, bool isRightConvertedTypePod) = Fixer.GetConvertFromDotnetDataForType(godotCppRightType);
 
             var cppOperatorName = $"{op.Name.VariantOperatorCpp()}";
 
-            var nativeFunctionName = $"{className}_{cppOperatorName}_{rightType}_operator";
+            var nativeFunctionName = $"{className}_{cppOperatorName}_{rightClassName}_operator";
             
             string name = op.Name switch
             {
@@ -733,22 +739,23 @@ public class Convert
                 csFile.WriteLine(Fixer.XMLComment(doc.description));
             }
 
-            string rightCppType = Fixer.CPPType(rightType, api);
-            var cppFunctionSignature = $"{returnType} {{0}}{nativeFunctionName}({cppLeftType} left, {rightCppType} right)";
+
+            
+            var cppFunctionSignature = $"{returnTypeToDotnet} {{0}}{nativeFunctionName}({leftTypeFromDotnet} p_left, {rightTypeFromDotnet} p_right)";
             cppHeaderFile.WriteLine($"GDE_EXPORT {string.Format(cppFunctionSignature, "")};");
             
             cppSourceFile.WriteLine($"{string.Format(cppFunctionSignature, "GodotSharpGDExtension::")} {{");
-            cppSourceFile.WriteLine($"\tstatic auto operator_func = godot::internal::gdextension_interface_variant_get_ptr_operator_evaluator({op.Name.VariantOperatorEnum()}, {className.VariantEnumType()}, {rightType.VariantEnumType()});");
-            cppSourceFile.WriteLine(isReturnTypePod ? $"\t{cppReturnType} ret = {{}};" : $"\tauto ret = new uint8_t[{BuiltinClassSizes[op.ReturnType]}];");
-            bool isRightTypePod = Fixer.IsPod(rightCppType);
-            bool isLeftTypePod = Fixer.IsPod(cppLeftType);
-            cppSourceFile.WriteLine($"\toperator_func({(isLeftTypePod ? "&left" : "left")}, {(isRightTypePod ? "&right" : "right")}, {(isReturnTypePod ? "&ret" : "ret")});");
+            cppSourceFile.WriteLine($"\tauto left = {string.Format(leftConversion, "p_left")};");
+            cppSourceFile.WriteLine($"\tauto right = {string.Format(rightConversion, "p_right")};");
+            cppSourceFile.WriteLine($"\tstatic auto operator_func = godot::internal::gdextension_interface_variant_get_ptr_operator_evaluator({op.Name.VariantOperatorEnum()}, {variantEnumType}, {rightClassName.VariantEnumType()});");
+            cppSourceFile.WriteLine(isGodotPod ? $"\t{godotCppReturnType} ret = {{}};" : $"\tauto ret = new uint8_t[{BuiltinClassSizes[op.ReturnType]}];");
+            cppSourceFile.WriteLine($"\toperator_func({(isLeftConvertedTypePod ? "&left" : "left")}, {(isRightConvertedTypePod ? "&right" : "right")}, {(isDotnetPod ? "&ret" : "ret")});");
             
             classFunctions.Add(nativeFunctionName);
             
-            csFile.WriteLine($"\tpublic static {csReturnType} {name}({Fixer.CSType(className, api)} left, {Fixer.CSType(rightType, api)} right) {{");
-            csFile.WriteLine($"\t\t{(isReturnTypePod ? csReturnType : "IntPtr")} result = GDExtensionInterface.{nativeFunctionName.ToPascalCase()}({(isLeftTypePod ? "left" : "left.InternalPointer")}, {(isRightTypePod ? "right" : "right.InternalPointer")});");
-            csFile.WriteLine($"\t\treturn {(isReturnTypePod ? "result" : $"new {csReturnType}(result)")};");            
+            csFile.WriteLine($"\tpublic static {csReturnType} {name}({Fixer.CSType(className, api)} left, {Fixer.CSType(rightClassName, api)} right) {{");
+            csFile.WriteLine($"\t\t{(isDotnetPod ? csReturnType : "IntPtr")} result = GDExtensionInterface.{nativeFunctionName.ToPascalCase()}({(isLeftInputTypePod ? "left" : "left.InternalPointer")}, {(isRightInputTypePod ? "right" : "right.InternalPointer")});");
+            csFile.WriteLine($"\t\treturn {(isDotnetPod ? "result" : $"new {csReturnType}(result)")};");            
             
         }
         else
@@ -769,22 +776,22 @@ public class Convert
                 csFile.WriteLine(Fixer.XMLComment(doc.description));
             }
             
-            var cppFunctionSignature = $"{returnType} {{0}}{nativeFunctionName}({cppLeftType} left)";
+            var cppFunctionSignature = $"{returnTypeToDotnet} {{0}}{nativeFunctionName}({leftTypeFromDotnet} p_left)";
             cppHeaderFile.WriteLine($"GDE_EXPORT {string.Format(cppFunctionSignature, "")};");
             
             cppSourceFile.WriteLine($"{string.Format(cppFunctionSignature, "GodotSharpGDExtension::")} {{");
-            cppSourceFile.WriteLine($"\tstatic auto operator_func = godot::internal::gdextension_interface_variant_get_ptr_operator_evaluator({op.Name.VariantOperatorEnum()}, {className.VariantEnumType()}, {"NIL".VariantEnumType()});");
-            cppSourceFile.WriteLine(isReturnTypePod ? $"\t{cppReturnType} ret = {{}};" : $"\tauto ret = new uint8_t[{BuiltinClassSizes[op.ReturnType]}];");
-            bool isLeftTypePod = Fixer.IsPod(className);
-            cppSourceFile.WriteLine($"\toperator_func({(isLeftTypePod ? "&left" : "left")}, nullptr, {(isReturnTypePod ? "&ret" : "ret")});");
+            cppSourceFile.WriteLine($"\tstatic auto operator_func = godot::internal::gdextension_interface_variant_get_ptr_operator_evaluator({op.Name.VariantOperatorEnum()}, {variantEnumType}, {"NIL".VariantEnumType()});");
+            cppSourceFile.WriteLine(isGodotPod ? $"\t{godotCppReturnType} ret = {{}};" : $"\tauto ret = new uint8_t[{BuiltinClassSizes[op.ReturnType]}];");
+            cppSourceFile.WriteLine($"\tauto left = {string.Format(leftConversion, "p_left")};");
+            cppSourceFile.WriteLine($"\toperator_func({(isLeftConvertedTypePod ? "&left" : "left")}, nullptr, {(isDotnetPod ? "&ret" : "ret")});");
             
             classFunctions.Add(nativeFunctionName);
             
             csFile.WriteLine($"\tpublic static {csReturnType} {name}({Fixer.CSType(className, api)} left) {{");
-            csFile.WriteLine($"\t\t{(isReturnTypePod ? csReturnType : "IntPtr")} result = GDExtensionInterface.{nativeFunctionName.ToPascalCase()}({(isLeftTypePod ? "left" : "left.InternalPointer")});");
-            csFile.WriteLine($"\t\treturn {(isReturnTypePod ? "result" : $"new {csReturnType}(result)")};");
+            csFile.WriteLine($"\t\t{(isDotnetPod ? csReturnType : "IntPtr")} result = GDExtensionInterface.{nativeFunctionName.ToPascalCase()}({(isLeftInputTypePod ? "left" : "left.InternalPointer")});");
+            csFile.WriteLine($"\t\treturn {(isDotnetPod ? "result" : $"new {csReturnType}(result)")};");
         }
-        cppSourceFile.WriteLine($"\treturn {conversion};", "ret");
+        cppSourceFile.WriteLine($"\treturn {returnConversion};", "ret");
         cppSourceFile.WriteLine("}");
         csFile.WriteLine("\t}");
         csFile.WriteLine();
@@ -1026,7 +1033,7 @@ public class Convert
                 Api.Argument arg = meth.Arguments[i];
                 var suffix = "";
                 string argumentName = meth.Arguments[i].Name;
-                cppArguments.Add($"{Fixer.CPPType(meth.Arguments[i].Type, api)} {argumentName}");
+                cppArguments.Add($"{Fixer.GodotCppType(meth.Arguments[i].Type, api)} {argumentName}");
                 if (arg.DefaultValue != null)
                 {
                     var validDefault = true;
@@ -1098,7 +1105,7 @@ public class Convert
         if (!string.IsNullOrEmpty(ret))
         {
             csFunctionSignature += $"{Fixer.CSType(ret, api)}";
-            cppFunctionSignature = $"{Fixer.CPPType(ret, api)}";
+            cppFunctionSignature = $"{Fixer.GodotCppType(ret, api)}";
         }
         else
         {

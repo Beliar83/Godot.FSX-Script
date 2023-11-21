@@ -1,13 +1,14 @@
 using System.Text.RegularExpressions;
 using System;
 using System.Data.SqlTypes;
+using System.Diagnostics;
 using CaseExtensions;
 
 namespace SharpGenerator;
 public static class Fixer
 {
 
-    public static string CPPType(string name, Api api)
+    public static string GodotCppType(string name, Api api)
     {
         // TODO: Remove?
         // if (name.StartsWith("enum::"))
@@ -78,49 +79,49 @@ public static class Fixer
         return IsPod(name) ? name : "GDExtensionTypePtr";
     }
 
-    public static string CSType(string name, Api api)
+    public static string CSType(string godotType, Api api)
     {
-        if (name.StartsWith("enum::"))
+        if (godotType.StartsWith("enum::"))
         {
-            name = name[6..];
-            if (name.Contains('.'))
+            godotType = godotType[6..];
+            if (godotType.Contains('.'))
             {
-                var className = name[..name.IndexOf('.')];
-                var enumName = name[(name.IndexOf('.') + 1)..];
+                var className = godotType[..godotType.IndexOf('.')];
+                var enumName = godotType[(godotType.IndexOf('.') + 1)..];
                 bool isBuiltinClass = api.BuiltinClasses.Where(x => x.Name == className).Cast<Api.BuiltinClass?>().FirstOrDefault() is not null;
                 if (className != "Variant" && !isBuiltinClass)
                 {
                     var amount = api.Classes.First(x => x.Name == className).Enums.Count(x => x.Name == enumName);
                     if (amount == 0)
                     {
-                        Program.Warn($"ENUM {name} not found");
+                        Program.Warn($"ENUM {godotType} not found");
                         return "long";
                     }
                 }
             }
         }
-        name = name.Replace("const ", "");
-        if (name.Contains("typedarray::"))
+        godotType = godotType.Replace("const ", "");
+        if (godotType.Contains("typedarray::"))
         {
-            return $"Array<{CSType(name[12..], api)}>";
+            return $"Array<{CSType(godotType[12..], api)}>";
         }
-        name = name.Replace("::", ".");
-        if (name.Contains("VariantType."))
+        godotType = godotType.Replace("::", ".");
+        if (godotType.Contains("VariantType."))
         {
             return "Variant";
         }
-        if (name.StartsWith("bitfield.")) { name = name.Replace("bitfield.", ""); }
-        if (name.StartsWith("uint64_t")) { name = name.Replace("uint64_t", "UInt64"); }
-        if (name.StartsWith("uint16_t")) { name = name.Replace("uint16_t", "UInt16"); }
-        if (name.StartsWith("uint8_t")) { name = name.Replace("uint8_t", "byte"); }
-        if (name.StartsWith("int32_t")) { name = name.Replace("int32_t", "int"); }
-        if (name.StartsWith("real_t")) { name = name.Replace("real_t", "float"); }
-        if (name.StartsWith("float")) { name = name.Replace("float", "double"); }
-        if (name.StartsWith("int")) { name = name.Replace("int", "long"); }
-        if (name.Equals("String", StringComparison.InvariantCultureIgnoreCase)) { return "string"; }
-        if (name.StartsWith("VariantType")) { name = name.Replace("VariantType", "Variant.Type"); }
+        if (godotType.StartsWith("bitfield.")) { godotType = godotType.Replace("bitfield.", ""); }
+        if (godotType.StartsWith("uint64_t")) { godotType = godotType.Replace("uint64_t", "UInt64"); }
+        if (godotType.StartsWith("uint16_t")) { godotType = godotType.Replace("uint16_t", "UInt16"); }
+        if (godotType.StartsWith("uint8_t")) { godotType = godotType.Replace("uint8_t", "byte"); }
+        if (godotType.StartsWith("int32_t")) { godotType = godotType.Replace("int32_t", "int"); }
+        if (godotType.StartsWith("real_t")) { godotType = godotType.Replace("real_t", "float"); }
+        if (godotType.StartsWith("float")) { godotType = godotType.Replace("float", "double"); }
+        if (godotType.StartsWith("int")) { godotType = godotType.Replace("int", "long"); }
+        if (godotType.Equals("String", StringComparison.InvariantCultureIgnoreCase)) { return "string"; }
+        if (godotType.StartsWith("VariantType")) { godotType = godotType.Replace("VariantType", "Variant.Type"); }
 
-        return name == "Object" ? "GodotObject" : name;
+        return godotType == "Object" ? "GodotObject" : godotType;
     }    
     
     public static string MethodName(string name)
@@ -229,28 +230,47 @@ public static class Fixer
         };
     }
     
-    public static (string type, string? returnText, bool isPod) GetConvertFromDotnetDataForType(string type)
+    /// <summary>
+    /// Get tuple with data for conversion FROM dotnet
+    /// </summary>
+    /// <param name="cppType">The godot cpp type to convert</param>
+    /// <returns>ValueTuple with 3 members
+    /// cppTypeForDotnetInterop: The cpp type that is used in the interface to dotnet
+    /// conversion: The code to convert the type to cpp.
+    /// isPod: Whether the type is Plain Old Date (POD) or not. POD data is passed by value.
+    /// </returns>
+    public static (string cppTypeForDotnetInterop, string conversion, bool isInputPod, bool isConvertedPod) GetConvertFromDotnetDataForType(string cppType)
     {
-        return type switch
+        if (cppType.Contains("bool", StringComparison.InvariantCultureIgnoreCase)) Debugger.Break();
+        return cppType switch
         {
-            "wchar_t" => (type, "convert_string_from_dotnet({0})", true), 
-            "wchar_t*" => (type, "convert_string_from_dotnet({0})", true), 
-            "const wchar_t*" => (type, "convert_string_from_dotnet({0})", true),
-            "bool" => (type, "convert_bool_from_dotnet({0})", true),
-            _ => IsPod(type) 
-                ? (type, null, true) 
-                : ("GDExtensionTypePtr", null, false),
+            "wchar_t" => (cppType, "convert_string_from_dotnet({0})", true, false), 
+            "wchar_t*" => (cppType, "convert_string_from_dotnet({0})", true, false), 
+            "const wchar_t*" => (cppType, "convert_string_from_dotnet({0})", true, false),
+            "GDExtensionBool" => ("bool", "convert_bool_from_dotnet({0})", true, true),
+            _ => IsPod(cppType) 
+                ? (cppType, "{0}", true, true) 
+                : ("GDExtensionTypePtr", "{0}", false, false),
         };
     }    
     
-    public static (string type, string? conversion, bool isPod) GetConvertToDotnetDataForType(string type)
+    /// <summary>
+    /// Get tuple with data for conversion TO dotnet
+    /// </summary>
+    /// <param name="cppType">The godot cpp type to convert</param>
+    /// <returns>ValueTuple with 3 members
+    /// cppTypeForDotnetInterop: The cpp type that is used in the interface to dotnet
+    /// conversion: The code to convert the type to cpp.
+    /// isPod: Whether the type is Plain Old Date (POD) or not. POD data is passed by value.
+    /// </returns>
+    public static (string cppTypeForDotnetInterop, string conversion, bool isDotnetPod, bool isGodotPod) GetConvertToDotnetDataForType(string cppType)
     {
-        return type switch
+        return cppType switch
         {
-            "wchar_t" => (type, "convert_string_to_dotnet({0})", true),
-            "bool" => (type, "convert_bool_to_dotnet({0})", true),
-            _ => IsPod(type) 
-                ? (type, null, true) : ("GDExtensionTypePtr", null, false),
+            "const wchar_t*" => (cppType, "convert_string_to_dotnet({0})", true, false),
+            "GDExtensionBool" => ("bool", "convert_bool_to_dotnet({0})", true, true),
+            _ => IsPod(cppType) 
+                ? (cppType, "{0}", true, true) : ("GDExtensionTypePtr", "{0}", false, false),
         };
     }
     
