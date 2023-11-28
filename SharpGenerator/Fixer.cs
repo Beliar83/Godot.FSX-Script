@@ -1,7 +1,4 @@
 using System.Text.RegularExpressions;
-using System;
-using System.Data.SqlTypes;
-using System.Diagnostics;
 using CaseExtensions;
 
 namespace SharpGenerator;
@@ -66,20 +63,15 @@ public static class Fixer
             
         }
 
-        if (name.Equals("String"))
-        {
-            name = "const wchar_t*";
-        }
-
         if (name.Equals("bool"))
         {
             name = "GDExtensionBool";
         }
 
-        return IsPod(name) ? name : "GDExtensionTypePtr";
+        return CanBePassedByValue(name) ? name : "GDExtensionTypePtr";
     }
 
-    public static string CSType(string godotType, Api api)
+    public static (string csType, bool partial) CSType(string godotType, Api api)
     {
         if (godotType.StartsWith("enum::"))
         {
@@ -95,7 +87,7 @@ public static class Fixer
                     if (amount == 0)
                     {
                         Program.Warn($"ENUM {godotType} not found");
-                        return "long";
+                        return ("long", false);
                     }
                 }
             }
@@ -103,13 +95,14 @@ public static class Fixer
         godotType = godotType.Replace("const ", "");
         if (godotType.Contains("typedarray::"))
         {
-            return $"Array<{CSType(godotType[12..], api)}>";
+            return ($"Array<{CSType(godotType[12..], api)}>", false);
         }
         godotType = godotType.Replace("::", ".");
         if (godotType.Contains("VariantType."))
         {
-            return "Variant";
+            return ("Variant", false);
         }
+
         if (godotType.StartsWith("bitfield.")) { godotType = godotType.Replace("bitfield.", ""); }
         if (godotType.StartsWith("uint64_t")) { godotType = godotType.Replace("uint64_t", "UInt64"); }
         if (godotType.StartsWith("uint16_t")) { godotType = godotType.Replace("uint16_t", "UInt16"); }
@@ -118,10 +111,10 @@ public static class Fixer
         if (godotType.StartsWith("real_t")) { godotType = godotType.Replace("real_t", "float"); }
         if (godotType.StartsWith("float")) { godotType = godotType.Replace("float", "double"); }
         if (godotType.StartsWith("int")) { godotType = godotType.Replace("int", "long"); }
-        if (godotType.Equals("String", StringComparison.InvariantCultureIgnoreCase)) { return "string"; }
+        if (godotType.Equals("String", StringComparison.InvariantCultureIgnoreCase)) { return ("String", true); }
         if (godotType.StartsWith("VariantType")) { godotType = godotType.Replace("VariantType", "Variant.Type"); }
 
-        return godotType == "Object" ? "GodotObject" : godotType;
+        return (godotType == "Object" ? "GodotObject" : godotType, false);
     }    
     
     public static string MethodName(string name)
@@ -214,10 +207,9 @@ public static class Fixer
         };
     }
 
-    public static bool IsPod(string type)
+    public static bool CanBePassedByValue(string type)
     {
         if (type.StartsWith("int")) return true;
-        if (type.Contains("wchar_t")) return true;
         
         return type switch
         {
@@ -226,9 +218,26 @@ public static class Fixer
             "float" => true,
             "double" => true,
             "bool" => true,
+            "GodotString" => true,
             _ => false,
         };
     }
+    
+    /// <summary>
+    /// Get tuple with data for conversion FROM dotnet
+    /// </summary>
+    /// <param name="godotType">The godot cpp type to convert</param>
+    /// <returns>ValueTuple with 3 members
+    /// cppTypeForDotnetInterop: The cpp type that is used in the interface to dotnet
+    /// conversion: The code to convert the type to cpp.
+    /// </returns>
+    public static (string cppTypeForDotnetInterop, string? destruction) GetDestructorDataForType(string godotType)
+    {
+        return godotType switch
+        {
+            _ => ("GDExtensionTypePtr", null),
+        };
+    }        
     
     /// <summary>
     /// Get tuple with data for conversion FROM dotnet
@@ -237,18 +246,16 @@ public static class Fixer
     /// <returns>ValueTuple with 3 members
     /// cppTypeForDotnetInterop: The cpp type that is used in the interface to dotnet
     /// conversion: The code to convert the type to cpp.
-    /// isPod: Whether the type is Plain Old Date (POD) or not. POD data is passed by value.
+    /// canBePassedByValue: Whether the type can be passed by value.
+    /// canConvertedBePassedByValue: Whether the converted type can be passed by value
     /// </returns>
-    public static (string cppTypeForDotnetInterop, string conversion, bool isInputPod, bool isConvertedPod) GetConvertFromDotnetDataForType(string cppType)
+    public static (string cppTypeForDotnetInterop, string conversion, bool canBePassedByValue, bool canConvertedBePassedByValue) GetConvertFromDotnetDataForType(string cppType)
     {
-        if (cppType.Contains("bool", StringComparison.InvariantCultureIgnoreCase)) Debugger.Break();
         return cppType switch
         {
-            "wchar_t" => (cppType, "convert_string_from_dotnet({0})", true, false), 
-            "wchar_t*" => (cppType, "convert_string_from_dotnet({0})", true, false), 
-            "const wchar_t*" => (cppType, "convert_string_from_dotnet({0})", true, false),
+            "GodotString" => (cppType, "convert_string_from_dotnet({0})", true, false),
             "GDExtensionBool" => ("bool", "convert_bool_from_dotnet({0})", true, true),
-            _ => IsPod(cppType) 
+            _ => CanBePassedByValue(cppType) 
                 ? (cppType, "{0}", true, true) 
                 : ("GDExtensionTypePtr", "{0}", false, false),
         };
@@ -261,15 +268,16 @@ public static class Fixer
     /// <returns>ValueTuple with 3 members
     /// cppTypeForDotnetInterop: The cpp type that is used in the interface to dotnet
     /// conversion: The code to convert the type to cpp.
-    /// isPod: Whether the type is Plain Old Date (POD) or not. POD data is passed by value.
+    /// canDotnetBePassedByValue: Whether the dotnet type can be passed by value.
+    /// canGodotBePassedByValue: Whether the godot type can be passed by value.
     /// </returns>
-    public static (string cppTypeForDotnetInterop, string conversion, bool isDotnetPod, bool isGodotPod) GetConvertToDotnetDataForType(string cppType)
+    public static (string cppTypeForDotnetInterop, string conversion, bool canDotnetBePassedByValue, bool canGodotBePassedByValue) GetConvertToDotnetDataForType(string cppType)
     {
         return cppType switch
         {
-            "const wchar_t*" => (cppType, "convert_string_to_dotnet({0})", true, false),
+            "GodotString" => (cppType, "convert_string_to_dotnet({0})", true, false),
             "GDExtensionBool" => ("bool", "convert_bool_to_dotnet({0})", true, true),
-            _ => IsPod(cppType) 
+            _ => CanBePassedByValue(cppType) 
                 ? (cppType, "{0}", true, true) : ("GDExtensionTypePtr", "{0}", false, false),
         };
     }
@@ -331,6 +339,18 @@ public static class Fixer
         return string.Format(name, Words.Keys.ToArray());
     }
 
+    public static string ToPascalCaseWithGodotAbbreviations(this string name)
+    {
+        foreach ((string abbreviation, string formatSpecifier) in Words)
+        {
+            name = name.Replace(abbreviation, formatSpecifier, StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        name = name.ToPascalCase();
+
+        return string.Format(name, Words.Keys.ToArray());
+    }    
+    
     public static int SharedPrefixLength(string[] names)
     {
         for (var l = 0; true; l++)

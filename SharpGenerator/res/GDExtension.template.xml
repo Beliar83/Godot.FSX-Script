@@ -10,6 +10,14 @@
     <naming>
     </naming>
     <include file="gdextension_interface.h" namespace="GodotSharpGDExtension" attach="true" />
+    <include file="godot_string.h" namespace="GodotSharpGDExtension">
+        <attach>delete_string</attach>
+        <attach>to_string</attach>
+        <attach>convert_string_to_dotnet</attach>
+        <attach>convert_string_from_wide_string</attach>
+        <attach>convert_string_from_godot_string</attach>
+        <attach>GodotString</attach>
+    </include>
     <bindings>
         <bind from="GDExtensionPtrConstructor" to="System.IntPtr" />
         <bind from="GDExtensionVariantFromTypeConstructorFunc" to="System.IntPtr" />
@@ -23,5 +31,10 @@
         <map param="classdb_register_extension_class_signal::p_argument_info" attribute="buffer"/>
         <map param="\w+::varargs" attribute="buffer" />
         <map param="\w+::vararg_count" relation="length(varargs)" />
+        <map function="delete_string" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+        <map function="to_string" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+        <map function="convert_string_to_dotnet" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+        <map function="convert_string_from_wide_string" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+        <map function="convert_string_from_godot_string" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
     </mapping>
 </config>

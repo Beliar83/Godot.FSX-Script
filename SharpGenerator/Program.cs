@@ -24,7 +24,7 @@ internal class Program
     {
         if (args.Length < 4)
         {
-            Console.WriteLine($"Usage: {args[0]} <Path for generated C# files> <Path for generated C++ files> <Path to godot-cpp>");
+            Console.WriteLine($"Usage: {args[0]} <Path for generated C# files> <Path to root of native library> <Path to godot-cpp>");
         }
 
         string folderForGeneratedCSharpFiles = args[1];
@@ -149,6 +149,11 @@ internal class Program
         var configName = "float_64";
         var api = Api.Create(pathToGenJson);
 
+        if (!Directory.Exists($"{rootFolder}GodotSharpGDExtension.Native/src/generated"))
+        {
+            Directory.CreateDirectory($"{rootFolder}GodotSharpGDExtension.Native/src/generated");
+        }
+        
         StreamWriter godotDotnetSourceFile = File.CreateText($"{rootFolder}GodotSharpGDExtension.Native/src/generated/godot_dotnet.cpp");
 
         var convert = new Convert(api, folderForGeneratedCSharpFiles, folderForGeneratedCppFiles, docs, configName);
@@ -162,26 +167,36 @@ internal class Program
                                                 #include "godot_dotnet.h"
                                                 #include "godot_cpp/core/method_ptrcall.hpp"
                                                 
-                                                wchar_t* convert_string_to_dotnet(GDExtensionTypePtr string) {
+                                                GodotString convert_string_to_dotnet(GDExtensionTypePtr string) {
                                                     const auto length = godot::internal::gdextension_interface_string_to_wide_chars(string, nullptr, 0);
-                                                    const auto dotnet_string = new wchar_t[length];
-                                                    godot::internal::gdextension_interface_string_to_wide_chars(string, dotnet_string, length);
-                                                    return dotnet_string;
+                                                    const GodotString ret = {
+                                                        new wchar_t[length + 1],
+                                                        true
+                                                    };
+                                                    godot::internal::gdextension_interface_string_to_wide_chars(string, ret.data, length);
+                                                    ret.data[length] = '\0';
+                                                    return ret;
                                                 }
-
-                                                GDExtensionTypePtr convert_string_from_dotnet(const wchar_t* string) {
+                                                
+                                                GDExtensionTypePtr convert_string_from_wide_string(const wchar_t* string) {
                                                     const auto new_string = new uint8_t[{{Convert.BuiltinClassSizes["String"]}}];
                                                     godot::internal::gdextension_interface_string_new_with_wide_chars(new_string, string);
                                                     return new_string;
                                                 }
                                                 
-                                                GDExtensionBool convert_bool_from_dotnet(bool value) {
+                                                GDExtensionTypePtr convert_string_from_godot_string(const GodotString string) {
+                                                    const auto new_string = new uint8_t[{{Convert.BuiltinClassSizes["String"]}}];
+                                                    godot::internal::gdextension_interface_string_new_with_wide_chars(new_string, string.data);
+                                                    return new_string;
+                                                }
+                                                
+                                                GDExtensionBool convert_bool_from_dotnet(const bool value) {
                                                     GDExtensionBool encoded;
                                                     godot::PtrToArg<bool>::encode(value, &encoded);
                                                     return encoded;
                                                 }
                                                 
-                                                bool convert_bool_to_dotnet(GDExtensionBool value) {
+                                                bool convert_bool_to_dotnet(const GDExtensionBool value) {
                                                     return godot::PtrToArg<bool>::convert(&value);
                                                 }
                                                 """);
@@ -193,8 +208,6 @@ internal class Program
             var includeElement = new XElement(sharpGenNamespace + "include");
             includeElement.SetAttributeValue("file", $"generated/BuiltinClasses/{classFunction.Key}.hpp");
             includeElement.SetAttributeValue("namespace", "GodotSharpGDExtension");
-            includeElement.SetAttributeValue("attach", "true");
-            mappingConfig.Add(includeElement);
             
             //mappingConfig
             foreach (string functionName in classFunction.Value)
@@ -203,8 +216,16 @@ internal class Program
                 functionMapElement.SetAttributeValue("function", functionName);
                 functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
                 functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
-                mappingElement.Add(functionMapElement);                
+                mappingElement.Add(functionMapElement);
+
+                var functionAttachElement = new XElement(sharpGenNamespace + "attach")
+                {
+                    Value = functionName,
+                };
+
+                includeElement.Add(functionAttachElement);
             }
+            mappingConfig.Add(includeElement);
         }
         
         mappingDoc.Save(Path.GetFullPath(Path.Join(rootFolder,

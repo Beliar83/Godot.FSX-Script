@@ -1,10 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
+    <Sdk Name="SharpGenTools.Sdk" Version="2.1.2-beta" />
     <PropertyGroup>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>ScriptInterop.CSharp</RootNamespace>
-        <TargetFrameworks>net7.0;net6.0</TargetFrameworks>
+        <TargetFramework>net7.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -12,7 +13,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\GodotSharpGDExtension.CSharp\GodotSharpGDExtension.CSharp.csproj" />
+      <SharpGenMapping Include="Mappings\GDExtension.xml">
+        <Generator>MSBuild:Compile</Generator>
+      </SharpGenMapping>
     </ItemGroup>
-
 </Project>

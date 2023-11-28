@@ -1,12 +1,13 @@
-#include <filesystem>
+﻿#include <filesystem>
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/defs.hpp>
 
 
 #include "main.h"
-#include "dotnet_api.h"
+//#include "dotnet_api.h"
 #include "godot_cpp/variant/utility_functions.hpp"
+#include "godot_cpp/godot.hpp"
 
 //typedef struct init_info {
 //    GDExtensionInterfaceGetProcAddress get_proc_address;
@@ -15,15 +16,15 @@
 //};
 
 void initialize_godot_sharp_gdextension_extension_module(godot::ModuleInitializationLevel p_level) {
-    for (auto initialization : initializations) {
-        initialization.initialize(static_cast<GDExtensionInitializationLevel>(p_level));
-    }
+//    for (auto initialization : initializations) {
+//        initialization.initialize(static_cast<GDExtensionInitializationLevel>(p_level));
+//    }
 }
 
 void uninitialize_godot_sharp_gdextension_extension_module(godot::ModuleInitializationLevel p_level) {
-    for (auto initialization : initializations) {
-        initialization.uninitialize(static_cast<GDExtensionInitializationLevel>(p_level));
-    }
+//    for (auto initialization : initializations) {
+//        initialization.uninitialize(static_cast<GDExtensionInitializationLevel>(p_level));
+//    }
 }
 
 extern "C" {
