@@ -346,7 +346,7 @@ public static class Fixer
             name = name.Replace(abbreviation, formatSpecifier, StringComparison.InvariantCultureIgnoreCase);
         }
 
-        name = name.ToPascalCase();
+        name = name.ToLower().ToPascalCase();
 
         return string.Format(name, Words.Keys.ToArray());
     }    

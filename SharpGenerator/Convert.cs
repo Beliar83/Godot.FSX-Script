@@ -81,7 +81,22 @@ public class Convert
             objectTypes.Add(c.Name);
         }
 
-        BuiltinClasses();
+        string builtinClassesCsDir = csDir + "/BuiltinClasses";
+        string builtinClassesCppDir = cppGeneratedDir + "/BuiltinClasses";
+        Directory.CreateDirectory(builtinClassesCsDir);
+        Directory.CreateDirectory(builtinClassesCppDir);
+
+        var variantCsFile = new StreamWriter(Path.Join(builtinClassesCsDir, "Variant.cs"));
+        var variantCppHeaderFile = new StreamWriter(Path.Join(builtinClassesCppDir, "Variant.hpp"));
+        var variantCppSourceFile = new StreamWriter(Path.Join(builtinClassesCppDir, "Variant.cpp"));
+        WriteCppFileHeaders(variantCppHeaderFile, variantCppSourceFile, "Variant");
+        variantCppHeaderFile.WriteLine("namespace GDExtensionInterface {");
+        variantCppHeaderFile.WriteLine("extern \"C\" {");
+        variantCppSourceFile.WriteLine("extern \"C\" {");
+        variantCsFile.WriteLine("namespace GodotSharpGDExtension;");
+        variantCsFile.WriteLine();
+        variantCsFile.WriteLine("public partial class Variant {");           
+        BuiltinClasses(variantCsFile, variantCppHeaderFile, variantCppSourceFile, builtinClassesCsDir, builtinClassesCppDir);
         Classes();
 
         Directory.CreateDirectory(csDir + "/Enums");
@@ -154,7 +169,16 @@ public class Convert
         }
 
         // TODO
-        // Variant();
+        Variant(variantCsFile);
+        
+        variantCsFile.WriteLine("}");
+        variantCppHeaderFile.WriteLine("}");
+        variantCppHeaderFile.WriteLine("}");
+        variantCppSourceFile.WriteLine("}");
+        variantCsFile.Close();
+        variantCppHeaderFile.Close();
+        variantCppSourceFile.Close();
+        
     }
 
     private Class? GetDocs(string? name)
@@ -199,33 +223,20 @@ public class Convert
         file.Close();
     }
 
-    private void BuiltinClasses()
+    private void BuiltinClasses(TextWriter variantCsFile, TextWriter variantCppHeaderFile,
+        TextWriter variantCppSourceFile, string builtinClassesCsDir, string builtinClassesCppDir)
     {
-        string builtinClassesCsDir = this.csDir + "/BuiltinClasses";
-        string builtinClassesCppDir = this.cppGeneratedDir + "/BuiltinClasses";
-        Directory.CreateDirectory(builtinClassesCsDir);
-        Directory.CreateDirectory(builtinClassesCppDir);
-        var variantCsFile = new StreamWriter(Path.Join(builtinClassesCsDir, "Variant.cs"));
-        var variantCppHeaderFile = new StreamWriter(Path.Join(builtinClassesCppDir, "Variant.hpp"));
-        var variantCppSourceFile = new StreamWriter(Path.Join(builtinClassesCppDir, "Variant.cpp"));
-
-        WriteCppFileHeaders(variantCppHeaderFile, variantCppSourceFile, "Variant");
-        variantCppHeaderFile.WriteLine("namespace GDExtensionInterface {");
-        variantCppHeaderFile.WriteLine("extern \"C\" {");
-        variantCppSourceFile.WriteLine("extern \"C\" {");
-        variantCsFile.WriteLine("namespace GodotSharpGDExtension;");
-        variantCsFile.WriteLine();
-        variantCsFile.WriteLine("public partial class Variant {");    
-
+ 
+        
         var generalVariantClassFunctions = new List<string>();
         BuiltinClassFunctions["Variant"] = generalVariantClassFunctions;
 
         const string staticConstructorPattern = 
             """
-            		public {0} 
-                    {{
-                        return new Variant({1});
-                    }}
+            	public {0} 
+                {{
+                    return new Variant({1});
+                }}
             """;
         
         foreach (Api.BuiltinClass c in api.BuiltinClasses)
@@ -249,13 +260,6 @@ public class Convert
                     break;
             }
         }
-        variantCsFile.WriteLine("}");
-        variantCppHeaderFile.WriteLine("}");
-        variantCppHeaderFile.WriteLine("}");
-        variantCppSourceFile.WriteLine("}");
-        variantCsFile.Close();
-        variantCppHeaderFile.Close();
-        variantCppSourceFile.Close();
     }
 
     private void BuiltinClass(Api.BuiltinClass builtinClass, string builtinClassesCsDir, string builtinClassesCppDir, bool hasPointer, TextWriter variantCsFile, TextWriter variantCppHeaderFile, TextWriter variantCppSourceFile, ICollection<string> variantClassFunctions)
@@ -487,11 +491,11 @@ public class Convert
         variantCppSourceFile.WriteLine($"func({(canGodotBePassedByValue ? "&new_instance" : "new_instance")}, variant);");
         variantCppSourceFile.WriteLine($"return {conversion};", "new_instance");
         variantCppSourceFile.WriteLine("}");
-        variantCsFile.WriteLine($"\t\tpublic {csTypeName} To{csTypeName.ToPascalCase()}()");
-        variantCsFile.WriteLine("\t\t{");
+        variantCsFile.WriteLine($"\tpublic {csTypeName} As{csTypeName.ToPascalCase()}()");
+        variantCsFile.WriteLine("\t{");
         variantCsFile.WriteLine(
-            $"\t\t\treturn {(canDotnetBePassedByValue ? "" : $"new {csTypeName}(") }GDExtensionInterface.{nativeToFunctionName.ToPascalCaseWithGodotAbbreviations()}(InternalPointer) {(canDotnetBePassedByValue ? "" : ")")};");
-        variantCsFile.WriteLine("\t\t}");
+            $"\t\treturn {(canDotnetBePassedByValue ? "" : $"new {csTypeName}(") }GDExtensionInterface.{nativeToFunctionName.ToPascalCase()}(InternalPointer) {(canDotnetBePassedByValue ? "" : ")")};");
+        variantCsFile.WriteLine("\t}");
     }
 
     private void WriteBuiltinConstructors(Api.BuiltinClass c, BuiltinClass? doc, TextWriter csFile,
@@ -614,7 +618,7 @@ public class Convert
         TextWriter cppSourceFile, Constructor? doc,
         int size, ICollection<string> classFunctions, Func<Api.Constructor, (string csConstructorNamePrefix, string cppConstructorNamePrefix)>? getConstructorNamePrefixes, string csConstructorPattern, string? generatedCsClassName)
     {
-        (string csConstructorNamePrefix, string cppConstructorNamePrefix)? prefixResult = getConstructorNamePrefixes?.Invoke(constructor);
+        (string csConstructorNamePattern, string cppConstructorNamePrefix)? prefixResult = getConstructorNamePrefixes?.Invoke(constructor);
 
         if (doc != null)
         {
@@ -681,7 +685,7 @@ public class Convert
         // csFile.Write(string.Join(argSeparator, csArgs));
         // csFile.WriteLine(") {");
 
-        var csFunctionSignature = $"{prefixResult?.csConstructorNamePrefix}{Fixer.CSType(c.Name, api).csType.ToPascalCaseWithGodotAbbreviations()}({string.Join(argSeparator, csArgs)})";
+        var csFunctionSignature = $"{prefixResult?.csConstructorNamePattern}{Fixer.CSType(c.Name, api).csType.ToPascalCaseWithGodotAbbreviations()}({string.Join(argSeparator, csArgs)})";
         
         var csCallText = $"GDExtensionInterface.{nativeFunctionName.ToPascalCaseWithGodotAbbreviations()}({string.Join(argSeparator, csArgPasses)})";
         // csFile.Write("\t\t");
@@ -1577,191 +1581,36 @@ public class Convert
     //     file.Close();
     // }
 
-    private void Variant()
+    private void Variant(TextWriter csFile)
     {
-        Api.Enum type = default;
-        Api.Enum operators = default;
-        foreach (Api.Enum e in api.GlobalEnums)
+        foreach (Api.BuiltinClass builtinClass in api.BuiltinClasses)
         {
-            switch (e.Name)
-            {
-                case "Variant.Type":
-                    type = e;
-                    break;
-                case "Variant.Operator":
-                    operators = e;
-                    break;
-            }
+            string t = Fixer.CSType(builtinClass.Name, api).csType;
+            if (!NeedsConvert(t)) continue;
+            csFile.Write("\tpublic static implicit operator Variant(");
+            csFile.Write(t);
+            csFile.WriteLine($" value) => New{t.ToPascalCaseWithGodotAbbreviations()}(value);");
+            csFile.Write("\tpublic static explicit operator ");
+            csFile.Write(t);
+            csFile.Write("(Variant value) => value.As");
+            csFile.Write(t.ToPascalCaseWithGodotAbbreviations());
+            csFile.WriteLine("();");
         }
-        type.Name = "Type";
-        operators.Name = "Operator";
-        StreamWriter file = File.CreateText(csDir + "/" + "Variant.cs");
-        file.WriteLine("namespace GodotSharpGDExtension;");
-        file.WriteLine();
-        file.WriteLine("public sealed unsafe partial class Variant {");
-        file.WriteLine();
+        
+        csFile.WriteLine();
+        return;
 
-        var types = new string[type.Values.Length - 1];
-
-        foreach (Api.Enum e in new[] { type, operators })
-        {
-            int prefixLength = Fixer.SharedPrefixLength(e.Values.Select(x => x.Name).ToArray());
-
-            file.WriteLine($"\tpublic enum {Fixer.CSType(e.Name, api).csType} {{");
-            for (var i = 0; i < e.Values.Length; i++)
-            {
-                Api.ValueData v = e.Values[i];
-
-                string name = v.Name[prefixLength..].ToPascalCase();
-                name = name switch
-                {
-                    "Aabb" => "AABB",
-                    "Rid" => "RID",
-                    "Object" => "GodotObject",
-                    _ => name,
-                };
-                if (i < types.Length && e == type)
-                {
-                    types[i] = name;
-                }
-                file.WriteLine($"\t\t{name} = {v.Value},");
-            }
-            file.WriteLine("\t}");
-            file.WriteLine();
-        }
-
-        static string VariantTypeToCSharpType(string t)
+        static bool NeedsConvert(string t)
         {
             return t switch
             {
-                "Bool" => "bool",
-                "Int" => "long",
-                "Float" => "double",
-                "String" => "string",
-                _ => t
+                "bool" => true,
+                "int" => true,
+                "long" => true,
+                "float" => true,
+                "double" => true,
+                _ => false,
             };
         }
-
-        file.WriteLine("\tpublic static Variant ObjectToVariant(object value)\n\t{");
-        file.WriteLine("\t\tvar valuetype = value?.GetType();");
-        file.WriteLine("\t\tif(value is null) { \n\t\t\treturn null; \n\t\t}");
-        for (var i = 1; i < types.Length; i++)
-        {
-            string t = types[i];
-            file.WriteLine($"\t\telse if (typeof({VariantTypeToCSharpType(t)}) == valuetype) \n\t\t{{");
-            file.WriteLine($"\t\t\treturn new Variant(({VariantTypeToCSharpType(t)})value);");
-            file.WriteLine("\t\t}");
-        }
-        file.WriteLine("\t\telse \n\t\t{ \n\t\t\treturn null; \n\t\t} \n\t}");
-
-        file.WriteLine("\tpublic static object VariantToObject(Variant value)\n\t{");
-        file.WriteLine("\t\tvar valuetype = value?.NativeType;");
-        file.WriteLine("\t\tif(value is null) { \n\t\t\treturn null; \n\t\t}");
-        for (var i = 1; i < types.Length; i++)
-        {
-            string t = types[i];
-            if (t == "Object") t = "GodotObject";
-            file.WriteLine($"\t\telse if (Variant.Type.{t} == valuetype) \n\t\t{{");
-            file.WriteLine($"\t\t\treturn (object)({VariantTypeToCSharpType(t)})value;");
-            file.WriteLine("\t\t}");
-        }
-        file.WriteLine("\t\telse \n\t\t{ \n\t\t\treturn null; \n\t\t} \n\t}");
-
-
-        for (var i = 1; i < types.Length; i++)
-        {
-            string t = types[i];
-            if (t == "GodotObject") { continue; }
-            file.Write("\tpublic static void SaveIntoPointer(");
-            file.Write(VariantTypeToCSharpType(t));
-            file.Write(" value, IntPtr ptr) => GDExtensionInterface.CallGDExtensionPtrConstructor(Constructors[(int)Type.");
-            file.Write(t);
-            file.Write("].fromType, ptr, ");
-            if (t == "String")
-            {
-                file.Write("StringMarshall.ToNative(value)");
-            }
-            else if (objectTypes.Contains(t))
-            {
-                file.Write("value.internalPointer");
-            }
-            else
-            {
-                file.Write("(IntPtr)(&value)");
-            }
-            file.WriteLine(");");
-        }
-        file.WriteLine();
-
-        for (var i = 1; i < types.Length; i++)
-        {
-            string t = types[i];
-            file.Write("\tpublic Variant(");
-            file.Write(VariantTypeToCSharpType(t));
-            file.WriteLine(" value) : this() => SaveIntoPointer(value, internalPointer);");
-        }
-        file.WriteLine();
-
-        for (var i = 1; i < types.Length; i++)
-        {
-            string t = types[i];
-            if (t == "GodotObject") { continue; }
-            file.Write("\tpublic static ");
-            file.Write(VariantTypeToCSharpType(t));
-            file.Write(" Get");
-            file.Write(t);
-            file.WriteLine("FromVariant(Variant data) {");
-            file.WriteLine("\t\tvar ptr = data.internalPointer;");
-            file.WriteLine($"\t\tif (data.NativeType != Variant.Type.{t}) {{");
-            file.WriteLine($"\t\t\treturn default;");
-            file.WriteLine("\t\t}");            
-            file.WriteLine("\t\tIntPtr __res;");
-            file.Write("\t\tGDExtensionInterface.CallGDExtensionPtrConstructor(Constructors[(int)Type.");
-            file.Write(t);
-            file.WriteLine("].toType, (IntPtr)(&__res), ptr);");
-            file.Write("\t\treturn ");
-            file.Write(
-                t == "String"
-                ? "StringMarshall.ToManaged(__res)"
-                : ReturnStatementValue(VariantTypeToCSharpType(t)));
-            file.WriteLine(";");
-            file.WriteLine("\t}");
-        }
-        file.WriteLine();
-
-        for (var i = 1; i < types.Length; i++)
-        {
-            string t = types[i];
-            file.Write("\tpublic ");
-            file.Write(VariantTypeToCSharpType(t));
-            file.Write(" As");
-            file.Write(t);
-            file.Write("() => Get");
-            file.Write(t);
-            file.WriteLine("FromVariant(this);");
-        }
-        file.WriteLine();
-
-        for (var i = 1; i < types.Length; i++)
-        {
-            string t = types[i];
-            file.Write("\tpublic static implicit operator Variant(");
-            file.Write(VariantTypeToCSharpType(t));
-            file.WriteLine(" value) => new Variant(value);");
-        }
-        file.WriteLine();
-
-        for (var i = 1; i < types.Length; i++)
-        {
-            string t = types[i];
-            file.Write("\tpublic static explicit operator ");
-            file.Write(VariantTypeToCSharpType(t));
-            file.Write("(Variant value) => value.As");
-            file.Write(t);
-            file.WriteLine("();");
-        }
-        file.WriteLine();
-        file.WriteLine("}");
-        file.Close();
     }
 }
