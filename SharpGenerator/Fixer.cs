@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using CaseExtensions;
 
@@ -68,7 +69,7 @@ public static class Fixer
             name = "GDExtensionBool";
         }
 
-        return CanBePassedByValue(name) ? name : "GDExtensionTypePtr";
+        return CanBePassedByValue(name) ? name : "GodotType";
     }
 
     public static (string csType, bool partial) CSType(string godotType, Api api)
@@ -115,22 +116,34 @@ public static class Fixer
         if (godotType.StartsWith("VariantType")) { godotType = godotType.Replace("VariantType", "Variant.Type"); }
 
         return (godotType == "Object" ? "GodotObject" : godotType, false);
-    }    
+    }
+
+    private static readonly Dictionary<string, string> FunctionMapping = new()
+    {
+        { "nocasecmp", "NoCaseCompare" },
+        { "casecmp", "CaseCompare" },
+        { "printerr", "PrintErr" },
+        { "printt", "PrintT" },
+        { "prints", "PrintS" },
+        { "printraw", "PrintRaw" },
+        { "GetType", "GetGodotType" },
+    };
     
-    public static string MethodName(string name)
+    public static string MethodNames(string name)
     {
         var res = "";
-        var parts = name.Split(".");
+        string[] parts = name.Split(".");
         for (var i = 0; i < parts.Length - 1; i++)
         {
             res += parts[i] + ".";
         }
-        var last = parts[^1].ToPascalCase();
-        return res + last switch
+        string last = parts[^1];
+        foreach ((string? godotName, string? csName) in FunctionMapping)
         {
-            "GetType" => "GetTypeGD",
-            _ => last,
-        };
+            last = last.Replace(godotName, csName, StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        return (res + last).ToSnakeCaseWithGodotAbbreviations();
     }
 
     public static string Name(string name)
@@ -235,7 +248,7 @@ public static class Fixer
     {
         return godotType switch
         {
-            _ => ("GDExtensionTypePtr", null),
+            _ => ("GodotType", null),
         };
     }        
     
@@ -257,7 +270,7 @@ public static class Fixer
             "GDExtensionBool" => ("bool", "convert_bool_from_dotnet({0})", true, true),
             _ => CanBePassedByValue(cppType) 
                 ? (cppType, "{0}", true, true) 
-                : ("GDExtensionTypePtr", "{0}", false, false),
+                : ("GodotType", "{0}.pointer", false, false),
         };
     }    
     
@@ -271,14 +284,33 @@ public static class Fixer
     /// canDotnetBePassedByValue: Whether the dotnet type can be passed by value.
     /// canGodotBePassedByValue: Whether the godot type can be passed by value.
     /// </returns>
-    public static (string cppTypeForDotnetInterop, string conversion, bool canDotnetBePassedByValue, bool canGodotBePassedByValue) GetConvertToDotnetDataForType(string cppType)
+    public static (string cppTypeForDotnetInterop, string conversion, string construction, bool canDotnetBePassedByValue, bool canGodotBePassedByValue) GetConvertToDotnetDataForType(string cppType)
     {
         return cppType switch
         {
-            "GodotString" => (cppType, "convert_string_to_dotnet({0})", true, false),
-            "GDExtensionBool" => ("bool", "convert_bool_to_dotnet({0})", true, true),
+            "Variant" => (cppType, "{0}", $"auto {{1}} = new uint8_t[{Convert.BuiltinClassSizes["Variant"]}]" , true, false),
+            "GodotString" => (cppType, "convert_string_to_dotnet({0})", "auto {1} = string_constructor_0()" , true, false),
+            "GDExtensionBool" => ("bool", "convert_bool_to_dotnet({0})", "{0} {1} = {{ }};" , true, true),
             _ => CanBePassedByValue(cppType) 
-                ? (cppType, "{0}", true, true) : ("GDExtensionTypePtr", "{0}", false, false),
+                ? (cppType, "{0}", "{0} {1} = {{ }};",  true, true) : ("GodotType", "{0}", "auto {1} = {0}_constructor_0();", false, false),
+        };
+    }
+
+    /// <summary>
+    /// Returns a string to construct the godot type in c++
+    /// </summary>
+    /// <param name="type">The name of the type as used in godot.</param>
+    /// <returns>A string with format placeholders. {0} = type, {1} = variable name </returns>
+    public static string GetConstructionForGodotType(string type)
+    {
+        return type switch
+        {
+            "Variant" => $"auto {{1}} = GodotType {{{{ new uint8_t[{Convert.BuiltinClassSizes["Variant"]}] }}}};",
+            "Object" => "auto {1} = GodotType {{ new godot::Object }}; // TODO: This needs testing",
+            "bool" => "{0} {1} = {{ }};",
+            "float" => "{0} {1} = {{ }};",
+            "int" => "{0} {1} = {{ }};",
+            _ =>  $"auto {{1}} = GodotType {{{{ {type.ToSnakeCaseWithGodotAbbreviations()}_constructor_0() }}}};",
         };
     }
     
@@ -287,7 +319,9 @@ public static class Fixer
         return name switch
         {
             "int" => "Int",
+            "long" => "Int",
             "float" => "Float",
+            "double" => "Float",
             "bool" => "Bool",
             "Object" => "GodotObject",
             _ => name,
@@ -304,16 +338,17 @@ public static class Fixer
         return value;
     }
 
-    public static readonly Dictionary<string, string> Words = new()
+    // public static readonly List<string> Words = new();
+    // public static readonly Dictionary<string, string> SnakeCaseWords = new();
+    public static readonly Dictionary<string, string> PascalCaseWords = new()
     {
-        ["AABB"] = "{0}",
-        ["2D"] = "{1}",
-        ["3D"] = "{2}",
-        ["RID"] = "{3}",
-        ["NIL"] = "{4}",
+        {"RID", "{0}"},
+        {"AABB", "{1}"},
+        {"2D", "{2}"},
+        {"3D", "{3}"},
     };
 
-    public static string ToScreamingSnakeWithGodotAbbreviations(this string name)
+    public static string ToScreamingCaseSnakeWithGodotAbbreviations(this string name)
     {
         name = ApplySnakeCaseWithGodotAbbreviationsBase(name);
 
@@ -329,26 +364,70 @@ public static class Fixer
 
     private static string ApplySnakeCaseWithGodotAbbreviationsBase(string name)
     {
-        foreach ((string abbreviation, string formatSpecifier) in Words)
+        // if (name.Contains("2d", StringComparison.InvariantCultureIgnoreCase)) Debugger.Break();
+        foreach ((string abbreviation, string formatSpecifier) in PascalCaseWords)
         {
             name = name.Replace(abbreviation, formatSpecifier);
         }
 
         name = name.ToSnakeCase();
 
-        return string.Format(name, Words.Keys.ToArray());
+        return string.Format(name, PascalCaseWords.Keys.ToArray());
     }
 
     public static string ToPascalCaseWithGodotAbbreviations(this string name)
     {
-        foreach ((string abbreviation, string formatSpecifier) in Words)
+        // if (name.Contains("packedfloat", StringComparison.CurrentCultureIgnoreCase)) Debugger.Break();
+        foreach ((string abbreviation, string formatSpecifier) in PascalCaseWords)
         {
-            name = name.Replace(abbreviation, formatSpecifier, StringComparison.InvariantCultureIgnoreCase);
+            name = name.Replace(abbreviation, formatSpecifier, StringComparison.OrdinalIgnoreCase);
+            // if (name.Equals(abbreviation.ToLower()))
+            // {
+            //     name = formatSpecifier;
+            //     break;
+            // }
+            // name = name.Replace($"_{abbreviation.ToLower()}_", $"_{formatSpecifier}_");
+            // if (name.StartsWith($"{abbreviation.ToLower()}_"))
+            // {
+            //     name = $"{formatSpecifier}{name[abbreviation.Length..]}";
+            // }
+            //
+            // if (name.EndsWith($"_{abbreviation.ToLower()}"))
+            // {
+            //     name = $"{name[..^abbreviation.Length]}{formatSpecifier}";
+            // }
         }
 
-        name = name.ToLower().ToPascalCase();
+        name = name.ToPascalCase();
 
-        return string.Format(name, Words.Keys.ToArray());
+        return string.Format(name, PascalCaseWords.Keys.ToArray());
+    }
+
+    public static string CppArgumentName(string argumentName)
+    {
+        var cppKeywords = new Dictionary<string, string> 
+        { 
+            {"char", "character"}, 
+            {"default", "default_value"}, 
+        };
+
+        return 
+            cppKeywords.TryGetValue(argumentName, out string? fixedArgumentName) 
+            ? fixedArgumentName 
+            : argumentName;
+    }
+    
+    public static string CSArgumentName(string argumentName)
+    {
+        var csKeywords = new List<string> 
+        { 
+            "base",
+            "string",
+        };
+
+        return csKeywords.Contains(argumentName) 
+            ? $"@{argumentName}" 
+            : argumentName;
     }    
     
     public static int SharedPrefixLength(string[] names)
@@ -391,7 +470,7 @@ public static class Fixer
         (@"\[constant (?<a>\S+?)\]", x => $"<see cref=\"{XMLConstant(x.Groups["a"].Captures[0].Value)}\"/>"),
         (@"\[code\](?<a>.+?)\[/code\]", x => $"<c>{x.Groups["a"].Captures[0].Value}</c>"),
         (@"\[param (?<a>\S+?)\]",x => $"<paramref name=\"{x.Groups["a"].Captures[0].Value}\"/>"),
-        (@"\[method (?<a>\S+?)\]", x => $"<see cref=\"{MethodName(x.Groups["a"].Captures[0].Value)}\"/>"),
+        (@"\[method (?<a>\S+?)\]", x => $"<see cref=\"{MethodNames(x.Groups["a"].Captures[0].Value)}\"/>"),
         (@"\[member (?<a>\S+?)\]", x => $"<see cref=\"{x.Groups["a"].Captures[0].Value}\"/>"),
         (@"\[enum (?<a>\S+?)\]",x => $"<see cref=\"{x.Groups["a"].Captures[0].Value}\"/>"),
         (@"\[signal (?<a>\S+?)\]", x => $"<see cref=\"EmitSignal{x.Groups["a"].Captures[0].Value.ToPascalCase()}\"/>"), //currently just two functions
@@ -464,6 +543,8 @@ public static class Fixer
 
     public static string VariantEnumType(this string type)
     {
-        return $"GDEXTENSION_VARIANT_TYPE_{type.ToScreamingSnakeWithGodotAbbreviations()}";
+        // if (type.Contains("packed", StringComparison.InvariantCultureIgnoreCase)) Debugger.Break();
+        var variantEnumType = $"GDEXTENSION_VARIANT_TYPE_{type.ToScreamingCaseSnakeWithGodotAbbreviations()}";
+        return variantEnumType;
     }
 }

@@ -37,7 +37,6 @@
 	<ItemGroup>
 	  <PackageReference Include="CaseExtensions" Version="1.1.0" />
 	  <PackageReference Include="CppAst" Version="0.13.0" />
-	  <PackageReference Include="CppSharp" Version="1.1.5.3168" />
 	</ItemGroup>
 
 	<ItemGroup>
