@@ -1,6 +1,6 @@
 namespace GodotSharpGDExtension;
 
-public unsafe class Wrapped : GodotType<Wrapped>
+public unsafe class Wrapped : TypedGodotType<Wrapped>
 {
     // protected Wrapped(StringName type)
     // {
@@ -17,6 +17,6 @@ public unsafe class Wrapped : GodotType<Wrapped>
 public unsafe class GodotObject : Wrapped
 {
     /// <inheritdoc />
-    protected GodotObject(IntPtr data) : base(data)
+    internal GodotObject(IntPtr data) : base(data)
     { }
 }

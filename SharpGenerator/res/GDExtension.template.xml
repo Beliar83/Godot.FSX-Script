@@ -17,6 +17,9 @@
         <attach>convert_string_from_wide_string</attach>
         <attach>convert_string_from_godot_string</attach>
         <attach>GodotString</attach>
+    </include>    
+    <include file="godot_dotnet.h" namespace="GodotSharpGDExtension">
+        <attach>GodotType</attach>
     </include>
     <bindings>
         <bind from="GDExtensionPtrConstructor" to="System.IntPtr" />
@@ -27,14 +30,19 @@
         <create class="GodotSharpGDExtension.GDExtensionInterface" visibility="public static"/>
     </extension>
     <mapping>
-        <map param="\w+::r_\w+" attribute="out" />
-        <map param="classdb_register_extension_class_signal::p_argument_info" attribute="buffer"/>
-        <map param="\w+::varargs" attribute="buffer" />
-        <map param="\w+::vararg_count" relation="length(varargs)" />
+        <map param="\w+::r_(\w+)" attribute="out" name-tmp="$1"/>
+        <map param="classdb_register_extension_class_signal::p_argument_info" attribute="buffer" />
+        <map param="\w+::p_(\w+)" name-tmp="$1"/>
+        <map param="\w+::p_varargs" attribute="buffer"/>
+        <map param="\w+::p_vararg_count" relation="length(p_varargs)" />
+        <map param="\w+::p_args" attribute="buffer" />
+        <map param="\w+::p_arg_count" relation="length(p_args)" />
         <map function="delete_string" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
         <map function="to_string" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
         <map function="convert_string_to_dotnet" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
         <map function="convert_string_from_wide_string" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
         <map function="convert_string_from_godot_string" group="GodotSharpGDExtension.GDExtensionInterface" dll="&quot;godot_sharp_gdextension&quot;" />
+        <map function="(\w*)2d(\w*)" name-tmp="$1_2D$2" />
+        <map function="(\w*)3d(\w*)" name-tmp="$1_3D$2" />
     </mapping>
 </config>

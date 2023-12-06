@@ -22,8 +22,9 @@
 	  <Folder Include="Generated\NativeStructures\" />
 	</ItemGroup>
 
-	<ItemGroup>
-<!--		<SharpGenMapping Include="Mappings\GDExtension.xml" />-->
+	<ItemGroup><!--		<SharpGenMapping Include="Mappings\GDExtension.xml" />-->
+	
+	  <PackageReference Include="CppSharp.Runtime" Version="1.1.5.3168" />
 	</ItemGroup>
 
 	<ItemGroup>

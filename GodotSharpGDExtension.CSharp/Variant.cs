@@ -1,6 +1,6 @@
 namespace GodotSharpGDExtension;
 
-public partial class Variant : GodotType<Variant>
+public partial class Variant : TypedGodotType<Variant>
 {
     public Variant(IntPtr pointer)
     {
