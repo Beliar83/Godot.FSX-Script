@@ -1,6 +1,7 @@
 ﻿#include "godot_string.h"
 #include "godot_dotnet.h"
 #include "godot_cpp/core/memory.hpp."
+#include <array>
 
 // Only for strings created by convert_string_to_dotnet
 void delete_string(const GodotString string) {
@@ -12,6 +13,7 @@ void delete_string(const GodotString string) {
 const wchar_t* to_string(const GodotString *string) {
     return string->data;
 }
+
 
 // GodotString from_string(const wchar_t* string) {
 //     GodotString godot_string = {};

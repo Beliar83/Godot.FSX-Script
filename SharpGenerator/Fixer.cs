@@ -129,7 +129,7 @@ public static class Fixer
         { "GetType", "GetGodotType" },
     };
     
-    public static string MethodNames(string name)
+    public static string MethodName(string name)
     {
         var res = "";
         string[] parts = name.Split(".");
@@ -289,10 +289,10 @@ public static class Fixer
         return cppType switch
         {
             "Variant" => (cppType, "{0}", $"auto {{1}} = new uint8_t[{Convert.BuiltinClassSizes["Variant"]}]" , true, false),
-            "GodotString" => (cppType, "convert_string_to_dotnet({0})", "auto {1} = string_constructor_0()" , true, false),
+            "GodotString" => (cppType, "convert_string_to_dotnet({0})", "auto {1} = string_constructor()" , true, false),
             "GDExtensionBool" => ("bool", "convert_bool_to_dotnet({0})", "{0} {1} = {{ }};" , true, true),
             _ => CanBePassedByValue(cppType) 
-                ? (cppType, "{0}", "{0} {1} = {{ }};",  true, true) : ("GodotType", "{0}", "auto {1} = {0}_constructor_0();", false, false),
+                ? (cppType, "{0}", "{0} {1} = {{ }};",  true, true) : ("GodotType", "{0}", "auto {1} = {0}_constructor();", false, false),
         };
     }
 
@@ -310,7 +310,7 @@ public static class Fixer
             "bool" => "{0} {1} = {{ }};",
             "float" => "{0} {1} = {{ }};",
             "int" => "{0} {1} = {{ }};",
-            _ =>  $"auto {{1}} = GodotType {{{{ {type.ToSnakeCaseWithGodotAbbreviations()}_constructor_0() }}}};",
+            _ =>  $"auto {{1}} = {type.ToSnakeCaseWithGodotAbbreviations()}_constructor();",
         };
     }
     
@@ -340,12 +340,59 @@ public static class Fixer
 
     // public static readonly List<string> Words = new();
     // public static readonly Dictionary<string, string> SnakeCaseWords = new();
-    public static readonly Dictionary<string, string> PascalCaseWords = new()
+    private static int abbreviationCount = 0;
+    public static readonly Dictionary<string, string> Abbreviations = new()
     {
-        {"RID", "{0}"},
-        {"AABB", "{1}"},
-        {"2D", "{2}"},
-        {"3D", "{3}"},
+        {"OpenXRIP", $"{{{abbreviationCount++}}}"},
+        {"JSONRPC", $"{{{abbreviationCount++}}}"},
+        {"FABRIK", $"{{{abbreviationCount++}}}"},
+        {"SPIRV", $"{{{abbreviationCount++}}}"},
+        {"HTTP", $"{{{abbreviationCount++}}}"},
+        {"MIDI", $"{{{abbreviationCount++}}}"},
+        {"JSON", $"{{{abbreviationCount++}}}"},
+        {"IK3D", $"{{{abbreviationCount++}}}"},
+        {"CDIK", $"{{{abbreviationCount++}}}"},
+        {"AABB", $"{{{abbreviationCount++}}}"},
+        {"UPNP", $"{{{abbreviationCount++}}}"},
+        {"DTLS", $"{{{abbreviationCount++}}}"},
+        {"GLTF", $"{{{abbreviationCount++}}}"},
+        {"UInt", $"{{{abbreviationCount++}}}"},
+        {"TLS", $"{{{abbreviationCount++}}}"},
+        {"RID", $"{{{abbreviationCount++}}}"},
+        {"AES", $"{{{abbreviationCount++}}}"},
+        {"ZIP", $"{{{abbreviationCount++}}}"},
+        {"RTC", $"{{{abbreviationCount++}}}"},
+        {"MP3", $"{{{abbreviationCount++}}}"},
+        {"WAV", $"{{{abbreviationCount++}}}"},
+        {"CPU", $"{{{abbreviationCount++}}}"},
+        {"GPU", $"{{{abbreviationCount++}}}"},
+        {"CSG", $"{{{abbreviationCount++}}}"},
+        {"VCS", $"{{{abbreviationCount++}}}"},
+        {"DOF", $"{{{abbreviationCount++}}}"},
+        {"SDF", $"{{{abbreviationCount++}}}"},
+        {"MAC", $"{{{abbreviationCount++}}}"},
+        {"UDP", $"{{{abbreviationCount++}}}"},
+        {"TCP", $"{{{abbreviationCount++}}}"},
+        {"API", $"{{{abbreviationCount++}}}"},
+        {"PCK", $"{{{abbreviationCount++}}}"},
+        {"UID", $"{{{abbreviationCount++}}}"},
+        {"XML", $"{{{abbreviationCount++}}}"},
+        {"IK", $"{{{abbreviationCount++}}}"},
+        {"1D", $"{{{abbreviationCount++}}}"},
+        {"2D", $"{{{abbreviationCount++}}}"},
+        {"3D", $"{{{abbreviationCount++}}}"},
+        {"XR", $"{{{abbreviationCount++}}}"},
+        {"VR", $"{{{abbreviationCount++}}}"},
+        {"GI", $"{{{abbreviationCount++}}}"},
+        {"EQ", $"{{{abbreviationCount++}}}"},
+        {"FX", $"{{{abbreviationCount++}}}"},
+        {"DB", $"{{{abbreviationCount++}}}"},
+        {"ID", $"{{{abbreviationCount++}}}"},
+        {"GD", $"{{{abbreviationCount++}}}"},
+        {"IP", $"{{{abbreviationCount++}}}"},
+        {"OS", $"{{{abbreviationCount++}}}"},
+        {"RD", $"{{{abbreviationCount++}}}"},
+        {"UV", $"{{{abbreviationCount++}}}"},
     };
 
     public static string ToScreamingCaseSnakeWithGodotAbbreviations(this string name)
@@ -365,20 +412,20 @@ public static class Fixer
     private static string ApplySnakeCaseWithGodotAbbreviationsBase(string name)
     {
         // if (name.Contains("2d", StringComparison.InvariantCultureIgnoreCase)) Debugger.Break();
-        foreach ((string abbreviation, string formatSpecifier) in PascalCaseWords)
+        foreach ((string abbreviation, string formatSpecifier) in Abbreviations)
         {
             name = name.Replace(abbreviation, formatSpecifier);
         }
 
         name = name.ToSnakeCase();
 
-        return string.Format(name, PascalCaseWords.Keys.ToArray());
+        return string.Format(name, Abbreviations.Keys.ToArray());
     }
 
     public static string ToPascalCaseWithGodotAbbreviations(this string name)
     {
         // if (name.Contains("packedfloat", StringComparison.CurrentCultureIgnoreCase)) Debugger.Break();
-        foreach ((string abbreviation, string formatSpecifier) in PascalCaseWords)
+        foreach ((string abbreviation, string formatSpecifier) in Abbreviations)
         {
             name = name.Replace(abbreviation, formatSpecifier, StringComparison.OrdinalIgnoreCase);
             // if (name.Equals(abbreviation.ToLower()))
@@ -400,7 +447,7 @@ public static class Fixer
 
         name = name.ToPascalCase();
 
-        return string.Format(name, PascalCaseWords.Keys.ToArray());
+        return string.Format(name, Abbreviations.Keys.ToArray());
     }
 
     public static string CppArgumentName(string argumentName)
@@ -470,7 +517,7 @@ public static class Fixer
         (@"\[constant (?<a>\S+?)\]", x => $"<see cref=\"{XMLConstant(x.Groups["a"].Captures[0].Value)}\"/>"),
         (@"\[code\](?<a>.+?)\[/code\]", x => $"<c>{x.Groups["a"].Captures[0].Value}</c>"),
         (@"\[param (?<a>\S+?)\]",x => $"<paramref name=\"{x.Groups["a"].Captures[0].Value}\"/>"),
-        (@"\[method (?<a>\S+?)\]", x => $"<see cref=\"{MethodNames(x.Groups["a"].Captures[0].Value)}\"/>"),
+        (@"\[method (?<a>\S+?)\]", x => $"<see cref=\"{MethodName(x.Groups["a"].Captures[0].Value)}\"/>"),
         (@"\[member (?<a>\S+?)\]", x => $"<see cref=\"{x.Groups["a"].Captures[0].Value}\"/>"),
         (@"\[enum (?<a>\S+?)\]",x => $"<see cref=\"{x.Groups["a"].Captures[0].Value}\"/>"),
         (@"\[signal (?<a>\S+?)\]", x => $"<see cref=\"EmitSignal{x.Groups["a"].Captures[0].Value.ToPascalCase()}\"/>"), //currently just two functions

@@ -182,7 +182,7 @@ internal class Program
             mappingConfig.Add(namingElement);
         }
 
-        foreach (string abbreviation in Fixer.PascalCaseWords.Keys)
+        foreach (string abbreviation in Fixer.Abbreviations.Keys)
         {
             //attribute_value
             //set_attribute
