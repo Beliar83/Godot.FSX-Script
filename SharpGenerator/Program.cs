@@ -149,146 +149,146 @@ internal class Program
         
         godotDotnetSourceFile.Close();
         
-        string templateFile = Path.GetFullPath("res/GDExtension.template.xml");
-        XDocument mappingDoc = XDocument.Load(templateFile);
-
-        // Define the XML namespace
-        XNamespace sharpGenNamespace = "urn:SharpGen.Config";
-
-        // Find the mapping element using the namespace
-        XElement mappingConfig = mappingDoc.Root!;
-        XElement? mappingElement = mappingConfig.Element(sharpGenNamespace + "mapping");
-        XElement? bindingElement = mappingConfig.Element(sharpGenNamespace + "bindings");
-        XElement? namingElement = mappingConfig.Element(sharpGenNamespace + "naming");
-
-        if (mappingElement == null)
-        {
-            // If the "mapping" element doesn't exist, you can create it and add content
-            mappingElement = new XElement(sharpGenNamespace + "mapping");
-            mappingConfig.Add(mappingElement);
-        }
-
-        if (bindingElement == null)
-        {
-            // If the "mapping" element doesn't exist, you can create it and add content
-            bindingElement = new XElement(sharpGenNamespace + "bindings");
-            mappingConfig.Add(bindingElement);
-        }
-        
-        if (namingElement == null)
-        {
-            // If the "mapping" element doesn't exist, you can create it and add content
-            namingElement = new XElement(sharpGenNamespace + "naming");
-            mappingConfig.Add(namingElement);
-        }
-
-        foreach (string abbreviation in Fixer.Abbreviations.Keys)
-        {
-            //attribute_value
-            //set_attribute
-            //set_attribute_value
-            var namingMapElement = new XElement(sharpGenNamespace + "short");
-            namingMapElement.SetAttributeValue("name", abbreviation);
-            namingMapElement.Value = abbreviation;
-            namingElement.Add(namingMapElement);
-            var functionMapElement = new XElement(sharpGenNamespace + "map");
-            functionMapElement.SetAttributeValue("function", $@"(\w+_)?{abbreviation.ToLowerInvariant()}(_\w+)?");
-            functionMapElement.SetAttributeValue("name-tmp", $"$1{abbreviation}$2");
-            mappingElement.Add(functionMapElement);            
-        }
-        
-        {
-            var functionMapElement = new XElement(sharpGenNamespace + "map");
-            functionMapElement.SetAttributeValue("function", "add_extension_library");
-            functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
-            functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
-            mappingElement.Add(functionMapElement);
-        }
-        {
-            var functionMapElement = new XElement(sharpGenNamespace + "map");
-            functionMapElement.SetAttributeValue("function", "get_library");
-            functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
-            functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
-            mappingElement.Add(functionMapElement);
-        }
-        
-        foreach (KeyValuePair<string,List<string>> classFunction in convert.BuiltinClassFunctions)
-        {
-            var includeElement = new XElement(sharpGenNamespace + "include");
-            includeElement.SetAttributeValue("file", $"generated/BuiltinClasses/{classFunction.Key}.hpp");
-            includeElement.SetAttributeValue("namespace", "GodotSharpGDExtension");
-            
-            //mappingConfig
-            foreach (string functionName in classFunction.Value)
-            {
-                var functionMapElement = new XElement(sharpGenNamespace + "map");
-                functionMapElement.SetAttributeValue("function", functionName);
-                functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
-                functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
-                mappingElement.Add(functionMapElement);
-
-                var functionAttachElement = new XElement(sharpGenNamespace + "attach")
-                {
-                    Value = functionName,
-                };
-
-                includeElement.Add(functionAttachElement);
-            }
-            mappingConfig.Add(includeElement);
-        }        
-        
-        foreach (KeyValuePair<string,List<string>> classFunction in convert.ClassFunctions)
-        {
-            var includeElement = new XElement(sharpGenNamespace + "include");
-            includeElement.SetAttributeValue("file", $"generated/Classes/{classFunction.Key}.hpp");
-            includeElement.SetAttributeValue("namespace", "GodotSharpGDExtension");
-            
-            //mappingConfig
-            foreach (string functionName in classFunction.Value)
-            {
-                var functionMapElement = new XElement(sharpGenNamespace + "map");
-                functionMapElement.SetAttributeValue("function", functionName);
-                functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
-                functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
-                mappingElement.Add(functionMapElement);
-
-                var functionAttachElement = new XElement(sharpGenNamespace + "attach")
-                {
-                    Value = functionName,
-                };
-
-                includeElement.Add(functionAttachElement);
-            }
-            mappingConfig.Add(includeElement);
-        }       
-        
-        foreach (KeyValuePair<string,List<string>> classFunction in convert.UtilityFunctions)
-        {
-            var includeElement = new XElement(sharpGenNamespace + "include");
-            includeElement.SetAttributeValue("file", $"generated/UtilityFunctions/{classFunction.Key}.hpp");
-            includeElement.SetAttributeValue("namespace", "GodotSharpGDExtension");
-            
-            //mappingConfig
-            foreach (string functionName in classFunction.Value)
-            {
-                var functionMapElement = new XElement(sharpGenNamespace + "map");
-                functionMapElement.SetAttributeValue("function", functionName);
-                functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
-                functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
-                mappingElement.Add(functionMapElement);
-
-                var functionAttachElement = new XElement(sharpGenNamespace + "attach")
-                {
-                    Value = functionName,
-                };
-
-                includeElement.Add(functionAttachElement);
-            }
-            mappingConfig.Add(includeElement);
-        }
-        
-        mappingDoc.Save(Path.GetFullPath(Path.Join(rootFolder,
-            "GodotSharpGDExtension.CSharp/Mappings/GDExtension.xml")));
+        // string templateFile = Path.GetFullPath("res/GDExtension.template.xml");
+        // XDocument mappingDoc = XDocument.Load(templateFile);
+        //
+        // // Define the XML namespace
+        // XNamespace sharpGenNamespace = "urn:SharpGen.Config";
+        //
+        // // Find the mapping element using the namespace
+        // XElement mappingConfig = mappingDoc.Root!;
+        // XElement? mappingElement = mappingConfig.Element(sharpGenNamespace + "mapping");
+        // XElement? bindingElement = mappingConfig.Element(sharpGenNamespace + "bindings");
+        // XElement? namingElement = mappingConfig.Element(sharpGenNamespace + "naming");
+        //
+        // if (mappingElement == null)
+        // {
+        //     // If the "mapping" element doesn't exist, you can create it and add content
+        //     mappingElement = new XElement(sharpGenNamespace + "mapping");
+        //     mappingConfig.Add(mappingElement);
+        // }
+        //
+        // if (bindingElement == null)
+        // {
+        //     // If the "mapping" element doesn't exist, you can create it and add content
+        //     bindingElement = new XElement(sharpGenNamespace + "bindings");
+        //     mappingConfig.Add(bindingElement);
+        // }
+        //
+        // if (namingElement == null)
+        // {
+        //     // If the "mapping" element doesn't exist, you can create it and add content
+        //     namingElement = new XElement(sharpGenNamespace + "naming");
+        //     mappingConfig.Add(namingElement);
+        // }
+        //
+        // foreach (string abbreviation in Fixer.Abbreviations.Keys)
+        // {
+        //     //attribute_value
+        //     //set_attribute
+        //     //set_attribute_value
+        //     var namingMapElement = new XElement(sharpGenNamespace + "short");
+        //     namingMapElement.SetAttributeValue("name", abbreviation);
+        //     namingMapElement.Value = abbreviation;
+        //     namingElement.Add(namingMapElement);
+        //     var functionMapElement = new XElement(sharpGenNamespace + "map");
+        //     functionMapElement.SetAttributeValue("function", $@"(\w+_)?{abbreviation.ToLowerInvariant()}(_\w+)?");
+        //     functionMapElement.SetAttributeValue("name-tmp", $"$1{abbreviation}$2");
+        //     mappingElement.Add(functionMapElement);            
+        // }
+        //
+        // {
+        //     var functionMapElement = new XElement(sharpGenNamespace + "map");
+        //     functionMapElement.SetAttributeValue("function", "add_extension_library");
+        //     functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
+        //     functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
+        //     mappingElement.Add(functionMapElement);
+        // }
+        // {
+        //     var functionMapElement = new XElement(sharpGenNamespace + "map");
+        //     functionMapElement.SetAttributeValue("function", "get_library");
+        //     functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
+        //     functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
+        //     mappingElement.Add(functionMapElement);
+        // }
+        //
+        // foreach (KeyValuePair<string,List<string>> classFunction in convert.BuiltinClassFunctions)
+        // {
+        //     var includeElement = new XElement(sharpGenNamespace + "include");
+        //     includeElement.SetAttributeValue("file", $"generated/BuiltinClasses/{classFunction.Key}.hpp");
+        //     includeElement.SetAttributeValue("namespace", "GodotSharpGDExtension");
+        //     
+        //     //mappingConfig
+        //     foreach (string functionName in classFunction.Value)
+        //     {
+        //         var functionMapElement = new XElement(sharpGenNamespace + "map");
+        //         functionMapElement.SetAttributeValue("function", functionName);
+        //         functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
+        //         functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
+        //         mappingElement.Add(functionMapElement);
+        //
+        //         var functionAttachElement = new XElement(sharpGenNamespace + "attach")
+        //         {
+        //             Value = functionName,
+        //         };
+        //
+        //         includeElement.Add(functionAttachElement);
+        //     }
+        //     mappingConfig.Add(includeElement);
+        // }        
+        //
+        // foreach (KeyValuePair<string,List<string>> classFunction in convert.ClassFunctions)
+        // {
+        //     var includeElement = new XElement(sharpGenNamespace + "include");
+        //     includeElement.SetAttributeValue("file", $"generated/Classes/{classFunction.Key}.hpp");
+        //     includeElement.SetAttributeValue("namespace", "GodotSharpGDExtension");
+        //     
+        //     //mappingConfig
+        //     foreach (string functionName in classFunction.Value)
+        //     {
+        //         var functionMapElement = new XElement(sharpGenNamespace + "map");
+        //         functionMapElement.SetAttributeValue("function", functionName);
+        //         functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
+        //         functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
+        //         mappingElement.Add(functionMapElement);
+        //
+        //         var functionAttachElement = new XElement(sharpGenNamespace + "attach")
+        //         {
+        //             Value = functionName,
+        //         };
+        //
+        //         includeElement.Add(functionAttachElement);
+        //     }
+        //     mappingConfig.Add(includeElement);
+        // }       
+        //
+        // foreach (KeyValuePair<string,List<string>> classFunction in convert.UtilityFunctions)
+        // {
+        //     var includeElement = new XElement(sharpGenNamespace + "include");
+        //     includeElement.SetAttributeValue("file", $"generated/UtilityFunctions/{classFunction.Key}.hpp");
+        //     includeElement.SetAttributeValue("namespace", "GodotSharpGDExtension");
+        //     
+        //     //mappingConfig
+        //     foreach (string functionName in classFunction.Value)
+        //     {
+        //         var functionMapElement = new XElement(sharpGenNamespace + "map");
+        //         functionMapElement.SetAttributeValue("function", functionName);
+        //         functionMapElement.SetAttributeValue("group", "GodotSharpGDExtension.GDExtensionInterface");
+        //         functionMapElement.SetAttributeValue("dll", "\"godot_sharp_gdextension\"");
+        //         mappingElement.Add(functionMapElement);
+        //
+        //         var functionAttachElement = new XElement(sharpGenNamespace + "attach")
+        //         {
+        //             Value = functionName,
+        //         };
+        //
+        //         includeElement.Add(functionAttachElement);
+        //     }
+        //     mappingConfig.Add(includeElement);
+        // }
+        //
+        // mappingDoc.Save(Path.GetFullPath(Path.Join(rootFolder,
+        //     "GodotSharpGDExtension.CSharp/Mappings/GDExtension.xml")));
         
         return;
     }
