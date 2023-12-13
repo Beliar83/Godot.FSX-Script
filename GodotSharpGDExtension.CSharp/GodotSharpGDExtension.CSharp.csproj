@@ -18,16 +18,15 @@
 
 	<ItemGroup>
 	  <Folder Include="Extensions\" />
-	  <Folder Include="Generated\" />
-	  <Folder Include="Generated\NativeStructures\" />
+	  <Folder Include="Generated\Enums\" />
 	</ItemGroup>
 
 	<ItemGroup><!--		<SharpGenMapping Include="Mappings\GDExtension.xml" />-->
 	
-	  <PackageReference Include="CppSharp.Runtime" Version="1.1.5.3168" />
+<!--	  <PackageReference Include="CppSharp.Runtime" Version="1.1.5.3168" />-->
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\ScriptInterop.Interface\ScriptInterop.Interface.csproj" />
+<!--	  <ProjectReference Include="..\ScriptInterop.Interface\ScriptInterop.Interface.csproj" />-->
 	</ItemGroup>
 </Project>

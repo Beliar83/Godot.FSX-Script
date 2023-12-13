@@ -5,7 +5,7 @@ namespace GodotSharpGDExtension;
 public static class SaftyRapper
 {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public unsafe static TDelegate GetDelegateForFunctionPointer<TDelegate>(void* ptr) where TDelegate : Delegate
+    public static unsafe TDelegate GetDelegateForFunctionPointer<TDelegate>(void* ptr) where TDelegate : Delegate
     {
         return Marshal.GetDelegateForFunctionPointer<TDelegate>((IntPtr)ptr);
     }

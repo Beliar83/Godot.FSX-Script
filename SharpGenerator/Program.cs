@@ -102,7 +102,7 @@ internal class Program
         
         StreamWriter godotDotnetSourceFile = File.CreateText($"{rootFolder}GodotSharpGDExtension.Native/src/generated/godot_dotnet.cpp");
 
-        var convert = new Convert(api, folderForGeneratedCSharpFiles, folderForGeneratedCppFiles, docs, configName);
+        var convert = new Convert(api, folderForGeneratedCSharpFiles, folderForGeneratedCppFiles, docs);
         convert.Emit();
 
         await godotDotnetSourceFile.WriteLineAsync($$"""

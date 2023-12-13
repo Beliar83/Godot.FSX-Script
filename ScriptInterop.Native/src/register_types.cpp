@@ -20,9 +20,9 @@ void initialize_godot_sharp_gdextension_extension_module(godot::ModuleInitializa
             if (!initialized) {
             extension = memnew(GDExtension);
 #ifdef _WIN32
-            extension->open_library(std::filesystem::current_path().append("godot_sharp_gdextension.dll").c_str(), "godot_sharp_gdextension_init");
+            extension->open_library(std::filesystem::current_path().append("godot_sharp_gdextension.dll").c_str(), "gdext_rust_init");
 #else
-            extension->open_library(std::filesystem::current_path().append("bin/libgodot_sharp_gdextension.so").c_str(), "godot_sharp_gdextension_init");
+            extension->open_library(std::filesystem::current_path().append("bin/libgodot_sharp_gdextension.so").c_str(), "gdext_rust_init");
 #endif
                 bind();
                 initialized = true;

@@ -1,10 +1,17 @@
 namespace GodotSharpGDExtension;
 
-public partial class Variant : TypedGodotType<Variant>
+public unsafe class Variant
 {
-    public Variant(IntPtr pointer)
+    public __GdextType* InternalPointer { get; set; }
+    
+    public Variant(__GdextType* pointer)
     {
         InternalPointer = pointer;
+    }
+
+    public static implicit operator __GdextType*(Variant from)
+    {
+        return from.InternalPointer;
     }
 }
 
@@ -12,6 +19,7 @@ public class Variant<T> : Variant
     where T: Variant<T>
 {
     /// <inheritdoc />
-    public Variant(IntPtr pointer) : base(pointer)
-    { }
+    public unsafe Variant(__GdextType* pointer) : base(pointer)
+    { }    
+
 }
