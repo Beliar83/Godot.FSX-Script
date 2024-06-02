@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <TargetFramework>net8.0</TargetFramework>
+    </PropertyGroup>
+
+
+    <ItemGroup>
+      <Compile Include="FsxScript.fs" />
+      <Compile Include="FsxScriptInstance.fs" />
+      <Compile Include="FsxScriptLanguage.fs" />
+      <Compile Include="FsxScriptResourceFormatSaver.fs" />
+      <Compile Include="TypeNameToGodotType.fs" />
+      <Compile Include="ScriptSession.fs" />
+      <Compile Include="Main.fs" />
+      <Compile Include="Summator.fs" />
+      <Compile Include="Library.fs" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Update="FSharp.Core" Version="7.0.400" />
+      <PackageReference Include="Godot.Bindings" Version="4.3.0-nightly.24204.1" />
+      <PackageReference Include="JetBrains.FSharp.Compiler.Service" Version="2023.3.0.4" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="res\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ScriptInterop.Interface\ScriptInterop.Interface.csproj" />
+    </ItemGroup>
+
+</Project>

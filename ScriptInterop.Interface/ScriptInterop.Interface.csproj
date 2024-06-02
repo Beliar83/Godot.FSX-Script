@@ -1,20 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <Sdk Name="SharpGenTools.Sdk" Version="2.1.2-beta" />
     <PropertyGroup>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>ScriptInterop.CSharp</RootNamespace>
-        <TargetFramework>net7.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
-
-    <ItemGroup>
-      <Folder Include="Generated\" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <SharpGenMapping Include="Mappings\GDExtension.xml">
-        <Generator>MSBuild:Compile</Generator>
-      </SharpGenMapping>
-    </ItemGroup>
 </Project>
