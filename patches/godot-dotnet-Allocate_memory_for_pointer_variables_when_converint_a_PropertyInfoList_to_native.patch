@@ -1,0 +1,57 @@
+Subject: [PATCH] Allocate memory for pointer variables when converting a PropertyInfoList to native
+---
+Index: src/Godot.Bindings/Bridge/ClassDB/ClassDB.cs
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/Godot.Bindings/Bridge/ClassDB/ClassDB.cs b/src/Godot.Bindings/Bridge/ClassDB/ClassDB.cs
+--- a/src/Godot.Bindings/Bridge/ClassDB/ClassDB.cs	(revision 8f75340f108d28c21ca862f78fd8db541dcdb213)
++++ b/src/Godot.Bindings/Bridge/ClassDB/ClassDB.cs	(revision 6a0088c2ac63771c414ebddf719a429a8344fb52)
+@@ -252,7 +252,7 @@
+             var propertyList = instanceObj.GetPropertyListStorage();
+             propertyList.Clear();
+ 
+-            PropertyInfoList.FreeNative(propertyListPtr);
++            PropertyInfoList.FreeNative(propertyListPtr, count);
+         }
+     }
+ 
+Index: src/Godot.Bindings/NativeInterop/PropertyInfoList.cs
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/Godot.Bindings/NativeInterop/PropertyInfoList.cs b/src/Godot.Bindings/NativeInterop/PropertyInfoList.cs
+--- a/src/Godot.Bindings/NativeInterop/PropertyInfoList.cs	(revision 8f75340f108d28c21ca862f78fd8db541dcdb213)
++++ b/src/Godot.Bindings/NativeInterop/PropertyInfoList.cs	(revision 6a0088c2ac63771c414ebddf719a429a8344fb52)
+@@ -100,17 +100,28 @@
+ 
+             // Update the property info with the data from the managed type.
+             refProperty.type = (GDExtensionVariantType)propertyInfo.Type;
++            refProperty.name = (NativeGodotStringName*)Marshal.AllocHGlobal(sizeof(NativeGodotStringName));
+             StringNameMarshaller.WriteUnmanaged(refProperty.name, propertyInfo.Name);
+             refProperty.hint = (uint)propertyInfo.Hint;
++            refProperty.hint_string = (NativeGodotString*)Marshal.AllocHGlobal(sizeof(NativeGodotString));
+             StringMarshaller.WriteUnmanaged(refProperty.hint_string, propertyInfo.HintString);
++            refProperty.class_name = (NativeGodotStringName*)Marshal.AllocHGlobal(sizeof(NativeGodotStringName));
+             StringNameMarshaller.WriteUnmanaged(refProperty.class_name, propertyInfo.ClassName);
+             refProperty.usage = (uint)propertyInfo.Usage;
+         }
+         return ptr;
+     }
+ 
+-    internal unsafe static void FreeNative(GDExtensionPropertyInfo* ptr)
++    internal unsafe static void FreeNative(GDExtensionPropertyInfo* ptr, uint count)
+     {
++        for (var i = 0; i < count; i++)
++        {
++            GDExtensionPropertyInfo item = ptr[i];
++            Marshal.FreeHGlobal((nint)item.class_name);
++            Marshal.FreeHGlobal((nint)item.hint_string);
++            Marshal.FreeHGlobal((nint)item.name);
++        }
++
+         Marshal.FreeHGlobal((nint)ptr);
+     }
+ }

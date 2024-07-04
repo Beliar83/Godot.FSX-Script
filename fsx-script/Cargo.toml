@@ -1,0 +1,10 @@
+[package]
+name = "fsx_script"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+netcorehost = "0.17.0"

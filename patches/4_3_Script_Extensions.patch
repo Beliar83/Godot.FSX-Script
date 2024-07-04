@@ -1,0 +1,301 @@
+Subject: [PATCH] 4.3 Script Extensions WIP
+---
+Index: src/Godot.Bindings/Extensions/Script.cs
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/Godot.Bindings/Extensions/Script.cs b/src/Godot.Bindings/Extensions/Script.cs
+new file mode 100644
+--- /dev/null	
++++ b/src/Godot.Bindings/Extensions/Script.cs	
+@@ -0,0 +1,14 @@
++using Godot.Bindings.Extensions;
++
++namespace Godot.Extensions;
++
++public static class Script
++{
++    public static unsafe void* CreateInstance<T> (GodotObject forObject, Godot.Script script, bool isPlaceHolder = false)
++        where T : ScriptInstance, new()
++    {
++        var instance = ScriptInstance.Create<T>(forObject, script);
++        instance.IsPlaceHolder = isPlaceHolder;
++        return instance.NativeInstance.ToPointer();
++    }
++}
+Index: src/Godot.Bindings/Extensions/ScriptInstance.cs
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/Godot.Bindings/Extensions/ScriptInstance.cs b/src/Godot.Bindings/Extensions/ScriptInstance.cs
+new file mode 100644
+--- /dev/null	
++++ b/src/Godot.Bindings/Extensions/ScriptInstance.cs	
+@@ -0,0 +1,265 @@
++using System;
++using System.Collections.Generic;
++using System.Runtime.CompilerServices;
++using System.Runtime.InteropServices;
++using Godot.Bridge;
++using Godot.NativeInterop;
++
++namespace Godot.Bindings.Extensions;
++
++public abstract class ScriptInstance
++{
++    private static Dictionary<nint, ScriptInstance> _instances = [];
++
++    private static nint _lastInstanceId = -1;
++
++    public bool IsPlaceHolder { get; set; }
++
++    internal nint NativeInstance { get; private set; }
++
++    private static readonly unsafe GDExtensionScriptInstanceInfo3 _info = new()
++    {
++        get_func = &GetValue,
++        is_placeholder_func = &GetIsPlaceHolder,
++        call_func = &Call,
++        has_method_func = &HasMethod,
++        free_func = &Free,
++        set_func = &set_func,
++        get_property_list_func = &GetPropertyList,
++        free_property_list_func = &FreePropertyListFunc,
++        get_class_category_func = &get_class_category_func,
++        property_can_revert_func = &property_can_revert_func,
++        property_get_revert_func = &property_get_revert_func,
++        get_owner_func = &get_owner_func,
++        get_property_state_func = &get_property_state_func,
++        get_method_list_func = &get_method_list_func,
++        free_method_list_func = &free_method_list_func,
++        get_property_type_func = &get_property_type_func,
++        validate_property_func = &validate_property_func,
++        get_method_argument_count_func = &get_method_argument_count_func,
++        notification_func = &notification_func,
++        to_string_func = &to_string_func,
++        refcount_incremented_func = &refcount_incremented_func,
++        refcount_decremented_func = &refcount_decremented_func,
++        get_script_func = &get_script_func,
++        set_fallback_func = &set_fallback_func,
++        get_fallback_func = &get_fallback_func,
++        get_language_func = &get_language_func,
++    };
++
++    private static readonly IntPtr _infoHandle = GCHandle.Alloc(_info, GCHandleType.Pinned).AddrOfPinnedObject();
++    internal NativeGodotVariant.Movable InternalObject { get; private set; }
++    internal NativeGodotVariant.Movable Script { get; private set; }
++
++    internal static unsafe T Create<T>(GodotObject godotObject, Script script) where T : ScriptInstance, new()
++    {
++        var scriptInstance = new T
++        {
++            InternalObject = Variant.From(godotObject).NativeValue,
++            Script = Variant.From(script).NativeValue,
++        };
++
++        _instances[++_lastInstanceId] = scriptInstance;
++
++        scriptInstance.NativeInstance = (nint)GodotBridge.GDExtensionInterface.script_instance_create3(
++            (GDExtensionScriptInstanceInfo3*)_infoHandle,
++            (void*)_lastInstanceId);
++
++        return scriptInstance;
++    }
++
++    public virtual bool GetValue(StringName name, Variant value)
++    {
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool GetValue(void* dataPtr, NativeGodotStringName* name, NativeGodotVariant* variant)
++    {
++        if (_instances.ContainsKey((nint)dataPtr))
++        {
++            ScriptInstance scriptInstance = _instances[(nint)dataPtr];
++            return scriptInstance.GetValue(StringName.CreateTakingOwnership(*name),
++                Variant.CreateTakingOwnership(*variant));
++        }
++
++        GD.Print($"Could not recover instance. ({(nint)dataPtr})");
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool GetIsPlaceHolder(void* dataPtr)
++    {
++        GD.Print("GetIsPlaceHolder");
++        return true;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool HasMethod(void* dataPtr, NativeGodotStringName* methodName)
++    {
++        GD.Print("HasMethod");
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void Call(void* dataPtr, NativeGodotStringName* methodName, NativeGodotVariant** args,
++        long argCount, NativeGodotVariant* returnValue, GDExtensionCallError* error)
++    {
++        GD.Print("Call");
++        GD.Print($"Call {StringName.CreateTakingOwnership(*methodName)}");
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void Free(void* dataPtr)
++    {
++        GD.Print("Free");
++        _instances.Remove((nint)dataPtr);
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool set_func(void* dataPtr, Godot.NativeInterop.NativeGodotStringName* _,
++        Godot.NativeInterop.NativeGodotVariant* __)
++    {
++        GD.Print("set_func");
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe GDExtensionPropertyInfo* GetPropertyList(void* dataPtr, uint* count)
++    {
++        GD.Print("get_property_list_func");
++        PropertyInfoList propertyInfoList = [];
++        *count = (uint)propertyInfoList.Count;
++        return PropertyInfoList.ConvertToNative(propertyInfoList);
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void FreePropertyListFunc(void* dataPtr, GDExtensionPropertyInfo* list, uint count)
++    {
++        GD.Print("free_property_list_func");
++        PropertyInfoList.FreeNative(list, count);
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool get_class_category_func(void* dataPtr, GDExtensionPropertyInfo* _)
++    {
++        GD.Print("get_class_category_func");
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool property_can_revert_func(void* dataPtr, Godot.NativeInterop.NativeGodotStringName* _)
++    {
++        GD.Print("property_can_revert_func");
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool property_get_revert_func(void* dataPtr, Godot.NativeInterop.NativeGodotStringName* _, Godot.NativeInterop.NativeGodotVariant* __)
++    {
++        GD.Print("property_get_revert_func");
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void* get_owner_func(void* dataPtr)
++    {
++        GD.Print("get_owner_func");
++        return null;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe GDExtensionMethodInfo* get_method_list_func(void* dataPtr, uint* _)
++    {
++        GD.Print("get_method_list_func");
++        return null;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void free_method_list_func(void* dataPtr, GDExtensionMethodInfo* _, uint __)
++    {
++        GD.Print("free_method_list_func");
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe GDExtensionVariantType get_property_type_func(void* dataPtr, Godot.NativeInterop.NativeGodotStringName* _, bool* __)
++    {
++        GD.Print("get_property_type_func");
++        return GDExtensionVariantType.GDEXTENSION_VARIANT_TYPE_NIL;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool validate_property_func(void* dataPtr, GDExtensionPropertyInfo* properties)
++    {
++        GD.Print("validate_property_func");
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe long get_method_argument_count_func(void* dataPtr, Godot.NativeInterop.NativeGodotStringName* _, bool* __)
++    {
++        GD.Print("get_method_argument_count_func");
++        return 0;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void notification_func(void* dataPtr, int _, bool __)
++    {
++        GD.Print("notification_func");
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void to_string_func(void* dataPtr, bool* _, Godot.NativeInterop.NativeGodotString* __)
++    {
++        GD.Print("to_string_func");
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void refcount_incremented_func(void* dataPtr)
++    {
++        GD.Print("refcount_incremented_func");
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool refcount_decremented_func(void* dataPtr)
++    {
++        GD.Print("refcount_decremented_func");
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void* get_script_func(void* dataPtr)
++    {
++        GD.Print("get_script_func");
++        return null;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool set_fallback_func(void* dataPtr, Godot.NativeInterop.NativeGodotStringName* _, Godot.NativeInterop.NativeGodotVariant* __)
++    {
++        GD.Print("set_fallback_func");
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe bool get_fallback_func(void* dataPtr, Godot.NativeInterop.NativeGodotStringName* _, Godot.NativeInterop.NativeGodotVariant* __)
++    {
++        GD.Print("get_fallback_func");
++        return false;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void* get_language_func(void* dataPtr)
++    {
++        GD.Print("get_language_func");
++        return null;
++    }
++
++    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
++    private static unsafe void get_property_state_func(void* dataPtr,
++        delegate* unmanaged[Cdecl]<Godot.NativeInterop.NativeGodotStringName*, Godot.NativeInterop.NativeGodotVariant*,
++            void*, void> func, void* _)
++    {
++        GD.Print("get_property_state_func");
++    }
++}

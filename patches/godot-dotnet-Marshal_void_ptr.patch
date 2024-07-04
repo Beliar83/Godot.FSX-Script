@@ -1,0 +1,23 @@
+Subject: [PATCH] Marshal void*
+---
+Index: src/Godot.Bindings/NativeInterop/Marshalling.Ptr.cs
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/Godot.Bindings/NativeInterop/Marshalling.Ptr.cs b/src/Godot.Bindings/NativeInterop/Marshalling.Ptr.cs
+--- a/src/Godot.Bindings/NativeInterop/Marshalling.Ptr.cs	(revision 715f5eff2c266e6a1f45bd14fe1b9f86325da795)
++++ b/src/Godot.Bindings/NativeInterop/Marshalling.Ptr.cs	(date 1719740332154)
+@@ -16,6 +16,12 @@
+ 
+         // `typeof(T1) == typeof(T2)` is optimized away. We cannot cache `typeof(T)` in a local variable, as it's not optimized when done like that.
+ 
++        if (value is nint ptr)
++        {
++            *(nint*)destination = ptr;
++            return;
++        }
++
+         if (typeof(T) == typeof(bool))
+         {
+             *(bool*)destination = UnsafeAs<bool>(value);
