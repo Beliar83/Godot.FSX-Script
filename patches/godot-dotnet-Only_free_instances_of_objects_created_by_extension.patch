@@ -1,0 +1,56 @@
+Subject: [PATCH] Only free instances of objects created by extension
+---
+Index: src/Godot.Bindings/Core/GodotObject.cs
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/Godot.Bindings/Core/GodotObject.cs b/src/Godot.Bindings/Core/GodotObject.cs
+--- a/src/Godot.Bindings/Core/GodotObject.cs	(revision a4aaf64a829a8d8d26533494c3a66b72f7f0e802)
++++ b/src/Godot.Bindings/Core/GodotObject.cs	(revision 17e7d714aa99fe2bda42bacb0550d1e668f06a2c)
+@@ -16,6 +16,7 @@
+     private readonly WeakReference<GodotObject>? _weakReferenceToSelf;
+ 
+     private bool _disposed;
++    internal bool OwnsPointer;
+ 
+     private readonly PropertyInfoList _properties = [];
+     internal PropertyInfoList GetPropertyListStorage() => _properties;
+@@ -45,7 +46,11 @@
+     /// Constructs a <see cref="GodotObject"/> with the given <paramref name="nativeClassName"/>.
+     /// </summary>
+     /// <param name="nativeClassName">The name of the Godot engine class.</param>
+-    private protected GodotObject(scoped NativeGodotStringName nativeClassName) : this(ConstructGodotObject(nativeClassName)) { }
++    private protected GodotObject(scoped NativeGodotStringName nativeClassName) : this(
++        ConstructGodotObject(nativeClassName))
++    {
++        OwnsPointer = true;
++    }
+ 
+     private unsafe static nint ConstructGodotObject(scoped NativeGodotStringName nativeClassName)
+     {
+@@ -55,7 +60,10 @@
+     /// <summary>
+     /// Constructs a new <see cref="GodotObject"/>.
+     /// </summary>
+-    public GodotObject() : this(NativeName.NativeValue.DangerousSelfRef) { }
++    public GodotObject() : this(NativeName.NativeValue.DangerousSelfRef)
++    {
++        OwnsPointer = true;
++    }
+ 
+     private unsafe void PostInitialize()
+     {
+@@ -200,8 +208,10 @@
+ 
+         if (NativePtr != 0)
+         {
+-            GodotBridge.GDExtensionInterface.object_free_instance_binding((void*)NativePtr, GodotBridge.LibraryPtr);
+-
++            if (OwnsPointer)
++            {
++                GodotBridge.GDExtensionInterface.object_free_instance_binding((void*)NativePtr, GodotBridge.LibraryPtr);
++            }
+             _gcHandle.Free();
+             NativePtr = 0;
+         }
