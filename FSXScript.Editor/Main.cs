@@ -15,6 +15,7 @@ public class Main
 {
     private static FsxScriptLanguage? _fsxScriptLanguage;
     private static FsxScriptResourceFormatSaver? _fsxScriptResourceFormatSaver;
+    private static FsxScriptResourceFormatLoader? _fsxScriptResourceFormatLoader;
     
     public static void InitializeFsxScriptTypes(InitializationLevel level)
     {
@@ -26,12 +27,14 @@ public class Main
         ClassDB.RegisterClass<FsxScript>(FsxScript.BindMethods);
         ClassDB.RegisterClass<FsxScriptLanguage>(FsxScriptLanguage.BindMethods);
         ClassDB.RegisterClass<FsxScriptResourceFormatSaver>(FsxScriptResourceFormatSaver.BindMethods);
+        ClassDB.RegisterClass<FsxScriptResourceFormatLoader>(FsxScriptResourceFormatLoader.BindMethods);
         _fsxScriptLanguage = new FsxScriptLanguage();
         Engine.Singleton.RegisterScriptLanguage(_fsxScriptLanguage);
         Engine.Singleton.RegisterSingleton(FsxScript.LanguageName, _fsxScriptLanguage);
         _fsxScriptResourceFormatSaver = new FsxScriptResourceFormatSaver();
         ResourceSaver.Singleton.AddResourceFormatSaver(_fsxScriptResourceFormatSaver);
-
+        _fsxScriptResourceFormatLoader = new FsxScriptResourceFormatLoader();
+        ResourceLoader.Singleton.AddResourceFormatLoader(_fsxScriptResourceFormatLoader);
     }
 
     public static void DeinitializeFsxScriptTypes(InitializationLevel level)
@@ -40,6 +43,7 @@ public class Main
         {
             return;
         }
+        ResourceLoader.Singleton.RemoveResourceFormatLoader(_fsxScriptResourceFormatLoader);
         ResourceSaver.Singleton.RemoveResourceFormatSaver(_fsxScriptResourceFormatSaver);
         Engine.Singleton.UnregisterSingleton(FsxScript.LanguageName);
         Engine.Singleton.UnregisterScriptLanguage(_fsxScriptLanguage);

@@ -6,9 +6,10 @@ open Godot.Bridge
 
 type FsxScript() as this =
     inherit ScriptExtension()
-    let mutable sourceCode : string = null
+    let mutable sourceCode : string = null    
     
     static member val LanguageName = new StringName("FsxScriptLanguage")
+    static member val ClassName = new StringName(nameof FsxScript)
 
     static member BindMethods(context: ClassDBRegistrationContext) =
         context.BindConstructor(fun () -> new FsxScript())

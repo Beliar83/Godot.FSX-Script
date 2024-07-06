@@ -31,7 +31,7 @@ type FsxScriptResourceFormatSaver() as this =
             new PackedStringArray([|"fsx"|])
         else
             new PackedStringArray()
-    override th_._RecognizePath(resource, path) =
+    override _._RecognizePath(resource, path) =
         if this._Recognize(resource) then
             // TODO: Check code
             true
