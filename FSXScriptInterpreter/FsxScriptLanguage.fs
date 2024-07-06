@@ -97,7 +97,7 @@ let _process(self : Base) (delta: float) =
         base._OverridesExternalEditor()
     override this._PreferredFileNameCasing() =
         GD.Print("PreferredFileNameCasing")
-        base._PreferredFileNameCasing()
+        Godot.ScriptLanguage.ScriptNameCasing.SnakeCase
     override this._CompleteCode(code, path, owner) =
         GD.Print("CompleteCode")
         new GodotDictionary()
