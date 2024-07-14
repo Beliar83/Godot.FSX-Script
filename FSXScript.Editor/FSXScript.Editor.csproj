@@ -16,7 +16,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\FSXScriptInterpreter\FSXScriptInterpreter.fsproj" />
-      <ProjectReference Include="..\godot-dotnet\src\Godot.Bindings\Godot.Bindings.csproj" />
     </ItemGroup>
 
 </Project>

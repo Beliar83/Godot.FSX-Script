@@ -5,15 +5,6 @@
         <TargetFramework>net8.0</TargetFramework>
     </PropertyGroup>
 
-
-    <ItemGroup>
-        <Compile Include="FsxScriptInstance.fs"/>
-        <Compile Include="FsxScript.fs"/>
-        <Compile Include="FsxScriptLanguage.fs"/>
-        <Compile Include="FsxScriptResourceFormatSaver.fs"/>
-        <Compile Include="FsxScriptResourceFormatLoader.fs"/>
-    </ItemGroup>
-
     <ItemGroup>
         <PackageReference Update="FSharp.Core" Version="8.0.300"/>
         <PackageReference Include="JetBrains.FSharp.Compiler.Service" Version="2023.3.0.4"/>
@@ -21,9 +12,5 @@
 
     <ItemGroup>
         <EmbeddedResource Remove="res\**"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\godot-dotnet\src\Godot.Bindings\Godot.Bindings.csproj"/>
     </ItemGroup>
 </Project>
