@@ -1,4 +1,4 @@
-use godot::classes::{Engine, ResourceSaver, ScriptLanguage, ResourceFormatLoader, ResourceFormatSaver, ResourceLoader};
+use godot::classes::{Engine, ResourceSaver, ScriptLanguage, ResourceFormatLoader, ResourceFormatSaver, ResourceLoader, ClassDb, GDScript};
 use godot::prelude::*;
 
 use crate::fsx_script_language::FsxScriptLanguage;
@@ -10,6 +10,7 @@ mod fsx_script_instance;
 mod fsx_script_language;
 mod fsx_script_resource_format_loader;
 mod fsx_script_resource_format_saver;
+mod editor_plugin;
 
 struct FsxScriptExtension;
 
@@ -22,8 +23,7 @@ unsafe impl ExtensionLibrary for FsxScriptExtension {
             InitLevel::Scene => {
                 let language = FsxScriptLanguage::new_alloc();
                 Engine::singleton().register_script_language(language.clone().upcast());
-                Engine::singleton()
-                    .register_singleton(StringName::from("FsxScriptLanguage"), language.upcast());
+                Engine::singleton().register_singleton(FsxScriptLanguage::singleton_name(), language.upcast());
                 let fsx_scrip_resource_format_saver = FsxScriptResourceFormatSaver::new_gd();
                 ResourceSaver::singleton()
                     .add_resource_format_saver(fsx_scrip_resource_format_saver.clone().upcast());
@@ -48,7 +48,7 @@ unsafe impl ExtensionLibrary for FsxScriptExtension {
             InitLevel::Core => {}
             InitLevel::Servers => {}
             InitLevel::Scene => {
-                let language_name = StringName::from("FsxScriptLanguage");
+                let language_name = FsxScriptLanguage::singleton_name();
                 let language = Engine::singleton()
                     .get_singleton(language_name.clone())
                     .and_then(|l| Some(l.cast::<ScriptLanguage>()));

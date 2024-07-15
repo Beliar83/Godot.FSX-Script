@@ -1,8 +1,9 @@
-use crate::fsx_script::FsxScript;
-use godot::classes::script_language::ScriptNameCasing;
 use godot::classes::{Engine, IScriptLanguageExtension, Script, ScriptLanguageExtension};
+use godot::classes::script_language::ScriptNameCasing;
 use godot::global::Error;
 use godot::prelude::*;
+
+use crate::fsx_script::FsxScript;
 
 #[derive(GodotClass)]
 #[class(base=ScriptLanguageExtension)]
@@ -10,12 +11,38 @@ pub(crate) struct FsxScriptLanguage {
     base: Base<ScriptLanguageExtension>,
 }
 
+#[godot_api]
 impl FsxScriptLanguage {
+    
+    #[func]
+    pub fn singleton_name() -> StringName {
+        StringName::from(format!("{}Instance", FsxScriptLanguage::class_name()))
+    }
+    
     pub fn singleton() -> Option<Gd<Self>> {
         Engine::singleton()
-            .get_singleton(FsxScriptLanguage::class_name().to_string_name())
+            .get_singleton(Self::singleton_name())
             .map(|gd| gd.cast())
     }
+
+    #[func]
+    fn complete_code(&self, _code: GString, _path: GString, _owner: Option<Gd<Object>>) -> Dictionary {
+        godot_print!("FsxScriptLanguage - complete_code");
+        Dictionary::new()
+    }
+
+    #[func]
+    fn lookup_code(
+        &self,
+        _code: GString,
+        _symbol: GString,
+        _path: GString,
+        _owner: Option<Gd<Object>>,
+    ) -> Dictionary {
+        godot_print!("FsxScriptLanguage - lookup_code");
+        Dictionary::new()
+    }    
+
 }
 
 #[godot_api]
@@ -58,8 +85,11 @@ impl IScriptLanguageExtension for FsxScriptLanguage {
     }
 
     fn get_comment_delimiters(&self) -> PackedStringArray {
-        godot_print!("FsxScriptLanguage - get_comment_delimiters");
-        PackedStringArray::new()
+        PackedStringArray::from(vec![GString::from("//")])
+    }
+
+    fn get_string_delimiters(&self) -> PackedStringArray {
+        PackedStringArray::from(vec![GString::from("\" \""), GString::from("' '"), GString::from("@\" \"")])
     }
 
     fn make_template(
@@ -78,7 +108,7 @@ type Base = {base_class_name}
 //Define fields in this type. Use [Export] to mark exported fields.
 type State = struct end
 
-let _process(self : Base) (delta: float) =
+let _process(self : Base, delta: float) =
     ()"
         );
         let mut script = FsxScript::new_gd();
@@ -169,22 +199,6 @@ let _process(self : Base) (delta: float) =
         ScriptNameCasing::SNAKE_CASE
     }
 
-    fn complete_code(&self, _code: GString, _path: GString, _owner: Gd<Object>) -> Dictionary {
-        godot_print!("FsxScriptLanguage - complete_code");
-        todo!()
-    }
-
-    fn lookup_code(
-        &self,
-        _code: GString,
-        _symbol: GString,
-        _path: GString,
-        _owner: Gd<Object>,
-    ) -> Dictionary {
-        godot_print!("FsxScriptLanguage - lookup_code");
-        todo!()
-    }
-
     fn auto_indent_code(&self, _code: GString, _from_line: i32, _to_line: i32) -> GString {
         godot_print!("FsxScriptLanguage - auto_indent_code");
         todo!()
@@ -239,6 +253,7 @@ let _process(self : Base) (delta: float) =
         godot_print!("FsxScriptLanguage - handles_global_class_type {class_type}");
         false
     }
+
     fn get_global_class_name(&self, _path: GString) -> Dictionary {
         godot_print!("FsxScriptLanguage - get_global_class_name");
         let mut dict = Dictionary::new();
