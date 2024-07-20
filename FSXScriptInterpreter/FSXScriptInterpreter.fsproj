@@ -6,11 +6,22 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Update="FSharp.Core" Version="8.0.300"/>
-        <PackageReference Include="JetBrains.FSharp.Compiler.Service" Version="2023.3.0.4"/>
+        <PackageReference Update="FSharp.Core" Version="8.0.301"/>
+        <PackageReference Include="FSharp.Compiler.Service" Version="43.8.301"/>
     </ItemGroup>
 
     <ItemGroup>
         <EmbeddedResource Remove="res\**"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="GodotStubs.fs"/>
+        <Compile Include="Variant.fs"/>
+        <Compile Include="TypeNameToGodotType.fs"/>
+        <Compile Include="ScriptSession.fs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\godot-dotnet\src\Godot.Bindings\Godot.Bindings.csproj"/>
     </ItemGroup>
 </Project>

@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use godot::builtin::{GString, StringName, Variant, VariantType};
 use godot::classes::{Object, Script, ScriptLanguage};
-use godot::obj::script::{SiMut, ScriptInstance};
 use godot::meta::{MethodInfo, PropertyInfo};
 use godot::obj::Gd;
+use godot::obj::script::{ScriptInstance, SiMut};
 
 use crate::fsx_script::FsxScript;
 use crate::fsx_script_language::FsxScriptLanguage;

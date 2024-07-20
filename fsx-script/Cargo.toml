@@ -8,6 +8,8 @@ crate-type = ["cdylib"]
 
 [dependencies]
 netcorehost = "0.17.0"
-godot = { git = "https://github.com/godot-rust/gdext", branch = "master", features = ["api-custom", "experimental-threads"] }
+godot = { version = "0.1.2", features = ["api-custom", "experimental-threads"] }
 log = "0.4.22"
 
+[build-dependencies]
+godot-bindings = { version = "0.1.2"}

@@ -1,14 +1,35 @@
-use godot::classes::{Engine, IScriptLanguageExtension, Script, ScriptLanguageExtension};
+use std::ffi::c_void;
+
+use godot::builtin::GString;
+use godot::classes::{Engine, IScriptLanguageExtension, Script, ScriptLanguageExtension,Os, ProjectSettings};
 use godot::classes::script_language::ScriptNameCasing;
 use godot::global::Error;
 use godot::prelude::*;
+use std::path::{Path, PathBuf};
 
+use godot::sys::{GDExtensionInterface, get_interface};
+use netcorehost::{nethost, pdcstr};
+use netcorehost::hostfxr::ManagedFunction;
+use netcorehost::pdcstring::PdCString;
 use crate::fsx_script::FsxScript;
+
+#[repr(C)]
+#[derive(Clone)]
+pub(crate) struct DotnetMethods {
+    pub(crate) init: extern "system" fn(*const GDExtensionInterface),
+    pub(crate) set_base_path: extern "system" fn (GString),
+    pub(crate) create_session: extern "system" fn () -> *const c_void,
+    pub(crate) get_class_name: extern "system" fn (*const c_void) -> GString,
+    pub(crate) parse_script: extern "system" fn (*const c_void, GString),
+    pub(crate) string_test: extern "system" fn() -> GString,
+    pub(crate) from_rust: extern "system" fn(GString),
+}
 
 #[derive(GodotClass)]
 #[class(base=ScriptLanguageExtension)]
 pub(crate) struct FsxScriptLanguage {
     base: Base<ScriptLanguageExtension>,
+    pub(crate) dotnet_methods: DotnetMethods,
 }
 
 #[godot_api]
@@ -48,7 +69,41 @@ impl FsxScriptLanguage {
 #[godot_api]
 impl IScriptLanguageExtension for FsxScriptLanguage {
     fn init(base: Base<Self::Base>) -> Self {
-        Self { base }
+        let hostfxr = nethost::load_hostfxr().unwrap();
+        let root_path = if Os::singleton().has_feature(GString::from("editor")) {
+            ProjectSettings::singleton().globalize_path(GString::from("res://"))
+        } else {
+            GString::from(PathBuf::from(Os::singleton().get_executable_path().to_string()).parent().unwrap().to_string_lossy().to_string())
+        };
+
+        let fsx_script_path = PathBuf::from(root_path.to_string()).join(Path::new("addons/fsx-script"));
+
+        let config_path = fsx_script_path.join(Path::new("bin/FSXScript.Editor.runtimeconfig.json"));
+        let config_path = PdCString::from_os_str(config_path.as_os_str()).unwrap();
+        let dll_path = fsx_script_path.join(Path::new("bin/FSXScript.Editor.dll"));
+        let dll_path = PdCString::from_os_str(dll_path.as_os_str()).unwrap();
+
+        let context = hostfxr
+            .initialize_for_runtime_config(config_path)
+            .unwrap();
+        let fn_loader = context
+            .get_delegate_loader_for_assembly(dll_path)
+            .unwrap();
+
+
+        let result: Result<ManagedFunction<extern "system" fn() -> DotnetMethods>, _> = fn_loader.get_function_with_unmanaged_callers_only::<fn() -> DotnetMethods>(
+            pdcstr!("FSXScript.Editor.Main, FSXScript.Editor"),
+            pdcstr!("GetMethods"),
+        );
+
+        let get_dotnet_methods = result.unwrap();
+        let dotnet_methods = get_dotnet_methods();
+        let init = dotnet_methods.init;
+        let interface = unsafe { get_interface() };
+        init(interface);
+        let set_base_path = dotnet_methods.set_base_path;
+        set_base_path(root_path);
+        Self { base, dotnet_methods }
     }
 
     fn get_name(&self) -> GString {
@@ -101,6 +156,7 @@ impl IScriptLanguageExtension for FsxScriptLanguage {
         godot_print!("FsxScriptLanguage - make_template {template}");
         let code = format!(
             "module {class_name}
+open Godot
 
 //This sets the godot class to inherit from
 type Base = {base_class_name}
@@ -256,7 +312,6 @@ let _process(self : Base, delta: float) =
 
     fn get_global_class_name(&self, _path: GString) -> Dictionary {
         godot_print!("FsxScriptLanguage - get_global_class_name");
-        let mut dict = Dictionary::new();
-        dict
+        Dictionary::new()
     }
 }

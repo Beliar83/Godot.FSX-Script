@@ -9,13 +9,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <None Update="test.fsx">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+        <None Update="test.fsx">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\FSXScriptInterpreter\FSXScriptInterpreter.fsproj" />
+        <ProjectReference Include="..\FSXScriptInterpreter\FSXScriptInterpreter.fsproj"/>
+        <ProjectReference Include="..\godot-dotnet\src\Godot.Bindings\Godot.Bindings.csproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Godot.Bindings" Version="4.3.0-nightly.24309.1"/>
     </ItemGroup>
 
 </Project>

@@ -1,0 +1,3 @@
+[submodule "godot-dotnet"]
+	path = godot-dotnet
+	url = https://github.com/Beliar83/godot-dotnet.git

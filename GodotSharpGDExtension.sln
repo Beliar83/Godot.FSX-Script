@@ -7,6 +7,20 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSXScriptInterpreter", "FSX
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FSXScript.Editor", "FSXScript.Editor\FSXScript.Editor.csproj", "{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Godot.Bindings", "godot-dotnet\src\Godot.Bindings\Godot.Bindings.csproj", "{AA0381E9-9EA2-4E66-8C40-7056E91A0F79}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Godot.BindingsGenerator", "godot-dotnet\src\Godot.BindingsGenerator\Godot.BindingsGenerator.csproj", "{20AA8AA6-9286-42C4-8252-226B40BE3C1A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GodotDotnet", "GodotDotnet", "{F8797648-EBDF-459C-BFBC-29D002D704FF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Godot", "godot-dotnet\src\Godot\Godot.csproj", "{CDD32788-2EE4-44ED-B893-F9E8B3C73DF2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Godot.BindingsGenerator.ApiDump", "godot-dotnet\src\Godot.BindingsGenerator.ApiDump\Godot.BindingsGenerator.ApiDump.csproj", "{D16B42B6-9443-4F5A-AEF2-F3D4188C9609}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Godot.BindingsGenerator.Reflection", "godot-dotnet\src\Godot.BindingsGenerator.Reflection\Godot.BindingsGenerator.Reflection.csproj", "{7268C02A-21EB-49CE-890B-1438B3550141}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Godot.SourceGenerators", "godot-dotnet\src\Godot.SourceGenerators\Godot.SourceGenerators.csproj", "{FAC9D2EF-92A8-4C56-8E03-230E1F2F28DE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +35,30 @@ Global
 		{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DFFD3569-FFB5-4FC9-801C-528B9C5771AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AA0381E9-9EA2-4E66-8C40-7056E91A0F79}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AA0381E9-9EA2-4E66-8C40-7056E91A0F79}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AA0381E9-9EA2-4E66-8C40-7056E91A0F79}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AA0381E9-9EA2-4E66-8C40-7056E91A0F79}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20AA8AA6-9286-42C4-8252-226B40BE3C1A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20AA8AA6-9286-42C4-8252-226B40BE3C1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20AA8AA6-9286-42C4-8252-226B40BE3C1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20AA8AA6-9286-42C4-8252-226B40BE3C1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDD32788-2EE4-44ED-B893-F9E8B3C73DF2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDD32788-2EE4-44ED-B893-F9E8B3C73DF2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDD32788-2EE4-44ED-B893-F9E8B3C73DF2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDD32788-2EE4-44ED-B893-F9E8B3C73DF2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D16B42B6-9443-4F5A-AEF2-F3D4188C9609}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D16B42B6-9443-4F5A-AEF2-F3D4188C9609}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D16B42B6-9443-4F5A-AEF2-F3D4188C9609}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D16B42B6-9443-4F5A-AEF2-F3D4188C9609}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7268C02A-21EB-49CE-890B-1438B3550141}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7268C02A-21EB-49CE-890B-1438B3550141}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7268C02A-21EB-49CE-890B-1438B3550141}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7268C02A-21EB-49CE-890B-1438B3550141}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAC9D2EF-92A8-4C56-8E03-230E1F2F28DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAC9D2EF-92A8-4C56-8E03-230E1F2F28DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAC9D2EF-92A8-4C56-8E03-230E1F2F28DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAC9D2EF-92A8-4C56-8E03-230E1F2F28DE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -29,5 +67,11 @@ Global
 		SolutionGuid = {F5A32E29-BA17-4929-AB0D-C0C6DECC31A8}
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
+		{AA0381E9-9EA2-4E66-8C40-7056E91A0F79} = {F8797648-EBDF-459C-BFBC-29D002D704FF}
+		{20AA8AA6-9286-42C4-8252-226B40BE3C1A} = {F8797648-EBDF-459C-BFBC-29D002D704FF}
+		{CDD32788-2EE4-44ED-B893-F9E8B3C73DF2} = {F8797648-EBDF-459C-BFBC-29D002D704FF}
+		{D16B42B6-9443-4F5A-AEF2-F3D4188C9609} = {F8797648-EBDF-459C-BFBC-29D002D704FF}
+		{7268C02A-21EB-49CE-890B-1438B3550141} = {F8797648-EBDF-459C-BFBC-29D002D704FF}
+		{FAC9D2EF-92A8-4C56-8E03-230E1F2F28DE} = {F8797648-EBDF-459C-BFBC-29D002D704FF}
 	EndGlobalSection
 EndGlobal

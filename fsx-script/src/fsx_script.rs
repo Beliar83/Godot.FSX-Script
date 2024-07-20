@@ -1,30 +1,28 @@
 use std::cell::RefCell;
 use std::collections::HashSet;
-use std::ffi::c_void;
+use std::ffi::{c_void};
 
 use godot::classes::object::ConnectFlags;
 use godot::classes::{IScriptExtension, Script, ScriptExtension, ScriptLanguage, WeakRef};
 use godot::global::weakref;
 use godot::obj::script;
 use godot::prelude::*;
-
 use crate::fsx_script_instance::{FsxScriptInstance, FsxScriptPlaceholder};
-use crate::fsx_script_language::FsxScriptLanguage;
+use crate::fsx_script_language::{DotnetMethods, FsxScriptLanguage};
 
 #[derive(GodotClass)]
 #[class(base=ScriptExtension)]
 pub(crate) struct FsxScript {
-    #[var(get = get_class_name, set = set_class_name, usage_flags = [STORAGE])]
-    class_name: GString,
-
     #[var(usage_flags = [STORAGE])]
-    source_code: GString,
+    code: GString,
 
     #[var( get = owner_ids, set = set_owner_ids, usage_flags = [STORAGE])]
     #[allow(dead_code)]
     owner_ids: Array<i64>,
 
     owners: RefCell<Vec<Gd<WeakRef>>>,
+    dotnet_methods: DotnetMethods,
+    session_pointer: *const c_void,
     base: Base<ScriptExtension>,
 }
 
@@ -32,12 +30,7 @@ pub(crate) struct FsxScript {
 impl FsxScript {
     #[func]
     pub fn get_class_name(&self) -> GString {
-        self.class_name.clone()
-    }
-
-    #[func]
-    fn set_class_name(&mut self, value: GString) {
-        self.class_name = value;
+        (self.dotnet_methods.get_class_name)(self.session_pointer)
     }
 
     #[func]
@@ -79,12 +72,17 @@ impl FsxScript {
 #[godot_api]
 impl IScriptExtension for FsxScript {
     fn init(base: Base<Self::Base>) -> Self {
+        let dotnet_methods = FsxScriptLanguage::singleton().unwrap().cast::<FsxScriptLanguage>().bind().dotnet_methods.clone();
+        let create_session = dotnet_methods.create_session;
+        let session_pointer = create_session();
+
         Self {
-            class_name: GString::new(),
-            source_code: GString::new(),
+            code: GString::new(),
             base,
             owners: Default::default(),
             owner_ids: Default::default(),
+            dotnet_methods,
+            session_pointer
         }
     }
     fn can_instantiate(&self) -> bool {
@@ -110,7 +108,6 @@ impl IScriptExtension for FsxScript {
             .borrow_mut()
             .push(weakref(for_object.to_variant()).to());
 
-        // let data = self.create_remote_instance(for_object.clone());
         let instance = FsxScriptInstance::new(for_object.clone(), self.to_gd());
 
         let callable_args = VariantArray::from(&[for_object.to_variant()]);
@@ -136,15 +133,16 @@ impl IScriptExtension for FsxScript {
     }
 
     fn has_source_code(&self) -> bool {
-        self.source_code.is_empty()
+        self.code.is_empty()
     }
 
     fn get_source_code(&self) -> GString {
-        self.source_code.clone()
+        self.code.clone()
     }
 
     fn set_source_code(&mut self, code: GString) {
-        self.source_code = code;
+        self.code = code.clone();
+        (self.dotnet_methods.parse_script)(self.session_pointer, code);
     }
 
     fn has_method(&self, _method: StringName) -> bool {
