@@ -5,6 +5,8 @@ use godot::classes::{Object, Script, ScriptLanguage};
 use godot::meta::{MethodInfo, PropertyInfo};
 use godot::obj::Gd;
 use godot::obj::script::{ScriptInstance, SiMut};
+use godot::prelude::godot_print;
+use godot::sys::GDEXTENSION_CALL_ERROR_INVALID_METHOD;
 
 use crate::fsx_script::FsxScript;
 use crate::fsx_script_language::FsxScriptLanguage;
@@ -14,7 +16,6 @@ fn script_class_name(script: &Gd<FsxScript>) -> GString {
 }
 
 pub(crate) struct FsxScriptInstance {
-    data: Gd<Object>,
     script: Gd<FsxScript>,
     generic_script: Gd<Script>,
     property_list: Box<[PropertyInfo]>,
@@ -22,9 +23,8 @@ pub(crate) struct FsxScriptInstance {
 }
 
 impl FsxScriptInstance {
-    pub(crate) fn new(data: Gd<Object>, script: Gd<FsxScript>) -> Self {
+    pub(crate) fn new(script: Gd<FsxScript>) -> Self {
         Self {
-            data,
             generic_script: script.clone().upcast(),
             property_list: Box::default(),
             method_list: Box::default(),
@@ -41,11 +41,11 @@ impl ScriptInstance for FsxScriptInstance {
     }
 
     fn set_property(_this: SiMut<Self>, _name: StringName, _value: &Variant) -> bool {
-        todo!()
+        false
     }
 
     fn get_property(&self, _name: StringName) -> Option<Variant> {
-        todo!()
+        None
     }
 
     fn get_property_list(&self) -> Vec<PropertyInfo> {
@@ -61,7 +61,8 @@ impl ScriptInstance for FsxScriptInstance {
         _method: StringName,
         _args: &[&Variant],
     ) -> Result<Variant, godot::sys::GDExtensionCallErrorType> {
-        todo!()
+        godot_print!("{_method}");
+        Err(GDEXTENSION_CALL_ERROR_INVALID_METHOD)
     }
 
     fn is_placeholder(&self) -> bool {
@@ -183,8 +184,8 @@ impl ScriptInstance for FsxScriptPlaceholder {
         Err(godot::sys::GDEXTENSION_CALL_ERROR_INVALID_METHOD)
     }
 
-    fn get_script(&self) -> &Gd<Script> {
-        &self.generic_script
+    fn is_placeholder(&self) -> bool {
+        true
     }
 
     fn has_method(&self, method_name: StringName) -> bool {
@@ -193,8 +194,8 @@ impl ScriptInstance for FsxScriptPlaceholder {
             .any(|method| method.method_name == method_name)
     }
 
-    fn is_placeholder(&self) -> bool {
-        true
+    fn get_script(&self) -> &Gd<Script> {
+        &self.generic_script
     }
 
     fn get_property_type(&self, name: StringName) -> VariantType {

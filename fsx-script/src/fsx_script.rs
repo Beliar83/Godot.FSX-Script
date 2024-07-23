@@ -1,22 +1,22 @@
 use std::cell::RefCell;
 use std::collections::HashSet;
-use std::ffi::{c_void};
+use std::ffi::c_void;
 
-use godot::classes::object::ConnectFlags;
 use godot::classes::{IScriptExtension, Script, ScriptExtension, ScriptLanguage, WeakRef};
 use godot::global::weakref;
 use godot::obj::script;
 use godot::prelude::*;
+
 use crate::fsx_script_instance::{FsxScriptInstance, FsxScriptPlaceholder};
 use crate::fsx_script_language::{DotnetMethods, FsxScriptLanguage};
 
 #[derive(GodotClass)]
-#[class(base=ScriptExtension)]
+#[class(base = ScriptExtension)]
 pub(crate) struct FsxScript {
     #[var(usage_flags = [STORAGE])]
     code: GString,
 
-    #[var( get = owner_ids, set = set_owner_ids, usage_flags = [STORAGE])]
+    #[var(get = owner_ids, set = set_owner_ids, usage_flags = [STORAGE])]
     #[allow(dead_code)]
     owner_ids: Array<i64>,
 
@@ -31,6 +31,11 @@ impl FsxScript {
     #[func]
     pub fn get_class_name(&self) -> GString {
         (self.dotnet_methods.get_class_name)(self.session_pointer)
+    }
+
+    #[func]
+    pub fn get_base_type(&self) -> GString {
+        (self.dotnet_methods.get_base_type)(self.session_pointer)
     }
 
     #[func]
@@ -54,7 +59,7 @@ impl FsxScript {
         }
 
         if !self.owners.borrow().is_empty() {
-            godot_warn!("over writing existing owners of rust script");
+            godot_warn!("over writing existing owners of fsx script");
         }
 
         *self.owners.borrow_mut() = ids
@@ -82,9 +87,10 @@ impl IScriptExtension for FsxScript {
             owners: Default::default(),
             owner_ids: Default::default(),
             dotnet_methods,
-            session_pointer
+            session_pointer,
         }
     }
+
     fn can_instantiate(&self) -> bool {
         godot_print!("FSXScript - can_instantiate");
         // TODO: Check
@@ -97,29 +103,38 @@ impl IScriptExtension for FsxScript {
         None
     }
 
+    fn get_global_name(&self) -> StringName {
+        let global_name = (self.dotnet_methods.get_class_name)(self.session_pointer);
+        StringName::from(global_name)
+    }
+
     fn inherits_script(&self, _script: Gd<Script>) -> bool {
         godot_print!("FSXScript - inherits_script");
         todo!()
     }
 
-    unsafe fn instance_create(&self, mut for_object: Gd<Object>) -> *mut c_void {
-        godot_print!("FSXScript - instance_create");
+    fn get_instance_base_type(&self) -> StringName {
+        let base_type = (self.dotnet_methods.get_base_type)(self.session_pointer);
+        StringName::from(base_type)
+    }
+
+    unsafe fn instance_create(&self, for_object: Gd<Object>) -> *mut c_void {
         self.owners
             .borrow_mut()
             .push(weakref(for_object.to_variant()).to());
 
-        let instance = FsxScriptInstance::new(for_object.clone(), self.to_gd());
+        let instance = FsxScriptInstance::new(self.to_gd());
 
-        let callable_args = VariantArray::from(&[for_object.to_variant()]);
+        // let callable_args = VariantArray::from(&[for_object.to_variant()]);
 
-        for_object
-            .connect_ex(
-                StringName::from("script_changed"),
-                Callable::from_object_method(&self.to_gd(), "init_script_instance")
-                    .bindv(callable_args),
-            )
-            .flags(ConnectFlags::ONE_SHOT.ord() as u32)
-            .done();
+        // for_object
+        //     .connect_ex(
+        //         StringName::from("script_changed"),
+        //         Callable::from_object_method(&self.to_gd(), "init_script_instance")
+        //             .bindv(callable_args),
+        //     )
+        //     .flags(ConnectFlags::ONE_SHOT.ord() as u32)
+        //     .done();
         script::create_script_instance::<FsxScriptInstance>(instance, for_object)
     }
 
@@ -143,6 +158,11 @@ impl IScriptExtension for FsxScript {
     fn set_source_code(&mut self, code: GString) {
         self.code = code.clone();
         (self.dotnet_methods.parse_script)(self.session_pointer, code);
+        let mut language = FsxScriptLanguage::singleton().unwrap();
+        let mut language = language.bind_mut();
+        let self_gd = self.to_gd();
+        let path = self_gd.get_path();
+        language.scripts.insert(path, self_gd);
     }
 
     fn has_method(&self, _method: StringName) -> bool {
@@ -166,13 +186,13 @@ impl IScriptExtension for FsxScript {
     fn is_tool(&self) -> bool {
         godot_print!("FSXScript - is_tool");
         // TODO: Actually check
-        false
+        true
     }
 
     fn is_valid(&self) -> bool {
         godot_print!("FSXScript - is_valid");
         // TODO: Actually check
-        true
+        false
     }
 
     fn is_abstract(&self) -> bool {
@@ -183,6 +203,18 @@ impl IScriptExtension for FsxScript {
 
     fn get_language(&self) -> Option<Gd<ScriptLanguage>> {
         FsxScriptLanguage::singleton().map(Gd::upcast)
+    }
+
+    fn has_script_signal(&self, _signal: StringName) -> bool {
+        false
+    }
+
+    fn get_script_signal_list(&self) -> Array<Dictionary> {
+        Array::<Dictionary>::new()
+    }
+
+    fn has_property_default_value(&self, _property: StringName) -> bool {
+        false
     }
 
     fn get_member_line(&self, _member: StringName) -> i32 {

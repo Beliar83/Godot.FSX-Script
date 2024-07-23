@@ -11,6 +11,5 @@ public unsafe struct DotnetMethods
     internal delegate* unmanaged<IntPtr> CreateSession;
     internal delegate* unmanaged<IntPtr, NativeGodotString> GetClassName;
     internal delegate* unmanaged<IntPtr, NativeGodotString, void> ParseScript;
-    internal delegate* unmanaged<NativeGodotString> stringTest;
-    internal delegate* unmanaged<NativeGodotString, void> fromRust;
+    internal delegate* unmanaged<IntPtr, NativeGodotString> GetBaseType;
 }

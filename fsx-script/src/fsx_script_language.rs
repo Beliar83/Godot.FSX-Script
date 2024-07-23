@@ -1,45 +1,45 @@
+use std::collections::HashMap;
 use std::ffi::c_void;
+use std::path::{Path, PathBuf};
 
 use godot::builtin::GString;
-use godot::classes::{Engine, IScriptLanguageExtension, Script, ScriptLanguageExtension,Os, ProjectSettings};
+use godot::classes::{Engine, IScriptLanguageExtension, Os, ProjectSettings, Script, ScriptLanguageExtension};
 use godot::classes::script_language::ScriptNameCasing;
 use godot::global::Error;
 use godot::prelude::*;
-use std::path::{Path, PathBuf};
-
 use godot::sys::{GDExtensionInterface, get_interface};
 use netcorehost::{nethost, pdcstr};
 use netcorehost::hostfxr::ManagedFunction;
 use netcorehost::pdcstring::PdCString;
+
 use crate::fsx_script::FsxScript;
 
 #[repr(C)]
 #[derive(Clone)]
 pub(crate) struct DotnetMethods {
     pub(crate) init: extern "system" fn(*const GDExtensionInterface),
-    pub(crate) set_base_path: extern "system" fn (GString),
-    pub(crate) create_session: extern "system" fn () -> *const c_void,
-    pub(crate) get_class_name: extern "system" fn (*const c_void) -> GString,
-    pub(crate) parse_script: extern "system" fn (*const c_void, GString),
-    pub(crate) string_test: extern "system" fn() -> GString,
-    pub(crate) from_rust: extern "system" fn(GString),
+    pub(crate) set_base_path: extern "system" fn(GString),
+    pub(crate) create_session: extern "system" fn() -> *const c_void,
+    pub(crate) get_class_name: extern "system" fn(*const c_void) -> GString,
+    pub(crate) parse_script: extern "system" fn(*const c_void, GString),
+    pub(crate) get_base_type: extern "system" fn(*const c_void) -> GString,
 }
 
 #[derive(GodotClass)]
-#[class(base=ScriptLanguageExtension)]
+#[class(base = ScriptLanguageExtension)]
 pub(crate) struct FsxScriptLanguage {
     base: Base<ScriptLanguageExtension>,
+    pub(crate) scripts: HashMap<GString, Gd<FsxScript>>,
     pub(crate) dotnet_methods: DotnetMethods,
 }
 
 #[godot_api]
 impl FsxScriptLanguage {
-    
     #[func]
     pub fn singleton_name() -> StringName {
         StringName::from(format!("{}Instance", FsxScriptLanguage::class_name()))
     }
-    
+
     pub fn singleton() -> Option<Gd<Self>> {
         Engine::singleton()
             .get_singleton(Self::singleton_name())
@@ -62,8 +62,7 @@ impl FsxScriptLanguage {
     ) -> Dictionary {
         godot_print!("FsxScriptLanguage - lookup_code");
         Dictionary::new()
-    }    
-
+    }
 }
 
 #[godot_api]
@@ -103,7 +102,7 @@ impl IScriptLanguageExtension for FsxScriptLanguage {
         init(interface);
         let set_base_path = dotnet_methods.set_base_path;
         set_base_path(root_path);
-        Self { base, dotnet_methods }
+        Self { base, scripts: HashMap::new(), dotnet_methods }
     }
 
     fn get_name(&self) -> GString {
@@ -306,12 +305,25 @@ let _process(self : Base, delta: float) =
     fn frame(&mut self) {}
 
     fn handles_global_class_type(&self, class_type: GString) -> bool {
-        godot_print!("FsxScriptLanguage - handles_global_class_type {class_type}");
-        false
+        class_type == GString::from("Script")
     }
 
-    fn get_global_class_name(&self, _path: GString) -> Dictionary {
-        godot_print!("FsxScriptLanguage - get_global_class_name");
-        Dictionary::new()
+    fn get_global_class_name(&self, path: GString) -> Dictionary {
+        match self.scripts.get(&path) {
+            None => { Dictionary::new() }
+            Some(script) => {
+                let mut dict = Dictionary::new();
+                let script = script.bind();
+                let name = script.get_class_name();
+                let base_type = script.get_base_type();
+                if !name.is_empty() {
+                    dict.set("name", name);
+                }
+                if !base_type.is_empty() {
+                    dict.set("base_type", base_type);
+                }
+                dict
+            }
+        }
     }
 }

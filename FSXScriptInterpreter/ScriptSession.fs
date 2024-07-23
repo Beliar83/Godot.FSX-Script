@@ -8,11 +8,12 @@ open FSharp.Compiler.Interactive.Shell
 open FSharp.Compiler.Symbols
 open FSharp.Compiler.Text
 open Godot.FSharp
+open Godot.FSharp.ObjectGenerator
 open Microsoft.FSharp.Core
 
 type VariantType = GodotStubs.Type
 
-type ScriptSession() =
+type ScriptSession() as this =
     static let mutable basePath: string = ""
     let sbOut = StringBuilder()
     let sbErr = StringBuilder()
@@ -40,16 +41,11 @@ type ScriptSession() =
     let checker =
         FSharpChecker.Create(keepAssemblyContents = true)
 
-    let mutable className: string = "dummy"
-
     let mutable exportedFieldValues = Map.empty<string, obj>
     let internalFieldValues = Map.empty<string, obj>
-    let mutable allFields = List.empty<FSharpField>
-    let mutable exportedFieldNames = List.empty<string>
-    let mutable fieldsChanged = true
-
     let mutable results: Option<FSharpParseFileResults> = None
-    let mutable answer: Option<FSharpCheckFileResults> = None
+    let mutable info : Option<ToGenerateInfo> = None
+    let mutable checkResults : Option<FSharpCheckFileResults> = None
 
 
     let scriptInit =
@@ -137,46 +133,23 @@ let Init = Godot.Bridge.GodotBridge.Initialize
         |> List.filter (fun (entity) -> entity.DisplayName = "State")
         |> List.tryHead
 
-
-    let UpdateFields () =
-        let contents =
-            match answer with
-            | None -> None
-            | Some answer ->
-                match answer.ImplementationFile with
-                | None -> None
-                | Some value -> Some(value)
-
-        let fields =
-            match contents with
-            | None -> []
-            | Some value ->
-                let state =
-                    value.Declarations
-                    |> Seq.choose
-                        (fun x ->
-                            match x with
-                            | FSharpImplementationFileDeclaration.Entity (entity, declarations) -> GetState declarations
-                            | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue (value, curriedArgs, body) ->
-                                None
-                            | FSharpImplementationFileDeclaration.InitAction action -> None)
-                    |> Seq.tryHead
-
-                match state with
-                | None -> []
-                | Some entity -> entity.FSharpFields |> List.ofSeq
-
-        allFields <- fields
-        exportedFieldNames <- fields |> List.map (fun x -> x.DisplayName)
-        fieldsChanged <- false
-
     static member BasePath
         with get () = basePath
         and set (value) = basePath <- value
 
     member _.ClassName
-        with get () = className
-        and set (value) = className <- value
+        with get () =
+            match info with
+            | None -> ""
+            | Some info ->                
+                info.Name
+                
+    member _.BaseType
+        with get () =
+            match info with
+            | None -> ""
+            | Some info ->                
+                info.Extending    
 
     member _.BuildDummy(name: string) =
 
@@ -259,7 +232,7 @@ module {name} =
 
 
     member _.ParseScript(scriptCode: string) =
-        let scriptPath = $"{className}.fsx"
+        let scriptPath = $"{this.ClassName}.fsx"
 
         let scriptCode =
             $"{scriptCode}{scriptInit}" |> SourceText.ofString
@@ -277,14 +250,32 @@ module {name} =
 
         results <- Some(parseResults)
 
-        answer <-
+        let answer =
             match parseAnswer with
             | FSharpCheckFileAnswer.Aborted -> None
             | FSharpCheckFileAnswer.Succeeded checkFileResults -> Some(checkFileResults)
 
+        let file =
+            match answer with
+            | None -> None
+            | Some value -> value.ImplementationFile
+        
+        info <-
+            match file with
+            | None -> None
+            | Some file -> Some(generateInfo file)
+
+        checkResults <- answer
+
     member _.GetPropertyNames() =
-        if fieldsChanged then UpdateFields()
-        exportedFieldNames
+        let exportedFields =
+            match info with
+            | None -> []
+            | Some info ->
+                info.StateToGenerate.ExportedFields
+        exportedFields
+        |> List.map _.Name     
+
 
     // member _.GetPropertyList() =
     //     if fieldsChanged then
@@ -320,10 +311,14 @@ module {name} =
             true
 
     member _.Set(name: string, value: obj) =
-        if exportedFieldNames |> List.contains name then
-            exportedFieldValues <- exportedFieldValues |> Map.add name value
-            true
-        else
-            false
+        match info
+        with
+        | None -> false
+        | Some info ->  
+            if info.StateToGenerate.ExportedFields |> List.exists (fun f -> f.Name = name) then
+                exportedFieldValues <- exportedFieldValues |> Map.add name info
+                true
+            else
+                false
 
 // member _.CreateBaseObject():

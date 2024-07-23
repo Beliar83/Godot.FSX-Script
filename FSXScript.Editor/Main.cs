@@ -22,8 +22,7 @@ public unsafe class Main
         CreateSession = &CreateSession,
         GetClassName = &GetClassName,
         ParseScript = &ParseScript,
-        stringTest = &Method4.GetNameIntoRustVec,
-        fromRust = &Method4.StringFromRust,
+        GetBaseType = &GetBaseType,
     };
 
     [UnmanagedCallersOnly]
@@ -70,45 +69,16 @@ public unsafe class Main
         }
     }
 
-    // GD.Print(_handles.c(sessionPointer));
-    // var bytes = new byte[16];
-    // Marshal.Copy((IntPtr)sessionPointer, bytes, 0, 16);
-    // var guid = new Guid(bytes);
-    //
-    // string aggregate = String.Join(", ", bytes.Select(b => b.ToString()));
-    // GD.Print($"{guid} - {_scriptSessions.ContainsKey(guid)}");
-    // GD.Print($"{aggregate}");
-    //
-    // return new PackedStringArray().NativeValue;
-
-    // if (_scriptSessions.TryGetValue(sessionPointer, out ScriptSession? session))
-    // {
-    //     FSharpList<string> messages = session.ParseScript(code.ToString());
-    //     GD.Print("Got messages");
-    //     return new PackedStringArray(messages).NativeValue;
-    // }
-    // else
-    // {
-    //     return new PackedStringArray([$"Session pointer {sessionPointer} does not point to a valid ScriptSession"]).NativeValue;
-    // }
-}
-
-public static class Method4
-{
     [UnmanagedCallersOnly]
-    public static NativeGodotString GetNameIntoRustVec()
+    public static NativeGodotString GetBaseType(IntPtr sessionPointer)
     {
-        // ScriptSession scriptSession = new ScriptSession();
-        // var test = NativeGodotString.Create(scriptSession.BuildDummy("Test"));
-        // return test;
-        var name = "Some string we want to return to Rust.";
-        return NativeGodotString.Create(name);
-    }
+        if (GCHandle.FromIntPtr(sessionPointer).Target is ScriptSession session)
+        {
+            return NativeGodotString.Create(session.BaseType);
+        }
 
-    [UnmanagedCallersOnly]
-    public static void StringFromRust(NativeGodotString godotString)
-    {
-        // var variant = new NativeGodotVariant { String = godotString, Type = VariantType.String };
-        GD.Print(godotString.ToString());
-    }
+        GD.PrintErr($"Session pointer {sessionPointer} does not point to a valid ScriptSession");
+        return NativeGodotString.Create("");
+    }    
+
 }
