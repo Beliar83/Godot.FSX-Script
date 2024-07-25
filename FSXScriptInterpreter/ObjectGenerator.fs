@@ -508,10 +508,6 @@ module ObjectGenerator =
         
         let exportedFields=
             state.FSharpFields
-            |> Seq.filter
-                (fun x ->
-                    x.PropertyAttributes
-                    |> Seq.exists (fun x -> x.IsAttribute<ExportAttribute>()))
         let notExportedFields =
             state.FSharpFields
             |> Seq.filter

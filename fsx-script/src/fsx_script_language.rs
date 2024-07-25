@@ -7,7 +7,7 @@ use godot::classes::{Engine, IScriptLanguageExtension, Os, ProjectSettings, Scri
 use godot::classes::script_language::ScriptNameCasing;
 use godot::global::Error;
 use godot::prelude::*;
-use godot::sys::{GDExtensionInterface, get_interface};
+use godot::sys::{GDExtensionInterface, GDExtensionPropertyInfo, get_interface};
 use netcorehost::{nethost, pdcstr};
 use netcorehost::hostfxr::ManagedFunction;
 use netcorehost::pdcstring::PdCString;
@@ -18,11 +18,12 @@ use crate::fsx_script::FsxScript;
 #[derive(Clone)]
 pub(crate) struct DotnetMethods {
     pub(crate) init: extern "system" fn(*const GDExtensionInterface),
-    pub(crate) set_base_path: extern "system" fn(GString),
+    pub(crate) init_fsx_script: extern "system" fn(GString),
     pub(crate) create_session: extern "system" fn() -> *const c_void,
     pub(crate) get_class_name: extern "system" fn(*const c_void) -> GString,
     pub(crate) parse_script: extern "system" fn(*const c_void, GString),
     pub(crate) get_base_type: extern "system" fn(*const c_void) -> GString,
+    pub(crate) get_property_list: extern "system" fn(*const c_void, *mut u32) -> *const GDExtensionPropertyInfo,
 }
 
 #[derive(GodotClass)]
@@ -100,8 +101,8 @@ impl IScriptLanguageExtension for FsxScriptLanguage {
         let init = dotnet_methods.init;
         let interface = unsafe { get_interface() };
         init(interface);
-        let set_base_path = dotnet_methods.set_base_path;
-        set_base_path(root_path);
+        let init_fsx_script = dotnet_methods.init_fsx_script;
+        init_fsx_script(root_path);
         Self { base, scripts: HashMap::new(), dotnet_methods }
     }
 

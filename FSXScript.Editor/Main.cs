@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using FSXScriptCompiler;
 using Godot;
 using Godot.Bridge;
+using Godot.FSharp;
 using Godot.NativeInterop;
 
 [assembly: DisableRuntimeMarshalling]
@@ -17,12 +18,13 @@ public unsafe class Main
 
     private static readonly DotnetMethods DotnetMethods = new()
     {
-        Init = &GodotBridge.Initialize,
-        SetBasePath = &SetBasePath,
+        InitGodot = &GodotBridge.Initialize,
+        InitFsxScript = &InitFsxScript,
         CreateSession = &CreateSession,
         GetClassName = &GetClassName,
         ParseScript = &ParseScript,
         GetBaseType = &GetBaseType,
+        GetPropertyList = &GetPropertyList,
     };
 
     [UnmanagedCallersOnly]
@@ -32,7 +34,7 @@ public unsafe class Main
     }
 
     [UnmanagedCallersOnly]
-    public static void SetBasePath(NativeGodotString basePath)
+    internal static void InitFsxScript(NativeGodotString basePath)
     {
         ScriptSession.BasePath = basePath.ToString();
     }
@@ -79,6 +81,34 @@ public unsafe class Main
 
         GD.PrintErr($"Session pointer {sessionPointer} does not point to a valid ScriptSession");
         return NativeGodotString.Create("");
-    }    
+    }
 
+    [UnmanagedCallersOnly]
+    internal static GDExtensionPropertyInfo* GetPropertyList(IntPtr sessionPointer, uint* count)
+    {
+        PropertyInfoList propertyInfoList = [];
+
+        if (GCHandle.FromIntPtr(sessionPointer).Target is ScriptSession session)
+        {
+            foreach (ObjectGenerator.Field field in session.PropertyList)
+            {
+                PropertyInfo info = new(new StringName(field.Name), (VariantType)field.OfType)
+                {
+                    ClassName = field.OfType == GodotStubs.Type.Object ? new StringName(field.OfTypeName) : null,
+                    Hint = (PropertyHint)field.PropertyHint,
+                    HintString = field.HintText,
+                    Usage = (PropertyUsageFlags)field.UsageFlags,
+                };
+
+                propertyInfoList.Add(info);
+            }
+        }
+        else
+        {
+            GD.PrintErr($"Session pointer {sessionPointer} does not point to a valid ScriptSession");
+        }
+
+        *count = (uint)propertyInfoList.Count;
+        return PropertyInfoList.ConvertToNative(propertyInfoList);
+    }
 }

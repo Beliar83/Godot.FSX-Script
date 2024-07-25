@@ -4,8 +4,8 @@ use std::ffi::c_void;
 
 use godot::classes::{IScriptExtension, Script, ScriptExtension, ScriptLanguage, WeakRef};
 use godot::global::weakref;
-use godot::obj::script;
 use godot::prelude::*;
+use godot::sys::{GDExtensionPropertyInfo, GDExtensionScriptInstancePtr};
 
 use crate::fsx_script_instance::{FsxScriptInstance, FsxScriptPlaceholder};
 use crate::fsx_script_language::{DotnetMethods, FsxScriptLanguage};
@@ -36,6 +36,10 @@ impl FsxScript {
     #[func]
     pub fn get_base_type(&self) -> GString {
         (self.dotnet_methods.get_base_type)(self.session_pointer)
+    }
+
+    pub(crate) unsafe fn get_property_list(&self, count: *mut u32) -> *const GDExtensionPropertyInfo {
+        (self.dotnet_methods.get_property_list)(self.session_pointer, count)
     }
 
     #[func]
@@ -125,17 +129,8 @@ impl IScriptExtension for FsxScript {
 
         let instance = FsxScriptInstance::new(self.to_gd());
 
-        // let callable_args = VariantArray::from(&[for_object.to_variant()]);
-
-        // for_object
-        //     .connect_ex(
-        //         StringName::from("script_changed"),
-        //         Callable::from_object_method(&self.to_gd(), "init_script_instance")
-        //             .bindv(callable_args),
-        //     )
-        //     .flags(ConnectFlags::ONE_SHOT.ord() as u32)
-        //     .done();
-        script::create_script_instance::<FsxScriptInstance>(instance, for_object)
+        let instance : GDExtensionScriptInstancePtr = instance.into();
+        instance.cast::<c_void>()
     }
 
     unsafe fn placeholder_instance_create(&self, for_object: Gd<Object>) -> *mut c_void {
@@ -144,7 +139,8 @@ impl IScriptExtension for FsxScript {
             .push(weakref(for_object.to_variant()).to());
 
         let placeholder = FsxScriptPlaceholder::new(self.to_gd());
-        script::create_script_instance::<FsxScriptPlaceholder>(placeholder, for_object)
+        let instance : GDExtensionScriptInstancePtr = placeholder.into();
+        instance.cast::<c_void>()
     }
 
     fn has_source_code(&self) -> bool {

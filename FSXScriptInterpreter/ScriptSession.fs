@@ -149,7 +149,13 @@ let Init = Godot.Bridge.GodotBridge.Initialize
             match info with
             | None -> ""
             | Some info ->                
-                info.Extending    
+                info.Extending
+    
+    member _.PropertyList
+        with get () =
+            match info with
+            | None -> List.empty
+            | Some info -> info.StateToGenerate.ExportedFields
 
     member _.BuildDummy(name: string) =
 
@@ -276,30 +282,6 @@ module {name} =
         exportedFields
         |> List.map _.Name     
 
-
-    // member _.GetPropertyList() =
-    //     if fieldsChanged then
-    //         UpdateFields()
-    //
-    //     allFields
-    //     |> List.map
-    //         (fun x ->
-    //             let paramType, propertyHint, hintString =
-    //                 match getTypeNameFromIdent.convertFSharpTypeToVariantType x.FieldType with
-    //                 | None -> (VariantType.Nil, PropertyHint.None, "")
-    //                 | Some value ->
-    //                     match value with
-    //                     | None -> (VariantType.Nil, PropertyHint.None, "")
-    //                     | Some value -> value
-    //
-    //             PropertyInfo(
-    //                 paramType,
-    //                 (StringName.op_Implicit x.DisplayName),
-    //                 propertyHint,
-    //                 hintString,
-    //                 PropertyUsageFlags.Default,
-    //                 true
-    //             ))
 
     member _.Get(name: string, ret: outref<obj>) =
         match exportedFieldValues.TryFind name with
