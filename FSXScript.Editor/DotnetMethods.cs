@@ -12,5 +12,7 @@ public unsafe struct DotnetMethods
     internal delegate* unmanaged<IntPtr, NativeGodotString> GetClassName;
     internal delegate* unmanaged<IntPtr, NativeGodotString, void> ParseScript;
     internal delegate* unmanaged<IntPtr, NativeGodotString> GetBaseType;
-    internal delegate* unmanaged<IntPtr, uint*, Godot.NativeInterop.GDExtensionPropertyInfo*> GetPropertyList;
+    internal delegate* unmanaged<IntPtr, uint*, GDExtensionPropertyInfo*> GetPropertyList;
+    internal delegate* unmanaged<IntPtr, NativeGodotStringName*, NativeGodotVariant*, bool> GetValue;
+    internal delegate* unmanaged<IntPtr, NativeGodotStringName*, NativeGodotVariant*, bool> SetValue;
 }

@@ -5,7 +5,7 @@ use std::ffi::c_void;
 use godot::classes::{IScriptExtension, Script, ScriptExtension, ScriptLanguage, WeakRef};
 use godot::global::weakref;
 use godot::prelude::*;
-use godot::sys::{GDExtensionPropertyInfo, GDExtensionScriptInstancePtr};
+use godot::sys::{GDExtensionBool, GDExtensionConstStringNamePtr, GDExtensionConstVariantPtr, GDExtensionPropertyInfo, GDExtensionScriptInstancePtr, GDExtensionVariantPtr};
 
 use crate::fsx_script_instance::{FsxScriptInstance, FsxScriptPlaceholder};
 use crate::fsx_script_language::{DotnetMethods, FsxScriptLanguage};
@@ -40,6 +40,16 @@ impl FsxScript {
 
     pub(crate) unsafe fn get_property_list(&self, count: *mut u32) -> *const GDExtensionPropertyInfo {
         (self.dotnet_methods.get_property_list)(self.session_pointer, count)
+    }
+
+    pub(crate) unsafe fn get_property(&self, name: GDExtensionConstStringNamePtr, value: GDExtensionVariantPtr) -> GDExtensionBool {
+        let result = (self.dotnet_methods.get_property)(self.session_pointer, name, value);
+        GDExtensionBool::from(result)
+    }
+
+    pub(crate) unsafe fn set_property(&self, name: GDExtensionConstStringNamePtr, value: GDExtensionConstVariantPtr) -> GDExtensionBool {
+        let result = (self.dotnet_methods.set_property)(self.session_pointer, name, value);
+        GDExtensionBool::from(result)
     }
 
     #[func]
@@ -128,7 +138,6 @@ impl IScriptExtension for FsxScript {
             .push(weakref(for_object.to_variant()).to());
 
         let instance = FsxScriptInstance::new(self.to_gd());
-
         let instance : GDExtensionScriptInstancePtr = instance.into();
         instance.cast::<c_void>()
     }

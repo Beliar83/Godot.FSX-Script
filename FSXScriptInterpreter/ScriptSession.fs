@@ -7,11 +7,12 @@ open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.Interactive.Shell
 open FSharp.Compiler.Symbols
 open FSharp.Compiler.Text
-open Godot.FSharp
+open FSharpx.Collections
+open Godot
 open Godot.FSharp.ObjectGenerator
 open Microsoft.FSharp.Core
 
-type VariantType = GodotStubs.Type
+type VariantType = Godot.VariantType
 
 type ScriptSession() as this =
     static let mutable basePath: string = ""
@@ -41,12 +42,11 @@ type ScriptSession() as this =
     let checker =
         FSharpChecker.Create(keepAssemblyContents = true)
 
-    let mutable exportedFieldValues = Map.empty<string, obj>
-    let internalFieldValues = Map.empty<string, obj>
+    let mutable exportedFieldValues = PersistentHashMap.empty<StringName, obj>
+    let internalFieldValues = PersistentHashMap.empty<StringName, obj>
     let mutable results: Option<FSharpParseFileResults> = None
     let mutable info : Option<ToGenerateInfo> = None
     let mutable checkResults : Option<FSharpCheckFileResults> = None
-
 
     let scriptInit =
         "#r \"Godot.Bindings\"
@@ -156,6 +156,8 @@ let Init = Godot.Bridge.GodotBridge.Initialize
             match info with
             | None -> List.empty
             | Some info -> info.StateToGenerate.ExportedFields
+        
+    member val PropertyTypes = PersistentHashMap.empty<StringName, Godot.VariantType> with get, set
 
     member _.BuildDummy(name: string) =
 
@@ -272,6 +274,12 @@ module {name} =
             | Some file -> Some(generateInfo file)
 
         checkResults <- answer
+        
+        this.PropertyTypes <-
+            this.PropertyList
+            |> List.map (fun p -> (p.Name, p.OfType))
+            |> PersistentHashMap.ofSeq 
+        
 
     member _.GetPropertyNames() =
         let exportedFields =
@@ -283,22 +291,21 @@ module {name} =
         |> List.map _.Name     
 
 
-    member _.Get(name: string, ret: outref<obj>) =
-        match exportedFieldValues.TryFind name with
-        | None ->
+    member _.Get(name: StringName, ret: outref<obj>) =
+        if exportedFieldValues.ContainsKey(name) then
+            ret <- PersistentHashMap.find name exportedFieldValues
+            true
+        else
             ret <- null
             false
-        | Some x ->
-            ret <- x
-            true
 
-    member _.Set(name: string, value: obj) =
+    member _.Set(name: StringName, value: obj) =
         match info
         with
         | None -> false
         | Some info ->  
             if info.StateToGenerate.ExportedFields |> List.exists (fun f -> f.Name = name) then
-                exportedFieldValues <- exportedFieldValues |> Map.add name info
+                exportedFieldValues <- exportedFieldValues |> PersistentHashMap.add name value
                 true
             else
                 false

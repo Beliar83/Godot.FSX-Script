@@ -7,7 +7,7 @@ use godot::classes::{Engine, IScriptLanguageExtension, Os, ProjectSettings, Scri
 use godot::classes::script_language::ScriptNameCasing;
 use godot::global::Error;
 use godot::prelude::*;
-use godot::sys::{GDExtensionInterface, GDExtensionPropertyInfo, get_interface};
+use godot::sys::{GDExtensionConstStringNamePtr, GDExtensionConstVariantPtr, GDExtensionInterface, GDExtensionPropertyInfo, GDExtensionVariantPtr, get_interface};
 use netcorehost::{nethost, pdcstr};
 use netcorehost::hostfxr::ManagedFunction;
 use netcorehost::pdcstring::PdCString;
@@ -24,6 +24,8 @@ pub(crate) struct DotnetMethods {
     pub(crate) parse_script: extern "system" fn(*const c_void, GString),
     pub(crate) get_base_type: extern "system" fn(*const c_void) -> GString,
     pub(crate) get_property_list: extern "system" fn(*const c_void, *mut u32) -> *const GDExtensionPropertyInfo,
+    pub(crate) get_property: extern "system" fn(*const c_void, GDExtensionConstStringNamePtr, GDExtensionVariantPtr) -> bool,
+    pub(crate) set_property: extern "system" fn(*const c_void, GDExtensionConstStringNamePtr, GDExtensionConstVariantPtr) -> bool,
 }
 
 #[derive(GodotClass)]

@@ -6,8 +6,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Update="FSharp.Core" Version="8.0.301" />
-        <PackageReference Include="FSharp.Compiler.Service" Version="43.8.301" />
+        <PackageReference Update="FSharp.Core" Version="8.0.301"/>
+        <PackageReference Include="FSharp.Compiler.Service" Version="43.8.301"/>
+        <PackageReference Include="FSharpx.Collections" Version="3.1.0"/>
     </ItemGroup>
 
     <ItemGroup>
@@ -15,11 +16,10 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Include="GodotStubs.fs"/>
         <Compile Include="Variant.fs"/>
         <Compile Include="TypeNameToGodotType.fs"/>
-        <Compile Include="GeneratorHelper.fs" />
-        <Compile Include="ObjectGenerator.fs" />
+        <Compile Include="GeneratorHelper.fs"/>
+        <Compile Include="ObjectGenerator.fs"/>
         <Compile Include="ScriptSession.fs"/>
     </ItemGroup>
 

@@ -1,6 +1,5 @@
 namespace Godot.FSharp
 
-open GodotStubs
 
 module Variant =
 
@@ -8,14 +7,14 @@ module Variant =
         | Defined of string
         | Object
 
-    let getGodotDefault (variantType: Type) =
+    let getGodotDefault (variantType: Godot.VariantType) =
         match variantType with
-        | Type.Nil -> DefaultValue.Defined "null"
-        | Type.Int -> DefaultValue.Defined "0"
-        | Type.Float -> DefaultValue.Defined "0.0"
-        | Type.Bool -> DefaultValue.Defined "false"
-        | Type.String -> DefaultValue.Defined "String.Empty"
-        | Type.Dictionary -> DefaultValue.Defined "new Godot.Dictionary()"
-        | Type.Array -> DefaultValue.Defined "new Godot.Array()"
-        | Type.Object -> DefaultValue.Object
+        | Godot.VariantType.Nil -> DefaultValue.Defined "null"
+        | Godot.VariantType.Int -> DefaultValue.Defined "0"
+        | Godot.VariantType.Float -> DefaultValue.Defined "0.0"
+        | Godot.VariantType.Bool -> DefaultValue.Defined "false"
+        | Godot.VariantType.String -> DefaultValue.Defined "String.Empty"
+        | Godot.VariantType.Dictionary -> DefaultValue.Defined "new Godot.Dictionary()"
+        | Godot.VariantType.Array -> DefaultValue.Defined "new Godot.Array()"
+        | Godot.VariantType.Object -> DefaultValue.Object
         | _ -> DefaultValue.Defined $"new {variantType.ToString()}()"

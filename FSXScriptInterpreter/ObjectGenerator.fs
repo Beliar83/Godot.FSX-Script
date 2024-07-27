@@ -2,9 +2,8 @@
 namespace Godot.FSharp
 
 open System
-open System.Text
 open FSharp.Compiler.Symbols
-open Godot.FSharp.GodotStubs
+open Godot
 open FSharp.Compiler.Syntax
 
 type ExtraParamCountCheckMode =
@@ -36,7 +35,7 @@ module ObjectGenerator =
     type MethodParam =
         { Name: string
           OfTypeName: string
-          OfType: Type
+          OfType: Godot.VariantType
           PropertyHint: PropertyHint
           HintText: string
           UsageFlags: PropertyUsageFlags }
@@ -51,9 +50,9 @@ module ObjectGenerator =
           }
 
     type Field =
-        { Name: string
-          OfTypeName: string
-          OfType: Type
+        { Name: StringName
+          OfTypeName: StringName
+          OfType: Godot.VariantType
           PropertyHint: PropertyHint
           HintText: string
           UsageFlags: PropertyUsageFlags }
@@ -69,260 +68,7 @@ module ObjectGenerator =
           ExtendingNamespace : string
           Name: string
           StateToGenerate: StateToGenerate
-          methods: List<MethodsToGenerate> }
-
-    let private concat = String.concat "\n"
-    let private mapAndConcat func = Seq.map func >> concat
-
-    let private generateIfPart isFirst = if isFirst then "if" else "else if"
-
-    let private mapWithFirst a =
-        Seq.mapi (fun k v -> v, (k = 0)) >> Seq.map a
-
-    let private generateMethods (methods: List<MethodsToGenerate>) : string =
-        let generateInputParams (a: seq<MethodParam>) =
-            a
-            |> Seq.map (fun x -> x.Name)
-            |> String.concat ","
-
-        let generateParamsToSend (a: seq<MethodParam>) =
-            a
-            |> Seq.map (fun x -> x.Name)
-            |> String.concat " "
-
-        let generateAccess isOverride =
-            if isOverride then
-                "override"
-            else
-                "member public"
-
-        
-        let generateMethod (method: MethodsToGenerate) =
-            let builder = StringBuilder();
-        
-            builder
-                .AppendLine($"\t{generateAccess method.IsOverride} this.{method.MethodName} ({generateInputParams method.MethodParams}) =")
-                .AppendLine($"\t\tlet currentState = getState ()")
-                |> ignore
-            match method.ReturnParameter with
-            | None ->
-                builder
-                    .AppendLine($"\t\tlet newState = {method.MethodName} this {generateParamsToSend method.MethodParams} currentState")
-                    .AppendLine($"\t\tsetState newState")
-                    |> ignore
-            | Some _ ->
-                builder
-                    .AppendLine($"\t\tlet (newState, returnVal) = {method.MethodName} this {generateParamsToSend method.MethodParams} currentState")
-                    .AppendLine($"\t\tsetState newState")
-                    .AppendLine($"\t\treturnVal")
-                    |> ignore
-            builder.ToString().Replace("\t", "    ")
-
-        methods |> mapAndConcat generateMethod
-
-    let private generateMethodList (methods: List<MethodsToGenerate>) =
-        let generateParams (param: List<MethodParam>) =
-            let generateParamPart (param: MethodParam) =
-                $"
-                        Bridge.PropertyInfo(
-                            (LanguagePrimitives.EnumOfValue<_,_> {LanguagePrimitives.EnumToValue param.OfType}L),
-                            \"{param.Name}\",
-                            (LanguagePrimitives.EnumOfValue<_,_>{LanguagePrimitives.EnumToValue param.PropertyHint}L),
-                            \"{param.HintText}\",
-                            (LanguagePrimitives.EnumOfValue<_,_>{LanguagePrimitives.EnumToValue param.UsageFlags}),
-                            false
-                        )
-                "
-
-            param |> mapAndConcat generateParamPart
-
-        let generateMethod (method: MethodsToGenerate) =
-            $"
-        methods.Add(
-            MethodInfo(
-                \"{method.MethodName}\",
-                PropertyInfo(
-                    Variant.Type.Nil,
-                    \"\",
-                    PropertyHint.None,
-                    \"\",
-                    PropertyUsageFlags.Default,
-                    false
-                ),
-                (LanguagePrimitives.EnumOfValue<_,_> {LanguagePrimitives.EnumToValue method.MethodFlags}),
-                ResizeArray (
-                    [|
-                        {generateParams method.MethodParams}
-                    |]
-                ),
-                ResizeArray ()
-
-            )
-        )
-            "
-
-        methods |> mapAndConcat generateMethod
-
-    let private generateInvokeGodotClassMethods (methods: List<MethodsToGenerate>) =
-        let builder = StringBuilder()
-        if methods.Length = 0 then
-            builder
-                .AppendLine("\t\tbase.InvokeGodotClassMethod(&method, args, &ret)")
-                |> ignore
-        else
-            let generateParamsForCall (paramsOfMethod: List<MethodParam>) =
-                let generateParamForCall (position: int) (param: MethodParam) =
-                    $"Godot.NativeInterop.VariantUtils.ConvertTo<{param.OfTypeName}>(&args[{position}])"
-
-                paramsOfMethod
-                |> Seq.mapi generateParamForCall
-                |> String.concat ","
-            
-            let generateInvokeGodotClassMethod (method: MethodsToGenerate) (isFirst) =                
-                builder
-                    .AppendLine($"\t\t{generateIfPart isFirst} (StringName.op_Equality (\"{method.MethodName}\",&method) && args.Count = {method.MethodParams.Length}) then")
-                    |> ignore
-                match method.ReturnParameter with
-                | None ->
-                    builder
-                        .AppendLine($"\t\t\tthis.{method.MethodName}({generateParamsForCall method.MethodParams})")
-                        |> ignore
-                | Some value ->
-                    builder
-                        .AppendLine($"\t\t\tlet returnVal = this.{method.MethodName}({generateParamsForCall method.MethodParams})")
-                        .AppendLine($"\t\t\tret <- Godot.NativeInterop.VariantUtils.CreateFrom<{value.OfTypeName}>(&returnVal)")
-                        |> ignore
-
-                builder
-                    .AppendLine($"\t\t\ttrue")
-                    |> ignore
-            generateInvokeGodotClassMethod methods.Head true
-            for method in methods.Tail do
-                generateInvokeGodotClassMethod method false
-
-            builder
-                .AppendLine("\t\telse")
-                .AppendLine("\t\t\tbase.InvokeGodotClassMethod(&method, args, &ret)")
-                |> ignore
-
-
-        builder.ToString().Replace("\t", "    ")
-
-    let private generateHasGodotClassMethod (methods: List<MethodsToGenerate>) =
-        let builder = StringBuilder()
-        for method in methods do
-            builder
-                .AppendLine($"\t\tStringName.op_Equality(\"{method.MethodName}\", &method) ||")
-                |> ignore
-
-        builder
-            .AppendLine("\t\tbase.HasGodotClassMethod(&method)")
-            |> ignore
-        builder.ToString().Replace("\t", "    ")
-
-    let private generateExportedProperties (fields: List<Field>) : string =
-
-        let builder = StringBuilder();
-        if fields.Length > 0 then
-            let generateExportedProperty (field: Field) =
-                builder
-                    .AppendLine($"\t\tmember _.{field.Name}")
-                    .AppendLine($"\t\t\twith get() = state.{field.Name}")
-                    .AppendLine($"\t\t\tand set(value) = state <- {{ state with {field.Name} = value }}")
-                    |> ignore
-
-            for field in fields do
-                generateExportedProperty field       
-            
-        builder.ToString().Replace("\t", "    ")    
-        
-    let private generatePropertyList (fields: List<Field>) (isExported: bool) : string =
-        let generatePropertyItem (field: Field) : string =
-            $"
-        properties.Add(
-            Bridge.PropertyInfo(
-                (LanguagePrimitives.EnumOfValue<_, _> {LanguagePrimitives.EnumToValue field.OfType}L),
-                \"{field.Name}\",
-                (LanguagePrimitives.EnumOfValue<_, _> {LanguagePrimitives.EnumToValue field.PropertyHint}L),
-                \"{field.HintText}\",
-                (LanguagePrimitives.EnumOfValue<_, _> {LanguagePrimitives.EnumToValue field.UsageFlags}L),
-                {isExported.ToString().ToLower()}
-            )
-        )
-            "
-
-        fields |> mapAndConcat generatePropertyItem
-
-    let private generateGodotSaveObjectData (fields: List<Field>) =
-        let generateGodotSingleSaveObjectData (field: Field) =
-            $"
-        let {field.Name} = state.{field.Name}
-        info.AddProperty(\"{field.Name}\",Godot.Variant.From<{field.OfTypeName}>(&{field.Name}))
-        "
-
-        fields
-        |> mapAndConcat generateGodotSingleSaveObjectData
-
-    let private generateRestoreGodotObjectData (fields: List<Field>) =
-        let generateRestoreGodotObjectData (field: Field) =
-            $"
-        let mutable _value_{field.Name}: Variant = new Variant()
-        let mutable newState = getState ()
-        if(info.TryGetProperty(\"{field.Name}\",&_value_{field.Name})) then
-            newState <- {{
-                newState with
-                    {field.Name} = (_value_{field.Name}.As<_> ())
-            }}
-            "
-
-        fields
-        |> mapAndConcat generateRestoreGodotObjectData
-
-    let private generateGodotPropertyDefaultValues (fields: List<Field>) =
-        let generateSingleGodotPropertyDefaultValue (field: Field) =
-            $"
-        let __{field.Name}_default_value = defaultState.{field.Name}
-        values.Add(\"{field.Name}\",Godot.Variant.From<{field.OfTypeName}>(&__{field.Name}_default_value))
-        "
-
-        fields
-        |> mapAndConcat generateSingleGodotPropertyDefaultValue
-
-//     let generateClass (toGenerate: ToGenerateInfo) : string =
-//         $"
-// namespace {toGenerate.InNamespace}
-// open Godot
-// open Godot.Bridge
-// open Godot.NativeInterop
-// open {toGenerate.ModuleNameToOpen}
-// open Godot.FSharp.SourceGenerators.ObjectGenerator
-// open {toGenerate.ExtendingNamespace}
-// type {toGenerate.Name}() =
-//     inherit {toGenerate.Extending}()
-//     let mutable state: {toGenerate.StateToGenerate.Name} = {toGenerate.StateToGenerate.Name}.Default ()
-//     let setState s = state <- s
-//     let getState () = state
-//     interface INodeWithState<{toGenerate.Name},{toGenerate.StateToGenerate.Name}> with
-//         member _.SetState s =  setState s
-//         member _.GetState () = getState ()
-//         member this.GetNode () = this
-//     interface INodeWithState<{toGenerate.Extending},{toGenerate.StateToGenerate.Name}> with
-//         member _.SetState s =  setState s
-//         member _.GetState () = getState ()
-//         member this.GetNode () = this
-//     
-// {generateMethods toGenerate.methods}
-//
-// {generateExportedProperties toGenerate.StateToGenerate.ExportedFields}
-// #if TOOLS
-//     static member GetGodotPropertyDefaultValues() =
-//         let values =
-//             new System.Collections.Generic.Dictionary<Godot.StringName, Godot.Variant>({toGenerate.StateToGenerate.ExportedFields.Length})
-//         let defaultState = {toGenerate.StateToGenerate.Name}.Default ()
-//         {generateGodotPropertyDefaultValues toGenerate.StateToGenerate.ExportedFields}
-//         values
-// #endif
-//     "
+          methods: List<MethodsToGenerate> }  
 
     let extractTypesNonRecursive (moduleDecls: FSharpImplementationFileDeclaration list) =
         moduleDecls
@@ -343,7 +89,6 @@ module ObjectGenerator =
             None
 
     let extractStateType (typ: FSharpEntity) =
-
         if typ.DisplayName = "State" then
             Some(typ)
         else
@@ -584,10 +329,10 @@ module ObjectGenerator =
                             let typeName = GeneratorHelper.getTypeString paramType
                             let paramType, propertyHint, hintString =
                                     match getTypeNameFromIdent.convertFSharpTypeToVariantType paramType with
-                                    | None -> (Type.Nil, PropertyHint.None, "")
+                                    | None -> (Godot.VariantType.Nil, PropertyHint.None, "")
                                     | Some value ->
                                         match value with
-                                        | None -> (Type.Nil, PropertyHint.None, "")
+                                        | None -> (Godot.VariantType.Nil, PropertyHint.None, "")
                                         | Some value -> value
                             Some({ MethodParam.Name = "Return"
                                    OfTypeName = typeName
@@ -615,10 +360,10 @@ module ObjectGenerator =
                
                                   let paramType, propertyHint, hintString =
                                         match getTypeNameFromIdent.convertFSharpTypeToVariantType paramType with
-                                        | None -> (Type.Nil, PropertyHint.None, "")
+                                        | None -> (Godot.VariantType.Nil, PropertyHint.None, "")
                                         | Some value ->
                                             match value with
-                                            | None -> (Type.Nil, PropertyHint.None, "")
+                                            | None -> (Godot.VariantType.Nil, PropertyHint.None, "")
                                             | Some value -> value
                                   { MethodParam.Name = param.DisplayName
                                     OfTypeName = typeName
@@ -636,13 +381,13 @@ module ObjectGenerator =
                             let typeName = GeneratorHelper.getTypeString (field.FieldType.StripAbbreviations())
                             let typ, propertyHint, hintString =
                                   match getTypeNameFromIdent.convertFSharpTypeToVariantType field.FieldType with
-                                  | None -> (Type.Nil, PropertyHint.None, "")
+                                  | None -> (Godot.VariantType.Nil, PropertyHint.None, "")
                                   | Some value ->
                                       match value with
-                                      | None -> (Type.Nil, PropertyHint.None, "")
+                                      | None -> (Godot.VariantType.Nil, PropertyHint.None, "")
                                       | Some value -> value  
-                            { Name = field.DisplayName
-                              OfTypeName = typeName                            
+                            { Name = new StringName(field.DisplayName)
+                              OfTypeName = new StringName(typeName)                            
                               OfType = typ                                      
                               PropertyHint = propertyHint
                               HintText = hintString
@@ -654,13 +399,13 @@ module ObjectGenerator =
                             let typeName = GeneratorHelper.getTypeString (field.FieldType.StripAbbreviations())
                             let typ, propertyHint, hintString =
                                   match getTypeNameFromIdent.convertFSharpTypeToVariantType field.FieldType with
-                                  | None -> (Type.Nil, PropertyHint.None, "")
+                                  | None -> (Godot.VariantType.Nil, PropertyHint.None, "")
                                   | Some value ->
                                       match value with
-                                      | None -> (Type.Nil, PropertyHint.None, "")
+                                      | None -> (Godot.VariantType.Nil, PropertyHint.None, "")
                                       | Some value -> value   
-                            { Name = field.DisplayName
-                              OfTypeName = typeName
+                            { Name = new StringName(field.DisplayName)
+                              OfTypeName = new StringName(typeName)
                               OfType = typ
                               PropertyHint = propertyHint
                               HintText = hintString
