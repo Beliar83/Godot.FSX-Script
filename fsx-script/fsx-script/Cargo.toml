@@ -11,6 +11,3 @@ netcorehost = "0.17.0"
 godot = { version = "0.1.3", features = ["api-custom", "experimental-threads"] }
 log = "0.4.22"
 lazy_static = { version = "1.5.0", features = [] }
-
-[build-dependencies]
-godot-bindings = { version = "0.1.3"}
