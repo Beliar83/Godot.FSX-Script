@@ -4,9 +4,9 @@ use godot::prelude::*;
 use crate::fsx_script_language::FsxScriptLanguage;
 
 #[derive(GodotClass)]
-#[class(tool, init, editor_plugin, base=EditorPlugin)]
-struct FsxScriptEditorPlugin{
-    base: Base<EditorPlugin>
+#[class(tool, init, editor_plugin, base = EditorPlugin)]
+struct FsxScriptEditorPlugin {
+    base: Base<EditorPlugin>,
 }
 
 #[godot_api]

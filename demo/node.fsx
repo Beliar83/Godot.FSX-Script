@@ -31,7 +31,7 @@ type State =
 		val _StringName: StringName
 		val _NodePath: NodePath
 		val _Rid: Rid
-// 		val _Object: GodotObject
+		val _Object: GodotObject
 		val _Callable: Callable
 		val _Signal: Signal
 		val _Dictionary: GodotDictionary

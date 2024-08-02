@@ -93,7 +93,7 @@ impl FsxScriptInstance {
 
     unsafe extern fn set_property(p_instance: GDExtensionScriptInstanceDataPtr, p_name: GDExtensionConstStringNamePtr, p_value: GDExtensionConstVariantPtr,
     ) -> GDExtensionBool {
-        let script: &FsxScript = p_instance.into();
+        let script: &mut FsxScript = p_instance.into();
         script.set_property(p_name, p_value)
     }
 }
@@ -137,7 +137,7 @@ impl FsxScriptPlaceholder {
 
     unsafe extern fn set_property(p_instance: GDExtensionScriptInstanceDataPtr, p_name: GDExtensionConstStringNamePtr, p_value: GDExtensionConstVariantPtr,
     ) -> GDExtensionBool {
-        let script: &FsxScript = p_instance.into();
+        let script: &mut FsxScript = p_instance.into();
         script.set_property(p_name, p_value)
     }
 }
@@ -152,5 +152,12 @@ impl From<GDExtensionScriptInstanceDataPtr> for &FsxScript {
     fn from(value: GDExtensionScriptInstanceDataPtr) -> Self {
         assert!(!value.is_null(), "Instance pointer is null");
         unsafe { value.cast::<FsxScript>().as_ref().unwrap() }
+    }
+}
+
+impl From<GDExtensionScriptInstanceDataPtr> for &mut FsxScript {
+    fn from(value: GDExtensionScriptInstanceDataPtr) -> Self {
+        assert!(!value.is_null(), "Instance pointer is null");
+        unsafe { value.cast::<FsxScript>().as_mut().unwrap() }
     }
 }

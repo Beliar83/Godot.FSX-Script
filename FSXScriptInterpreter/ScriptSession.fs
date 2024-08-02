@@ -9,19 +9,30 @@ open FSharp.Compiler.Symbols
 open FSharp.Compiler.Text
 open FSharpx.Collections
 open Godot
+open Godot.Bridge
+open Godot.Collections
 open Godot.FSharp.ObjectGenerator
 open Microsoft.FSharp.Core
 
 type VariantType = Godot.VariantType
 
 type ScriptSession() as this =
+    inherit Resource()   
+        
     static let mutable basePath: string = ""
+    static let propertyInfoName = new StringName("Name")
+    static let propertyInfoClassName = new StringName("ClassName")
+    static let propertyInfoType = new StringName("Type")
+    static let propertyInfoHint = new StringName("Hint")
+    static let propertyInfoHintString = new StringName("HintString")
+    static let propertyInfoUsage = new StringName("Usage")
+    
     let sbOut = StringBuilder()
     let sbErr = StringBuilder()
     let inStream = new StringReader("")
     let outStream = new StringWriter(sbOut)
-    let errStream = new StringWriter(sbErr)
-
+    let errStream = new StringWriter(sbErr)  
+    
     let argv = [| "C:\\fsi.exe" |]
 
     let allArgs =
@@ -42,8 +53,6 @@ type ScriptSession() as this =
     let checker =
         FSharpChecker.Create(keepAssemblyContents = true)
 
-    let mutable exportedFieldValues = PersistentHashMap.empty<StringName, obj>
-    let internalFieldValues = PersistentHashMap.empty<StringName, obj>
     let mutable results: Option<FSharpParseFileResults> = None
     let mutable info : Option<ToGenerateInfo> = None
     let mutable checkResults : Option<FSharpCheckFileResults> = None
@@ -133,21 +142,15 @@ let Init = Godot.Bridge.GodotBridge.Initialize
         |> List.filter (fun (entity) -> entity.DisplayName = "State")
         |> List.tryHead
 
-    static member BasePath
-        with get () = basePath
-        and set (value) = basePath <- value
-
-    member _.ClassName
-        with get () =
-            match info with
-            | None -> ""
+    member _.GetClassName() =
+        match info with
+            | None -> new StringName("")
             | Some info ->                
                 info.Name
                 
-    member _.BaseType
-        with get () =
-            match info with
-            | None -> ""
+    member _.GetBaseType() =
+        match info with
+            | None -> new StringName("")
             | Some info ->                
                 info.Extending
     
@@ -158,6 +161,20 @@ let Init = Godot.Bridge.GodotBridge.Initialize
             | Some info -> info.StateToGenerate.ExportedFields
         
     member val PropertyTypes = PersistentHashMap.empty<StringName, Godot.VariantType> with get, set
+    
+    static member BindMethods(context : ClassDBRegistrationContext) =
+        context.BindConstructor(fun () -> new ScriptSession())
+        
+        context.BindStaticMethod(new StringName("SetBasePath"), new ParameterInfo(new StringName("basePath"), VariantType.String),  fun (value : string) -> basePath <- value);
+        
+        let mutable returnInfo = new ReturnInfo(VariantType.StringName)
+        context.BindMethod(new StringName(nameof(Unchecked.defaultof<ScriptSession>.GetClassName)), returnInfo, fun (session : ScriptSession) -> session.GetClassName())        
+        context.BindMethod(new StringName(nameof(Unchecked.defaultof<ScriptSession>.GetBaseType)), returnInfo, fun (session : ScriptSession) -> session.GetBaseType())        
+        context.BindMethod(new StringName(nameof(Unchecked.defaultof<ScriptSession>.ParseScript)), new ParameterInfo(new StringName("code"), VariantType.String), fun (session : ScriptSession) (code : string) -> session.ParseScript(code))        
+        context.BindMethod(new StringName(nameof(Unchecked.defaultof<ScriptSession>.GetPropertyList)), new ParameterInfo(new StringName("propertyList"), VariantType.Array, Hint = PropertyHint.ArrayType, HintString = "Dictionary"), fun (session : ScriptSession) (propertyList: GodotArray<GodotDictionary>) -> session.GetPropertyList(propertyList))              
+        let mutable returnInfo = new ReturnInfo(VariantType.Bool)
+        context.BindMethod(new StringName(nameof(Unchecked.defaultof<ScriptSession>.HasProperty)), new ParameterInfo(new StringName("name"), VariantType.String), returnInfo, fun (session : ScriptSession) (name: StringName) -> session.HasProperty(name))
+        
 
     member _.BuildDummy(name: string) =
 
@@ -240,7 +257,7 @@ module {name} =
 
 
     member _.ParseScript(scriptCode: string) =
-        let scriptPath = $"{this.ClassName}.fsx"
+        let scriptPath = $"{this.GetClassName()}.fsx"
 
         let scriptCode =
             $"{scriptCode}{scriptInit}" |> SourceText.ofString
@@ -281,6 +298,27 @@ module {name} =
             |> PersistentHashMap.ofSeq 
         
 
+    member _.GetPropertyList(propertyList : GodotArray<GodotDictionary>) =
+        for field in this.PropertyList do
+            let propertyInfo = new GodotDictionary()
+            propertyInfo.Add(propertyInfoName, field.Name)
+            if field.OfType = VariantType.Object then
+                propertyInfo.Add(propertyInfoClassName, field.OfTypeName)
+            else
+                propertyInfo.Add(propertyInfoClassName, new StringName(""))
+            propertyInfo.Add(propertyInfoType, Variant.From(&field.OfType))
+            propertyInfo.Add(propertyInfoHint, Variant.From(&field.PropertyHint))
+            propertyInfo.Add(propertyInfoHintString, Variant.From(&field.HintText))
+            propertyInfo.Add(propertyInfoUsage, Variant.From(&field.UsageFlags))
+            propertyList.Add(propertyInfo)
+    
+    member _.HasProperty(name: StringName) =
+        match info
+        with
+        | None -> false
+        | Some info ->
+            info.StateToGenerate.ExportedFields |> List.exists (fun f -> f.Name = name)    
+
     member _.GetPropertyNames() =
         let exportedFields =
             match info with
@@ -290,24 +328,3 @@ module {name} =
         exportedFields
         |> List.map _.Name     
 
-
-    member _.Get(name: StringName, ret: outref<obj>) =
-        if exportedFieldValues.ContainsKey(name) then
-            ret <- PersistentHashMap.find name exportedFieldValues
-            true
-        else
-            ret <- null
-            false
-
-    member _.Set(name: StringName, value: obj) =
-        match info
-        with
-        | None -> false
-        | Some info ->  
-            if info.StateToGenerate.ExportedFields |> List.exists (fun f -> f.Name = name) then
-                exportedFieldValues <- exportedFieldValues |> PersistentHashMap.add name value
-                true
-            else
-                false
-
-// member _.CreateBaseObject():

@@ -1,39 +1,19 @@
 use std::collections::HashMap;
-use std::ffi::c_void;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use godot::builtin::GString;
-use godot::classes::{Engine, IScriptLanguageExtension, Os, ProjectSettings, Script, ScriptLanguageExtension};
+use godot::classes::{ClassDb, Engine, IScriptLanguageExtension, Os, ProjectSettings, Script, ScriptLanguageExtension};
 use godot::classes::script_language::ScriptNameCasing;
 use godot::global::Error;
 use godot::prelude::*;
-use godot::sys::{GDExtensionConstStringNamePtr, GDExtensionConstVariantPtr, GDExtensionInterface, GDExtensionPropertyInfo, GDExtensionVariantPtr, get_interface};
-use netcorehost::{nethost, pdcstr};
-use netcorehost::hostfxr::ManagedFunction;
-use netcorehost::pdcstring::PdCString;
 
 use crate::fsx_script::FsxScript;
-
-#[repr(C)]
-#[derive(Clone)]
-pub(crate) struct DotnetMethods {
-    pub(crate) init: extern "system" fn(*const GDExtensionInterface),
-    pub(crate) init_fsx_script: extern "system" fn(GString),
-    pub(crate) create_session: extern "system" fn() -> *const c_void,
-    pub(crate) get_class_name: extern "system" fn(*const c_void) -> GString,
-    pub(crate) parse_script: extern "system" fn(*const c_void, GString),
-    pub(crate) get_base_type: extern "system" fn(*const c_void) -> GString,
-    pub(crate) get_property_list: extern "system" fn(*const c_void, *mut u32) -> *const GDExtensionPropertyInfo,
-    pub(crate) get_property: extern "system" fn(*const c_void, GDExtensionConstStringNamePtr, GDExtensionVariantPtr) -> bool,
-    pub(crate) set_property: extern "system" fn(*const c_void, GDExtensionConstStringNamePtr, GDExtensionConstVariantPtr) -> bool,
-}
 
 #[derive(GodotClass)]
 #[class(base = ScriptLanguageExtension)]
 pub(crate) struct FsxScriptLanguage {
     base: Base<ScriptLanguageExtension>,
     pub(crate) scripts: HashMap<GString, Gd<FsxScript>>,
-    pub(crate) dotnet_methods: DotnetMethods,
 }
 
 #[godot_api]
@@ -71,41 +51,16 @@ impl FsxScriptLanguage {
 #[godot_api]
 impl IScriptLanguageExtension for FsxScriptLanguage {
     fn init(base: Base<Self::Base>) -> Self {
-        let hostfxr = nethost::load_hostfxr().unwrap();
         let root_path = if Os::singleton().has_feature(GString::from("editor")) {
             ProjectSettings::singleton().globalize_path(GString::from("res://"))
         } else {
             GString::from(PathBuf::from(Os::singleton().get_executable_path().to_string()).parent().unwrap().to_string_lossy().to_string())
         };
 
-        let fsx_script_path = PathBuf::from(root_path.to_string()).join(Path::new("addons/fsx-script"));
+        let session = ClassDb::singleton().instantiate(StringName::from("ScriptSession"));
 
-        let config_path = fsx_script_path.join(Path::new("bin/FSXScript.Editor.runtimeconfig.json"));
-        let config_path = PdCString::from_os_str(config_path.as_os_str()).unwrap();
-        let dll_path = fsx_script_path.join(Path::new("bin/FSXScript.Editor.dll"));
-        let dll_path = PdCString::from_os_str(dll_path.as_os_str()).unwrap();
-
-        let context = hostfxr
-            .initialize_for_runtime_config(config_path)
-            .unwrap();
-        let fn_loader = context
-            .get_delegate_loader_for_assembly(dll_path)
-            .unwrap();
-
-
-        let result: Result<ManagedFunction<extern "system" fn() -> DotnetMethods>, _> = fn_loader.get_function_with_unmanaged_callers_only::<fn() -> DotnetMethods>(
-            pdcstr!("FSXScript.Editor.Main, FSXScript.Editor"),
-            pdcstr!("GetMethods"),
-        );
-
-        let get_dotnet_methods = result.unwrap();
-        let dotnet_methods = get_dotnet_methods();
-        let init = dotnet_methods.init;
-        let interface = unsafe { get_interface() };
-        init(interface);
-        let init_fsx_script = dotnet_methods.init_fsx_script;
-        init_fsx_script(root_path);
-        Self { base, scripts: HashMap::new(), dotnet_methods }
+        session.call(StringName::from("SetBasePath"), &[root_path.to_variant()]);
+        Self { base, scripts: HashMap::new() }
     }
 
     fn get_name(&self) -> GString {

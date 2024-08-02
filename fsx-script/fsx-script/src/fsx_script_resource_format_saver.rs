@@ -1,10 +1,12 @@
-use crate::fsx_script::FsxScript;
-use godot::prelude::*;
-use godot::classes::{IResourceFormatSaver, ResourceFormatSaver, FileAccess};
+use godot::classes::{FileAccess, IResourceFormatSaver, ResourceFormatSaver};
 use godot::classes::file_access::ModeFlags;
 use godot::global::Error;
+use godot::prelude::*;
+
+use crate::fsx_script::FsxScript;
+
 #[derive(GodotClass)]
-#[class(base=ResourceFormatSaver)]
+#[class(base = ResourceFormatSaver)]
 pub(crate) struct FsxScriptResourceFormatSaver {
     base: Base<ResourceFormatSaver>,
 }

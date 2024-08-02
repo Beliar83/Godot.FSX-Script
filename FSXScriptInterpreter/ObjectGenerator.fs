@@ -64,9 +64,9 @@ module ObjectGenerator =
 
     type ToGenerateInfo =
         { ModuleNameToOpen: string
-          Extending: string
+          Extending: StringName
           ExtendingNamespace : string
-          Name: string
+          Name: StringName
           StateToGenerate: StateToGenerate
           methods: List<MethodsToGenerate> }  
 
@@ -316,9 +316,9 @@ module ObjectGenerator =
 
         {
 
-            Extending = node.TypeDefinition.DisplayName
+            Extending = new StringName(node.TypeDefinition.DisplayName)
             ExtendingNamespace = GeneratorHelper.getScope node.TypeDefinition 
-            Name = entity.DisplayName
+            Name = new StringName(entity.DisplayName)
             methods =
                 [ for method in methods do
                       let returnParameter =
