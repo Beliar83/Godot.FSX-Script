@@ -2,8 +2,10 @@
 
 open System
 open System.IO
+open System.Runtime.InteropServices
 open System.Text
 open FSharp.Compiler.CodeAnalysis
+open FSharp.Compiler.Diagnostics
 open FSharp.Compiler.Interactive.Shell
 open FSharp.Compiler.Symbols
 open FSharp.Compiler.Text
@@ -17,7 +19,7 @@ open Microsoft.FSharp.Core
 type VariantType = Godot.VariantType
 
 type ScriptSession() as this =
-    inherit Resource()   
+    inherit GodotObject()   
         
     static let mutable basePath: string = ""
     static let propertyInfoName = new StringName("Name")
@@ -57,7 +59,7 @@ type ScriptSession() as this =
     let mutable info : Option<ToGenerateInfo> = None
     let mutable checkResults : Option<FSharpCheckFileResults> = None
 
-    let scriptInit =
+    static let scriptInit =
         "#r \"Godot.Bindings\"
 open Godot.NativeInterop
 
@@ -174,6 +176,16 @@ let Init = Godot.Bridge.GodotBridge.Initialize
         context.BindMethod(new StringName(nameof(Unchecked.defaultof<ScriptSession>.GetPropertyList)), new ParameterInfo(new StringName("propertyList"), VariantType.Array, Hint = PropertyHint.ArrayType, HintString = "Dictionary"), fun (session : ScriptSession) (propertyList: GodotArray<GodotDictionary>) -> session.GetPropertyList(propertyList))              
         let mutable returnInfo = new ReturnInfo(VariantType.Bool)
         context.BindMethod(new StringName(nameof(Unchecked.defaultof<ScriptSession>.HasProperty)), new ParameterInfo(new StringName("name"), VariantType.String), returnInfo, fun (session : ScriptSession) (name: StringName) -> session.HasProperty(name))
+        let validateFun = (fun (session : ScriptSession)  -> session.Validate)
+        context.BindMethod(new StringName(nameof(Unchecked.defaultof<ScriptSession>.Validate)),
+                           new ParameterInfo(new StringName("validationResult"), VariantType.Dictionary),
+                           new ParameterInfo(new StringName("script"), VariantType.String),
+                           new ParameterInfo(new StringName("path"), VariantType.String),
+                           new ParameterInfo(new StringName("validateFunctions"), VariantType.Bool),
+                           new ParameterInfo(new StringName("validateErrors"), VariantType.Bool),
+                           new ParameterInfo(new StringName("validateWarnings"), VariantType.Bool),
+                           new ParameterInfo(new StringName("validateSafeLines"), VariantType.Bool),
+                           validateFun)
         
 
     member _.BuildDummy(name: string) =
@@ -254,11 +266,7 @@ module {name} =
         if sbErr.Length > 0 then
             sbErr.Clear() |> ignore
 
-
-
-    member _.ParseScript(scriptCode: string) =
-        let scriptPath = $"{this.GetClassName()}.fsx"
-
+    member _.ParseScript(scriptCode: string, scriptPath: string) =
         let scriptCode =
             $"{scriptCode}{scriptInit}" |> SourceText.ofString
 
@@ -268,10 +276,11 @@ module {name} =
             checker.GetProjectOptionsFromScript(scriptPath, scriptCode)
             |> Async.RunSynchronously
 
-        let parseResults, parseAnswer =
-            checker.ParseAndCheckFileInProject(scriptPath, 0, scriptCode, options)
+        checker.ParseAndCheckFileInProject(scriptPath, 0, scriptCode, options)
             |> Async.RunSynchronously
-
+    member _.ParseScript(scriptCode: string) =
+        let scriptPath = $"{this.GetClassName()}.fsx"        
+        let parseResults, parseAnswer = this.ParseScript(scriptCode, scriptPath)
 
         results <- Some(parseResults)
 
@@ -299,6 +308,8 @@ module {name} =
         
 
     member _.GetPropertyList(propertyList : GodotArray<GodotDictionary>) =
+        // TODO: Make example project and create bug
+        GCHandle.Alloc(propertyList) |> ignore
         for field in this.PropertyList do
             let propertyInfo = new GodotDictionary()
             propertyInfo.Add(propertyInfoName, field.Name)
@@ -326,5 +337,62 @@ module {name} =
             | Some info ->
                 info.StateToGenerate.ExportedFields
         exportedFields
-        |> List.map _.Name     
+        |> List.map _.Name
+    
+    member _.Validate(validationResult : GodotDictionary) (script: string) (path: string) (validateFunctions: bool) (validateErrors: bool) (validateWarnings: bool)  (validateSafeLines: bool) =        
+        GCHandle.Alloc(validationResult) |> ignore
+        let path  =
+            if String.IsNullOrWhiteSpace path then
+                "dummy.fsx"
+            elif not <| path.EndsWith ".fsx" then
+                $"{path}.fsx"
+            else
+                path
+        let path =
+            let index = path.IndexOf("://")
+            if index >= 0 then
+                path.Substring(index + 3)
+            else
+                path
+        let parseResults, _ = this.ParseScript(script, path)
+        let results =
+            match parseResults with
+            | fileResults -> fileResults
+        if results.Diagnostics.Length > 0 then
+            let isValid = not <| (results.Diagnostics |> Array.exists (fun x -> x.Severity = FSharpDiagnosticSeverity.Error))
+            printfn $"Valid: {isValid}"
+            validationResult.Add("valid", isValid)
+            if validateErrors then
+                printfn "Getting errors"
+                let errorList = validationResult["errors"].AsGodotArray()
+                // TODO: Make example project and create bug
+                GCHandle.Alloc(errorList) |> ignore
+                for error in results.Diagnostics |> Array.filter (fun x -> x.Severity = FSharpDiagnosticSeverity.Error) do
+                    let errorData = new GodotDictionary()
+                    GCHandle.Alloc(errorData) |> ignore
+                    errorData.Add("line", error.StartLine)
+                    errorData.Add("column", error.StartColumn)
+                    errorData.Add("message", error.Message)
+                    errorList.Add(errorData)
+            if validateWarnings then
+                printfn "Getting Warnings"
+                let warningList = validationResult["warnings"].AsGodotArray()
+                GCHandle.Alloc(warningList) |> ignore
+                for warning in results.Diagnostics |> Array.filter (fun x -> x.Severity = FSharpDiagnosticSeverity.Warning) do
+                    let warningData = new GodotDictionary()
+                    // TODO: Make example project and create bug
+                    GCHandle.Alloc(warningData) |> ignore
+                    warningData.Add("start_line", warning.StartLine)
+                    warningData.Add("end_line", warning.EndLine)
+                    warningData.Add("leftmost_column", warning.StartColumn)
+                    warningData.Add("rightmost_column", warning.EndColumn)
+                    warningData.Add("code", warning.ErrorNumber)
+                    warningData.Add("string_code", warning.ErrorNumberText)
+                    warningData.Add("message", warning.Message)
+                    warningList.Add(warningData)
+            printfn "ScriptSession: Returning"
+        else
+            printfn "Valid: true"
+            validationResult.Add("valid", true)
+            printfn "ScriptSession: Returning"
 

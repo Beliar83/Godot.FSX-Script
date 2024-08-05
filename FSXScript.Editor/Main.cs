@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using FSXScriptCompiler;
+using Godot;
 using Godot.Bridge;
 using ClassDB = Godot.Bridge.ClassDB;
 
@@ -10,6 +11,8 @@ namespace FSXScript.Editor;
 
 public class Main
 {
+    private static ScriptSession? _generalScriptSession;
+
     [UnmanagedCallersOnly(EntryPoint = "EditorInit")]
     public static bool Init(nint getProcAddress, nint library, nint initialization)
     {
@@ -25,14 +28,23 @@ public class Main
 
     public static void InitializeEditorTypes(InitializationLevel level)
     {
-        if (level != InitializationLevel.Servers)
+        if (level != InitializationLevel.Scene)
         {
             return;
         }
 
         ClassDB.RegisterClass<ScriptSession>(ScriptSession.BindMethods);
+        _generalScriptSession = new ScriptSession();
+        Engine.Singleton.RegisterSingleton(new StringName("GeneralFsxScriptSession"), _generalScriptSession);
     }
 
     public static void DeinitializeEditorTypes(InitializationLevel level)
-    { }
+    {
+        if (level != InitializationLevel.Scene)
+        {
+            return;
+        }
+
+        _generalScriptSession = null;
+    }
 }

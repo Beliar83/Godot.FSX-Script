@@ -2,11 +2,11 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 use godot::builtin::GString;
-use godot::classes::{ClassDb, Engine, IScriptLanguageExtension, Os, ProjectSettings, Script, ScriptLanguageExtension};
+use godot::classes::{Engine, IScriptLanguageExtension, Os, ProjectSettings, Script, ScriptLanguageExtension};
 use godot::classes::script_language::ScriptNameCasing;
 use godot::global::Error;
 use godot::prelude::*;
-
+use lazy_static::lazy_static;
 use crate::fsx_script::FsxScript;
 
 #[derive(GodotClass)]
@@ -15,6 +15,10 @@ pub(crate) struct FsxScriptLanguage {
     base: Base<ScriptLanguageExtension>,
     pub(crate) scripts: HashMap<GString, Gd<FsxScript>>,
 }
+
+lazy_static!(static ref GENERAL_SCRIPT_SESSION_NAME : StringName = {
+    StringName::from("GeneralFsxScriptSession")
+};);
 
 #[godot_api]
 impl FsxScriptLanguage {
@@ -51,15 +55,6 @@ impl FsxScriptLanguage {
 #[godot_api]
 impl IScriptLanguageExtension for FsxScriptLanguage {
     fn init(base: Base<Self::Base>) -> Self {
-        let root_path = if Os::singleton().has_feature(GString::from("editor")) {
-            ProjectSettings::singleton().globalize_path(GString::from("res://"))
-        } else {
-            GString::from(PathBuf::from(Os::singleton().get_executable_path().to_string()).parent().unwrap().to_string_lossy().to_string())
-        };
-
-        let session = ClassDb::singleton().instantiate(StringName::from("ScriptSession"));
-
-        session.call(StringName::from("SetBasePath"), &[root_path.to_variant()]);
         Self { base, scripts: HashMap::new() }
     }
 
@@ -70,6 +65,14 @@ impl IScriptLanguageExtension for FsxScriptLanguage {
 
     fn init_ext(&mut self) {
         godot_print!("FsxScriptLanguage - init_ext");
+        let root_path = if Os::singleton().has_feature(GString::from("editor")) {
+            ProjectSettings::singleton().globalize_path(GString::from("res://"))
+        } else {
+            GString::from(PathBuf::from(Os::singleton().get_executable_path().to_string()).parent().unwrap().to_string_lossy().to_string())
+        };
+        
+        let mut session = Engine::singleton().get_singleton(GENERAL_SCRIPT_SESSION_NAME.clone()).unwrap();
+        session.call(StringName::from("SetBasePath"), &[root_path.to_variant()]);
     }
 
     fn get_type(&self) -> GString {
@@ -141,15 +144,26 @@ let _process(self : Base, delta: float) =
 
     fn validate(
         &self,
-        _script: GString,
-        _path: GString,
-        _validate_functions: bool,
-        _validate_errors: bool,
-        _validate_warnings: bool,
-        _validate_safe_lines: bool,
+        script: GString,
+        path: GString,
+        validate_functions: bool,
+        validate_errors: bool,
+        validate_warnings: bool,
+        validate_safe_lines: bool,
     ) -> Dictionary {
-        godot_print!("FsxScriptLanguage - validate");
-        Dictionary::new()
+        let script : String = script.to_string();
+
+        let mut result = Dictionary::new();
+        if validate_errors {
+            result.set("errors", Array::<Dictionary>::new());
+        }
+        if validate_warnings {
+            result.set("warnings", Array::<Dictionary>::new());
+        }
+
+        let mut session = Engine::singleton().get_singleton(GENERAL_SCRIPT_SESSION_NAME.clone()).unwrap();
+        session.call(StringName::from("Validate"), &[result.to_variant(), script.to_variant(), path.to_variant(), validate_functions.to_variant(), validate_errors.to_variant(), validate_warnings.to_variant(), validate_safe_lines.to_variant()]);
+        result
     }
 
     fn validate_path(&self, _path: GString) -> GString {
