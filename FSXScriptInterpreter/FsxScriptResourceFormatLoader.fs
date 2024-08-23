@@ -7,7 +7,7 @@ open Godot.Collections
 
 type FsxScriptResourceFormatLoader() as this =
     inherit ResourceFormatLoader()
-    
+
     static member extensions = [|"fsx"|]
     static member recognizedExtensions = new PackedStringArray(FsxScriptResourceFormatLoader.extensions)
     static member typeName = new StringName("Script")

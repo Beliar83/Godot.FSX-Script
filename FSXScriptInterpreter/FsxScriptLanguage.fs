@@ -18,8 +18,7 @@ type FsxScriptLanguage() =
     override _._GetName() =
         "FsxScriptLanguage"
     override this._GetType() =
-        GD.Print("GetType")
-        base._GetType()
+        "FsxScript"
     override this._GetExtension() =
         "fsx"
     override this._Finish() =
@@ -32,14 +31,16 @@ type FsxScriptLanguage() =
         GD.Print("IsControlFlowKeyword")
         base._IsControlFlowKeyword(keyword)
     override this._GetCommentDelimiters() =
-        GD.Print("GetCommentDelimiters")
-        new PackedStringArray()
+        new PackedStringArray(["//"])
     override this._GetDocCommentDelimiters() =
         GD.Print("GetDocCommentDelimiters")
         new PackedStringArray()
     override this._GetStringDelimiters() =
-        GD.Print("GetStringDelimiters")
-        new PackedStringArray()
+        let list = new PackedStringArray()
+        list.Add("\" \"")
+        list.Add("' '")
+        list.Add("@\" \"")
+        list
     override this._MakeTemplate(template, className, baseClassName) =
         let code =
             $"""module {className}
