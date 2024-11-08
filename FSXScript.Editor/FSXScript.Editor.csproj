@@ -5,18 +5,36 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-        <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+        <PublishAot>true</PublishAot>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
-      <None Update="test.fsx">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+        <None Update="test.fsx">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\FSXScriptInterpreter\FSXScriptInterpreter.fsproj" />
-      <ProjectReference Include="..\godot-dotnet\src\Godot.Bindings\Godot.Bindings.csproj" />
+        <ProjectReference Include="..\FSXScriptLanguage\FSXScriptLanguage.fsproj"/>
+        <ProjectReference Include="..\godot-dotnet\src\Godot.Bindings\Godot.Bindings.csproj"/>
     </ItemGroup>
+
+    <Target Name="PrepareForNativeBuild" AfterTargets="Build">
+        <PropertyGroup>
+            <NetHostDir>$(NetCoreTargetingPackRoot)/Microsoft.NETCore.App.Host.$(NETCoreSdkRuntimeIdentifier)/$(BundledNETCoreAppPackageVersion)/runtimes/$(NETCoreSdkRuntimeIdentifier)/native</NetHostDir>
+            <NetHostName Condition="$([MSBuild]::IsOsPlatform('Windows'))">libnethost.lib</NetHostName>
+            <NetHostName Condition="!$([MSBuild]::IsOsPlatform('Windows'))">libnethost.a</NetHostName>
+        </PropertyGroup>
+
+        <ItemGroup>
+            <NativeLibrary Include="$(NetHostDir)/$(NetHostName)"/>
+        </ItemGroup>
+
+        <ItemGroup Condition="!$([MSBuild]::IsOsPlatform('Windows'))">
+            <!-- This is needed by libnethost.a. -->
+            <LinkerArg Include="-lstdc++"/>
+        </ItemGroup>
+    </Target>
 
 </Project>

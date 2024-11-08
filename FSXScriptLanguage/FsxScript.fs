@@ -1,13 +1,22 @@
 namespace FSXScriptInterpreter
 
+open System
 open FSXScriptInterpreter.FsxScriptInstance
 open Godot
 open Godot.Bridge
 open Godot.Collections
+open FSXScriptLanguage
 
 type FsxScript() as this =
     inherit ScriptExtension()
     let mutable sourceCode: string = null
+    static let mutable createSession: Func<IScriptSession> = Unchecked.defaultof<_>
+
+    let session: IScriptSession = createSession.Invoke()
+
+    static member CreateSession
+        with get () = createSession
+        and set (value) = createSession <- value
 
     static member val LanguageName = new StringName("FsxScriptLanguage")
     static member val ClassName = new StringName(nameof FsxScript)
@@ -48,7 +57,7 @@ type FsxScript() as this =
 
     override _._GetGlobalName() =
         GD.Print("GetGlobalName")
-        null
+        new StringName(session.GetClassName())
 
     override _._GetInstanceBaseType() =
         GD.Print("GetInstanceBaseType")
@@ -107,7 +116,10 @@ type FsxScript() as this =
 
     override _._HasSourceCode() = sourceCode <> null
     override _._GetSourceCode() = sourceCode
-    override _._SetSourceCode(code) = sourceCode <- code
+
+    override _._SetSourceCode(code) =
+        sourceCode <- code
+        session.ParseScript(code)
 
     override _._Reload(keepState) =
         GD.Print("_Reload")

@@ -48,6 +48,7 @@ type FsxScriptLanguage() =
     override this._MakeTemplate(template, className, baseClassName) =
         let code =
             $"""module {className}
+open Godot
 
 //This sets the godot class to inherit from
 type Base = {baseClassName}

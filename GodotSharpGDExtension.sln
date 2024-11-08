@@ -17,6 +17,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Godot.BindingsGenerator.Ref
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Godot.SourceGenerators", "godot-dotnet\src\Godot.SourceGenerators\Godot.SourceGenerators.csproj", "{59014A0D-4EB6-4985-AEB7-95CD24F86209}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSXScriptLanguage", "FSXScriptLanguage\FSXScriptLanguage.fsproj", "{F6762342-43CF-4BD8-B734-0AE58CB5AC3B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FSXScriptInterpreter.Interop", "FSXScriptInterpreter.Interop\FSXScriptInterpreter.Interop.csproj", "{2B1457DD-44F1-442F-97B4-C3D853BCD0EB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +55,14 @@ Global
 		{59014A0D-4EB6-4985-AEB7-95CD24F86209}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{59014A0D-4EB6-4985-AEB7-95CD24F86209}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{59014A0D-4EB6-4985-AEB7-95CD24F86209}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6762342-43CF-4BD8-B734-0AE58CB5AC3B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6762342-43CF-4BD8-B734-0AE58CB5AC3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6762342-43CF-4BD8-B734-0AE58CB5AC3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6762342-43CF-4BD8-B734-0AE58CB5AC3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2B1457DD-44F1-442F-97B4-C3D853BCD0EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2B1457DD-44F1-442F-97B4-C3D853BCD0EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2B1457DD-44F1-442F-97B4-C3D853BCD0EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2B1457DD-44F1-442F-97B4-C3D853BCD0EB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
