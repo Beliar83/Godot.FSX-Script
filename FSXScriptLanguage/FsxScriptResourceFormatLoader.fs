@@ -44,6 +44,6 @@ type FsxScriptResourceFormatLoader() as this =
 
         let code = file.GetAsText()
         let script = new FsxScript()
-        script.SetSourceCode(code)
         script.SetPath(path)
+        script.SetSourceCode(code)
         Variant.CreateFrom(script)

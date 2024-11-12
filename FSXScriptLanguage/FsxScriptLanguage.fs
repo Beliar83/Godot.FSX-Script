@@ -72,12 +72,12 @@ let _process(self : Base) (delta: float) =
         false
 
     override this._Validate(script, path, validateFunctions, validateErrors, validateWarnings, validateSafeLines) =
-        GD.Print("date")
+        GD.Print("_Validate")
         new GodotDictionary()
 
     override this._ValidatePath(path) =
         GD.Print("ValidatePath")
-        path
+        ""
 
     override this._HasNamedClasses() =
         GD.Print("HasNamedClasses")

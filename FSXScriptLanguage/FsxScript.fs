@@ -1,22 +1,15 @@
 namespace FSXScriptInterpreter
 
-open System
 open FSXScriptInterpreter.FsxScriptInstance
 open Godot
 open Godot.Bridge
 open Godot.Collections
-open FSXScriptLanguage
+open LspService
 
 type FsxScript() as this =
     inherit ScriptExtension()
     let mutable sourceCode: string = null
-    static let mutable createSession: Func<IScriptSession> = Unchecked.defaultof<_>
-
-    let session: IScriptSession = createSession.Invoke()
-
-    static member CreateSession
-        with get () = createSession
-        and set (value) = createSession <- value
+    let session: ScriptSession = ScriptSession.CreateScriptSession(this)
 
     static member val LanguageName = new StringName("FsxScriptLanguage")
     static member val ClassName = new StringName(nameof FsxScript)
@@ -115,11 +108,12 @@ type FsxScript() as this =
         false
 
     override _._HasSourceCode() = sourceCode <> null
+
     override _._GetSourceCode() = sourceCode
 
     override _._SetSourceCode(code) =
         sourceCode <- code
-        session.ParseScript(code)
+        session.NotifyScriptChange()
 
     override _._Reload(keepState) =
         GD.Print("_Reload")
@@ -160,3 +154,7 @@ type FsxScript() as this =
     override _._IsPlaceholderFallbackEnabled() =
         GD.Print("_IsPlaceholderFallbackEnabled")
         false
+
+    override this.Dispose(disposing) =
+        session.NotifyScriptClose()
+        base.Dispose(disposing)

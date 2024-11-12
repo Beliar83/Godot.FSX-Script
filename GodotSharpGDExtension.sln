@@ -19,7 +19,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Godot.SourceGenerators", "g
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FSXScriptLanguage", "FSXScriptLanguage\FSXScriptLanguage.fsproj", "{F6762342-43CF-4BD8-B734-0AE58CB5AC3B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FSXScriptInterpreter.Interop", "FSXScriptInterpreter.Interop\FSXScriptInterpreter.Interop.csproj", "{2B1457DD-44F1-442F-97B4-C3D853BCD0EB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LspService", "LspService\LspService.csproj", "{C47861D0-8018-4642-8124-21A9B4391E54}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TestProject", "TestProject\TestProject.fsproj", "{69CEA7BD-AC0C-493E-89C5-800BFA432BF9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -59,10 +61,14 @@ Global
 		{F6762342-43CF-4BD8-B734-0AE58CB5AC3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F6762342-43CF-4BD8-B734-0AE58CB5AC3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F6762342-43CF-4BD8-B734-0AE58CB5AC3B}.Release|Any CPU.Build.0 = Release|Any CPU
-		{2B1457DD-44F1-442F-97B4-C3D853BCD0EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{2B1457DD-44F1-442F-97B4-C3D853BCD0EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{2B1457DD-44F1-442F-97B4-C3D853BCD0EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{2B1457DD-44F1-442F-97B4-C3D853BCD0EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C47861D0-8018-4642-8124-21A9B4391E54}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C47861D0-8018-4642-8124-21A9B4391E54}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C47861D0-8018-4642-8124-21A9B4391E54}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C47861D0-8018-4642-8124-21A9B4391E54}.Release|Any CPU.Build.0 = Release|Any CPU
+		{69CEA7BD-AC0C-493E-89C5-800BFA432BF9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{69CEA7BD-AC0C-493E-89C5-800BFA432BF9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{69CEA7BD-AC0C-493E-89C5-800BFA432BF9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{69CEA7BD-AC0C-493E-89C5-800BFA432BF9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
