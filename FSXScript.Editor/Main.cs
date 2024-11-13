@@ -46,17 +46,21 @@ public static class Main
 
     public static void DeinitializeFsxScriptTypes(InitializationLevel level)
     {
-        if (level != InitializationLevel.Scene)
+        // ReSharper disable once SwitchStatementMissingSomeEnumCasesNoDefault
+        switch (level)
         {
-            return;
+            case InitializationLevel.Scene:
+                ResourceLoader.Singleton.RemoveResourceFormatLoader(fsxScriptResourceFormatLoader);
+                ResourceSaver.Singleton.RemoveResourceFormatSaver(fsxScriptResourceFormatSaver);
+                Engine.Singleton.UnregisterSingleton(FsxScript.LanguageName);
+                Engine.Singleton.UnregisterScriptLanguage(fsxScriptLanguage);
+                fsxScriptLanguage = null;
+                fsxScriptResourceFormatSaver = null;
+                break;
+            case InitializationLevel.Editor:
+                LspService.LspService.ShutdownAndExit();
+                break;
         }
-
-        ResourceLoader.Singleton.RemoveResourceFormatLoader(fsxScriptResourceFormatLoader);
-        ResourceSaver.Singleton.RemoveResourceFormatSaver(fsxScriptResourceFormatSaver);
-        Engine.Singleton.UnregisterSingleton(FsxScript.LanguageName);
-        Engine.Singleton.UnregisterScriptLanguage(fsxScriptLanguage);
-        fsxScriptLanguage = null;
-        fsxScriptResourceFormatSaver = null;
     }
 
     [UnmanagedCallersOnly(EntryPoint = "fsx_script_init")]

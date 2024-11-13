@@ -34,9 +34,11 @@ public class LspService
     private static readonly Dictionary<string, int> ScriptVersions = new();
     private static readonly Queue<Action> QueuedActions = new();
 
+    private static bool shuttingDown;
+
     [MemberNotNullWhen(true, nameof(lspClient))]
     [MemberNotNullWhen(true, nameof(lspProcess))]
-    public static bool IsLspRunning => lspClient is not null || lspProcess is not null;
+    public static bool IsLspRunning => !shuttingDown && lspClient is not null || lspProcess is not null;
 
     [MemberNotNullWhen(true, nameof(lspClient))]
     [MemberNotNullWhen(true, nameof(lspProcess))]
@@ -137,12 +139,38 @@ public class LspService
         return false;
     }
 
+    public static void ShutdownAndExit()
+    {
+        if (!IsLspRunning) return;
+        GD.Print("Shutting down F# LSP Server");
+        shuttingDown = true;
+        JsonRpcResponse? rpcResponse = lspClient.Send("shutdown");
+        if (rpcResponse?.Error is not null)
+        {
+            GD.PrintErr($"Error when shutting down F# LSP Server: {rpcResponse.Error.Message}");
+        }
+        else if (rpcResponse is null)
+        {
+            GD.PrintErr("Error when shutting down F# LSP Server: Unknown error");
+        }
+
+        lspClient.Send("exit");
+        lspProcess.Close();
+        lspClient = null;
+        lspProcess = null;
+    }
+
     public static void ScriptOpened(Uri scriptPath, string scriptSourceCode)
     {
         if (ScriptVersions.ContainsKey(scriptPath.AbsolutePath)) return;
 
         if (!IsLspRunning)
         {
+            if (shuttingDown)
+            {
+                return;
+            }
+
             GD.PrintErr("ScriptOpened: F# LSP Server is not running");
             QueuedActions.Enqueue(() => ScriptOpened(scriptPath, scriptSourceCode));
             return;
@@ -177,6 +205,11 @@ public class LspService
     {
         if (!IsLspRunning)
         {
+            if (shuttingDown)
+            {
+                return;
+            }
+
             GD.PrintErr("ScriptOpened: F# LSP Server is not running");
             QueuedActions.Enqueue(() => ScriptClosed(scriptPath));
             return;
@@ -205,6 +238,11 @@ public class LspService
     {
         if (!IsLspRunning)
         {
+            if (shuttingDown)
+            {
+                return;
+            }
+
             GD.PrintErr("ScriptChanged: F# LSP Server is not running");
             QueuedActions.Enqueue(() => ScriptChanged(scriptPath, scriptSourceCode));
             return;
