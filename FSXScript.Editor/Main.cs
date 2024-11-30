@@ -35,10 +35,10 @@ public static class Main
                 ResourceLoader.Singleton.AddResourceFormatLoader(fsxScriptResourceFormatLoader);
                 break;
             case InitializationLevel.Editor:
-                if (!LspService.LspService.StartLsp())
-                {
-                    GD.PrintErr("Could not start LSP service");
-                }
+                 // if (!LspService.LspService.StartLsp())
+                // {
+                //     GD.PrintErr("Could not start LSP service");
+                // }
 
                 break;
         }
@@ -58,7 +58,7 @@ public static class Main
                 fsxScriptResourceFormatSaver = null;
                 break;
             case InitializationLevel.Editor:
-                LspService.LspService.ShutdownAndExit();
+                // LspService.LspService.ShutdownAndExit();
                 break;
         }
     }

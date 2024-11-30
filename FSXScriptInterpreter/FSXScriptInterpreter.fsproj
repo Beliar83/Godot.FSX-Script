@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <Compile Include="GodotStubs.fs"/>
+        <Compile Include="IScriptSession.fs" />
         <Compile Include="TypeNameToGodotType.fs"/>
         <Compile Include="Variant.fs"/>
         <Compile Include="ScriptSession.fs"/>

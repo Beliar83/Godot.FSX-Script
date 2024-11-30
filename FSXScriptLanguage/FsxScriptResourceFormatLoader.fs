@@ -22,9 +22,12 @@ type FsxScriptResourceFormatLoader() as this =
         FsxScriptResourceFormatLoader.recognizedExtensions
 
     override _._RecognizePath(path, _type) =
-        this._HandlesType _type
-        && FsxScriptResourceFormatLoader.extensions
-           |> Array.contains (Path.GetExtension(path).Substring(1))
+        GD.Print(path)
+        let extension = Path.GetExtension(path)
+        this._HandlesType _type &&
+        extension.Length > 0 &&
+        FsxScriptResourceFormatLoader.extensions
+           |> Array.contains (extension.Substring(1))
 
     override _._HandlesType(_type) =
         _type.IsEmpty
@@ -43,7 +46,7 @@ type FsxScriptResourceFormatLoader() as this =
             FileAccess.Open(path, FileAccess.ModeFlags.Read)
 
         let code = file.GetAsText()
-        let script = new FsxScript()
+        let script = ClassDB.Singleton.Instantiate(new StringName("FsxScript")).As<ScriptExtension>()
         script.SetPath(path)
         script.SetSourceCode(code)
         Variant.CreateFrom(script)

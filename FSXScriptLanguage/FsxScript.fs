@@ -9,8 +9,11 @@ open LspService
 type FsxScript() as this =
     inherit ScriptExtension()
     let mutable sourceCode: string = null
-    let session: ScriptSession = ScriptSession.CreateScriptSession(this)
+    let session: IScriptSession = ClassDB.Singleton.Instantiate(new StringName "ScriptSession").As<IScriptSession>()
 
+    do
+        session.SetPath this.ResourcePath
+    
     static member val LanguageName = new StringName("FsxScriptLanguage")
     static member val ClassName = new StringName(nameof FsxScript)
 
@@ -113,7 +116,10 @@ type FsxScript() as this =
 
     override _._SetSourceCode(code) =
         sourceCode <- code
-        session.NotifyScriptChange()
+        session.SetCode(code);
+        session.NotifyScriptChangeAsync()
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
 
     override _._Reload(keepState) =
         GD.Print("_Reload")
@@ -156,5 +162,7 @@ type FsxScript() as this =
         false
 
     override this.Dispose(disposing) =
-        session.NotifyScriptClose()
+        session.NotifyScriptCloseAsync()
+        |> Async.AwaitTask
+        |> Async.RunSynchronously
         base.Dispose(disposing)
