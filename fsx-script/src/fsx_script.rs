@@ -1,29 +1,30 @@
+use godot::global::{weakref, Error};
+use godot::prelude::*;
+use godot::sys::types::{OpaqueString, OpaqueStringName};
+use godot::sys::{
+    c_str_from_str, get_interface, GDExtensionInt, GDExtensionPropertyInfo,
+    GDExtensionScriptInstancePtr, GDExtensionStringNamePtr, GDExtensionStringPtr,
+    GDExtensionUninitializedStringNamePtr, GDExtensionUninitializedStringPtr,
+};
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
+use std::convert::From;
 use std::ffi::c_void;
 use std::mem::ManuallyDrop;
 use std::ops::Add;
-
-use godot::classes::{ClassDb, IScriptExtension, Script, ScriptExtension, ScriptLanguage, WeakRef};
-use godot::global::weakref;
-use godot::prelude::*;
-use godot::sys::{c_str_from_str, GDExtensionBool, GDExtensionConstStringNamePtr, GDExtensionConstTypePtr, GDExtensionConstVariantPtr, GDExtensionInt, GDExtensionPropertyInfo, GDExtensionScriptInstancePtr, GDExtensionStringNamePtr, GDExtensionStringPtr, GDExtensionUninitializedStringNamePtr, GDExtensionUninitializedStringPtr, GDExtensionVariantPtr, get_interface, GodotFfi};
-use godot::sys::types::{OpaqueString, OpaqueStringName};
-
+use godot::classes::{IScriptExtension, Script, ScriptExtension, ScriptLanguage};
 use crate::fsx_script_instance::{FsxScriptInstance, FsxScriptPlaceholder};
-use crate::fsx_script_language::FsxScriptLanguage;
+use crate::fsx_script_language::{get_or_create_session, FsxScriptLanguage};
 
 #[derive(GodotClass)]
-#[class(base = ScriptExtension)]
+#[class(base = ScriptExtension, tool)]
 pub(crate) struct FsxScript {
     code: String,
 
     #[var(get = owner_ids, set = set_owner_ids, usage_flags = [STORAGE])]
     #[allow(dead_code)]
     owner_ids: Array<i64>,
-    properties: HashMap<StringName, Variant>,
-    owners: RefCell<Vec<Gd<WeakRef>>>,
-    session: Variant,
+    owners: RefCell<Vec<Gd<Object>>>,
     base: Base<ScriptExtension>,
 }
 
@@ -33,7 +34,9 @@ fn create_string_name_from_string(content: String) -> Vec<OpaqueStringName> {
 
     unsafe {
         let content = content.add("\0");
-        get_interface().string_name_new_with_utf8_chars_and_len.unwrap()(
+        get_interface()
+            .string_name_new_with_utf8_chars_and_len
+            .unwrap()(
             buf.as_mut_ptr() as GDExtensionUninitializedStringNamePtr,
             c_str_from_str(content.as_str()),
             content.len() as GDExtensionInt,
@@ -65,43 +68,80 @@ fn create_godot_string_from_string(content: String) -> Vec<OpaqueString> {
 impl FsxScript {
     #[func]
     pub fn get_class_name(&self) -> GString {
-        println!("get_class_name");
-        let class_name = self.session.call("GetClassName", &[]);
-        let class_name = StringName::from_variant(&class_name);
-        GString::from(class_name)
+        match self.get_session() {
+            None => GString::default(),
+            Some(session) => {
+                let class_name = session.call("GetClassName", &[]);
+                let class_name = StringName::from_variant(&class_name);
+                GString::from(class_name)
+            }
+        }
     }
 
     #[func]
     pub fn get_base_type(&self) -> GString {
-        println!("get_base_type");
-        let base_type = self.session.call("GetBaseType", &[]);
-        let base_type = StringName::from_variant(&base_type);
-        GString::from(base_type)
+        match self.get_session() {
+            None => GString::default(),
+            Some(session) => {
+                let base_type = session.call("GetBaseType", &[]);
+                let base_type = StringName::from_variant(&base_type);
+                GString::from(base_type)
+            }
+        }
     }
 
-    pub(crate) unsafe fn get_property_list(&self, count: *mut u32) -> *const GDExtensionPropertyInfo {
-        let property_list = Array::<Dictionary>::new();
-        self.session.call("GetPropertyList", &[property_list.to_variant()]);
-        let mut buf = Vec::<GDExtensionPropertyInfo>::with_capacity(property_list.len());
+    fn get_session(&self) -> Option<Variant> {
+        get_or_create_session(self.base().get_path())
+    }
 
+    pub(crate) unsafe fn get_property_list(
+        &self,
+        count: *mut u32,
+    ) -> *const GDExtensionPropertyInfo {
+        let property_list = match self.get_session() {
+            None => Array::<Dictionary>::new(),
+            Some(session) => {
+                let variant = session.call("GetProperties", &[]);
+                Array::<Dictionary>::from_variant(&variant)
+            }
+        };
+
+        let mut buf = Vec::<GDExtensionPropertyInfo>::with_capacity(property_list.len());
         for property in property_list.iter_shared() {
-            let name = property.get(StringName::from("Name")).expect("PropertyInfoDictionary was not in the correct format").clone();
+            let name = property
+                .get(StringName::from("Name"))
+                .expect("PropertyInfoDictionary was not in the correct format")
+                .clone();
             let name = ManuallyDrop::new(create_string_name_from_string(name.to_string()));
             let name = name.as_ptr() as GDExtensionStringNamePtr;
 
-            let class_name = property.get(StringName::from("ClassName")).expect("PropertyInfoDictionary was not in the correct format").clone();
-            let class_name = ManuallyDrop::new(create_string_name_from_string(class_name.to_string()));
+            let class_name = property
+                .get(StringName::from("ClassName"))
+                .expect("PropertyInfoDictionary was not in the correct format")
+                .clone();
+            let class_name =
+                ManuallyDrop::new(create_string_name_from_string(class_name.to_string()));
             let class_name = class_name.as_ptr() as GDExtensionStringNamePtr;
 
-            let type_ = property.get(StringName::from("Type")).expect("PropertyInfoDictionary was not in the correct format");
+            let type_ = property
+                .get(StringName::from("Type"))
+                .expect("PropertyInfoDictionary was not in the correct format");
             let type_ = type_.to();
-            let hint = property.get(StringName::from("Hint")).expect("PropertyInfoDictionary was not in the correct format");
+            let hint = property
+                .get(StringName::from("Hint"))
+                .expect("PropertyInfoDictionary was not in the correct format");
             let hint = hint.to();
-            let hint_string = property.get(StringName::from("HintString")).expect("PropertyInfoDictionary was not in the correct format").clone();
-            let hint_string = ManuallyDrop::new(create_godot_string_from_string(hint_string.to_string()));
+            let hint_string = property
+                .get(StringName::from("HintString"))
+                .expect("PropertyInfoDictionary was not in the correct format")
+                .clone();
+            let hint_string =
+                ManuallyDrop::new(create_godot_string_from_string(hint_string.to_string()));
             let hint_string = hint_string.as_ptr() as GDExtensionStringPtr;
 
-            let usage = property.get(StringName::from("Usage")).expect("PropertyInfoDictionary was not in the correct format");
+            let usage = property
+                .get(StringName::from("Usage"))
+                .expect("PropertyInfoDictionary was not in the correct format");
             let usage = usage.to();
             let info = GDExtensionPropertyInfo {
                 name,
@@ -121,31 +161,11 @@ impl FsxScript {
     }
 
     pub(crate) fn has_property(&self, name: &StringName) -> bool {
-        self.session.call("HasProperty", &[name.to_variant()]).booleanize()
-    }
-
-    pub(crate) unsafe fn get_property(&self, name: GDExtensionConstStringNamePtr, value: GDExtensionVariantPtr) -> GDExtensionBool {
-        let name = StringName::new_from_sys(name as GDExtensionConstTypePtr);
-        if self.has_property(&name) {
-            if self.properties.contains_key(&name) {
-                get_interface().variant_duplicate.unwrap()(self.properties[&name].sys() as GDExtensionConstVariantPtr, value, GDExtensionBool::from(false));
-                GDExtensionBool::from(true)
-            } else {
-                GDExtensionBool::from(false)
-            }
-        } else {
-            GDExtensionBool::from(false)
-        }
-    }
-
-    pub(crate) unsafe fn set_property(&mut self, name: GDExtensionConstStringNamePtr, value: GDExtensionConstVariantPtr) -> GDExtensionBool {
-        let name = StringName::new_from_sys(name as GDExtensionConstTypePtr);
-        if self.has_property(&name) {
-            let variant = Variant::new_from_sys(value as GDExtensionConstTypePtr);
-            self.properties.insert(name, variant);
-            GDExtensionBool::from(true)
-        } else {
-            GDExtensionBool::from(false)
+        match self.get_session() {
+            None => false,
+            Some(session) => session
+                .call("HasProperty", &[name.to_variant()])
+                .booleanize(),
         }
     }
 
@@ -155,7 +175,6 @@ impl FsxScript {
 
         let set: HashSet<_> = owners
             .iter()
-            .filter_map(|item| item.get_ref().to::<Option<Gd<Object>>>())
             .map(|obj| obj.instance_id().to_i64())
             .collect();
 
@@ -180,7 +199,7 @@ impl FsxScript {
                 let result: Option<Gd<Object>> = Gd::try_from_instance_id(id).ok();
                 result
             })
-            .map(|gd_ref| weakref(gd_ref.to_variant()).to())
+            .map(|gd_ref| weakref(&gd_ref.to_variant()).to())
             .collect();
     }
 }
@@ -188,16 +207,16 @@ impl FsxScript {
 #[godot_api]
 impl IScriptExtension for FsxScript {
     fn init(base: Base<Self::Base>) -> Self {
-        let session = ClassDb::singleton().instantiate(StringName::from("ScriptSession"));
-
         Self {
             code: String::new(),
             base,
             owners: Default::default(),
             owner_ids: Default::default(),
-            session,
-            properties: HashMap::new(),
         }
+    }
+
+    fn editor_can_reload_from_file(&mut self) -> bool {
+        todo!()
     }
 
     fn can_instantiate(&self) -> bool {
@@ -213,8 +232,13 @@ impl IScriptExtension for FsxScript {
     }
 
     fn get_global_name(&self) -> StringName {
-        let global_name = self.session.call("GetClassName", &[]);
-        StringName::from_variant(&global_name)
+        match self.get_session() {
+            None => StringName::default(),
+            Some(session) => {
+                let global_name = session.call("GetClassName", &[]);
+                StringName::from_variant(&global_name)
+            }
+        }
     }
 
     fn inherits_script(&self, _script: Gd<Script>) -> bool {
@@ -223,16 +247,22 @@ impl IScriptExtension for FsxScript {
     }
 
     fn get_instance_base_type(&self) -> StringName {
-        let base_type = self.session.call("GetBaseType", &[]);
-        StringName::from_variant(&base_type)
+        match self.get_session() {
+            None => StringName::default(),
+            Some(session) => {
+                let base_type = session.call("GetBaseType", &[]);
+                StringName::from_variant(&base_type)
+            }
+        }
     }
 
     unsafe fn instance_create(&self, for_object: Gd<Object>) -> *mut c_void {
         self.owners
             .borrow_mut()
-            .push(weakref(for_object.to_variant()).to());
+            .push(Gd::<Object>::from_instance_id(for_object.instance_id()));
 
-        let instance = FsxScriptInstance::new(self.to_gd());
+        let self_gd = self.to_gd();
+        let instance = FsxScriptInstance::new(self_gd, for_object);
         let instance: GDExtensionScriptInstancePtr = instance.into();
         instance.cast::<c_void>()
     }
@@ -240,11 +270,16 @@ impl IScriptExtension for FsxScript {
     unsafe fn placeholder_instance_create(&self, for_object: Gd<Object>) -> *mut c_void {
         self.owners
             .borrow_mut()
-            .push(weakref(for_object.to_variant()).to());
+            .push(Gd::<Object>::from_instance_id(for_object.instance_id()));
 
-        let placeholder = FsxScriptPlaceholder::new(self.to_gd());
+        let self_gd = self.to_gd();
+        let placeholder = FsxScriptPlaceholder::new(self_gd, for_object);
         let instance: GDExtensionScriptInstancePtr = placeholder.into();
         instance.cast::<c_void>()
+    }
+
+    fn instance_has(&self, object: Gd<Object>) -> bool {
+        todo!()
     }
 
     fn has_source_code(&self) -> bool {
@@ -258,12 +293,25 @@ impl IScriptExtension for FsxScript {
 
     fn set_source_code(&mut self, code: GString) {
         self.code = code.to_string();
-        self.session.call("ParseScript", &[code.to_variant().clone()]);
+        match self.get_session() {
+            None => {}
+            Some(session) => {
+                Gd::<Object>::from_variant(&session).call_deferred("UpdateScript", &[]);
+            }
+        }
         let mut language = FsxScriptLanguage::singleton().unwrap();
         let mut language = language.bind_mut();
         let self_gd = self.to_gd();
         let path = self_gd.get_path();
         language.scripts.insert(path, self_gd);
+    }
+
+    fn reload(&mut self, keep_state: bool) -> Error {
+        todo!()
+    }
+
+    fn get_documentation(&self) -> Array<Dictionary> {
+        todo!()
     }
 
     fn has_method(&self, _method: StringName) -> bool {
@@ -318,6 +366,24 @@ impl IScriptExtension for FsxScript {
         false
     }
 
+    fn get_property_default_value(&self, property: StringName) -> Variant {
+        todo!()
+    }
+
+    fn update_exports(&mut self) {
+        todo!()
+    }
+
+    fn get_script_method_list(&self) -> Array<Dictionary> {
+        godot_print!("FSXScript - get_script_property_list");
+        Array::new()
+    }
+
+    fn get_script_property_list(&self) -> Array<Dictionary> {
+        godot_print!("FSXScript - get_script_property_list");
+        Array::new()
+    }
+
     fn get_member_line(&self, _member: StringName) -> i32 {
         godot_print!("FSXScript - get_member_line");
         todo!()
@@ -332,5 +398,13 @@ impl IScriptExtension for FsxScript {
         godot_print!("FSXScript - get_members");
         // TODO: Actually generate
         Array::<StringName>::new()
+    }
+
+    fn is_placeholder_fallback_enabled(&self) -> bool {
+        todo!()
+    }
+
+    fn get_rpc_config(&self) -> Variant {
+        todo!()
     }
 }

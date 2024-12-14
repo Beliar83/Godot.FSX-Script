@@ -1,0 +1,1 @@
+cargo build && copy target/debug/fsx_script.* ../demo/addons/fsx_script/bin

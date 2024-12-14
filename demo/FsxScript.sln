@@ -1,0 +1,27 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FsxScript", "FsxScript.csproj", "{25D8B530-17C6-4D88-A310-78FAD67D4123}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FsxScriptServer", "FsxScriptServer\FsxScriptServer.fsproj", "{03C5E55D-AF10-4A0E-8C1B-020B5810FF61}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+	Debug|Any CPU = Debug|Any CPU
+	ExportDebug|Any CPU = ExportDebug|Any CPU
+	ExportRelease|Any CPU = ExportRelease|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{25D8B530-17C6-4D88-A310-78FAD67D4123}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{25D8B530-17C6-4D88-A310-78FAD67D4123}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{25D8B530-17C6-4D88-A310-78FAD67D4123}.ExportDebug|Any CPU.ActiveCfg = ExportDebug|Any CPU
+		{25D8B530-17C6-4D88-A310-78FAD67D4123}.ExportDebug|Any CPU.Build.0 = ExportDebug|Any CPU
+		{25D8B530-17C6-4D88-A310-78FAD67D4123}.ExportRelease|Any CPU.ActiveCfg = ExportRelease|Any CPU
+		{25D8B530-17C6-4D88-A310-78FAD67D4123}.ExportRelease|Any CPU.Build.0 = ExportRelease|Any CPU
+		{03C5E55D-AF10-4A0E-8C1B-020B5810FF61}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03C5E55D-AF10-4A0E-8C1B-020B5810FF61}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{03C5E55D-AF10-4A0E-8C1B-020B5810FF61}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{03C5E55D-AF10-4A0E-8C1B-020B5810FF61}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{03C5E55D-AF10-4A0E-8C1B-020B5810FF61}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
+		{03C5E55D-AF10-4A0E-8C1B-020B5810FF61}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
+	EndGlobalSection
+EndGlobal

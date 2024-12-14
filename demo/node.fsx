@@ -31,22 +31,23 @@ type State =
         val _StringName: StringName
         val _NodePath: NodePath
         val _Rid: Rid
-        val _Object: GodotObject
+        val _Object: GodotObject 
         val _Callable: Callable
         val _Signal: Signal
-        val _Dictionary: GodotDictionary
-        val _TypedDictionary: GodotDictionary<string, int>
-        val _Array: GodotArray
-        val _PackedByteArray: PackedByteArray
-        val _PackedInt32Array: PackedInt32Array
-        val _PackedInt64Array: PackedInt64Array
-        val _PackedFloat32Array: PackedFloat32Array
-        val _PackedFloat64Array: PackedFloat64Array
-        val _PackedStringArray: PackedStringArray
-        val _PackedVector2Array: PackedVector2Array
-        val _PackedVector3Array: PackedVector3Array
-        val _PackedColorArray: PackedColorArray
+        val _Dictionary: Dictionary
+        val _TypedDictionary: Dictionary<string, int>
+        val _Array: Array
+        val _PackedByteArray: byte[]
+        val _PackedInt32Array: int32[]
+        val _PackedInt64Array: int64[]
+        val _PackedFloat32Array: float32[]
+        val _PackedFloat64Array: double[]
+        val _PackedStringArray: string[]
+        val _PackedVector2Array: Vector2[]
+        val _PackedVector3Array: Vector3[]
+        val _PackedVector4Array: Vector4[]
+        val _PackedColorArray: Color[]
     end
 
 let _process(self : Base, delta: float) =
-    ()
+    () 

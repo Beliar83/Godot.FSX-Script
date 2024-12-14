@@ -1,5 +1,6 @@
 use godot::classes::{EditorInterface, FileAccess, IResourceFormatLoader, ResourceFormatLoader};
 use godot::classes::file_access::ModeFlags;
+use godot::meta::AsArg;
 use godot::prelude::*;
 
 use crate::fsx_script::FsxScript;
@@ -38,17 +39,17 @@ impl IResourceFormatLoader for FsxScriptResourceFormatLoader {
         _use_sub_threads: bool,
         _cache_mode: i32,
     ) -> Variant {
-        let file = FileAccess::open(path.clone(), ModeFlags::READ);
+        let file = FileAccess::open(path.into_arg(), ModeFlags::READ);
         match file {
             None => Variant::from(FileAccess::get_open_error()),
             Some(file) => {
                 let text = file.get_as_text();
                 let mut script = FsxScript::new_gd();
-                script.set_path(path.clone());
-                script.set_source_code(text);
+                script.set_path(path.into_arg());
+                script.set_source_code(text.into_arg());
                 match EditorInterface::singleton().get_resource_filesystem() {
                     None => {}
-                    Some(mut efs) => { efs.update_file(path); }
+                    Some(mut efs) => { efs.update_file(path.into_arg()); }
                 }
 
                 Variant::from(script)
