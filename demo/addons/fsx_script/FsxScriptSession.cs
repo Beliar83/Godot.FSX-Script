@@ -47,7 +47,7 @@ public partial class FsxScriptSession : GodotObject
         }
     }
 
-    public Array<Dictionary> GetProperties()
+    private Array<Dictionary> GetProperties()
     {
         while (!isUpdated)
         {
@@ -59,7 +59,7 @@ public partial class FsxScriptSession : GodotObject
         return properties;
     }
 
-    public bool HasProperty(StringName name)
+    private bool HasProperty(StringName name)
     {
         while (!isUpdated)
         {
@@ -70,20 +70,20 @@ public partial class FsxScriptSession : GodotObject
         return scriptSession.HasProperty(name);
     }
 
-    public StringName GetClassName()
+    private StringName GetClassName()
     {
         return scriptSession.GetClassName();
     }
 
-    public StringName GetBaseType()
+    private StringName GetBaseType()
     {
         return scriptSession.GetBaseType();
     }
 
-    public Dictionary Validate(string script, string path, bool validateFunctions, bool validateErrors,
+    private Dictionary Validate(string scriptCode, string path, bool validateFunctions, bool validateErrors,
         bool validateWarnings, bool validateSafeLines)
     {
-        return scriptSession.Validate(script, path, validateFunctions, validateErrors, validateWarnings,
+        return ScriptSession.Validate(scriptCode, path, validateFunctions, validateErrors, validateWarnings,
             validateSafeLines);
     }
 }

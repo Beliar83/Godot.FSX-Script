@@ -1,33 +1,41 @@
-use std::ffi::c_void;
 use std::collections::HashMap;
+use std::ffi::c_void;
 
+use crate::fsx_script::FsxScript;
 use godot::builtin::GString;
-use godot::classes::{Engine, IScriptLanguageExtension, ProjectSettings, ResourceLoader, Script, ScriptLanguageExtension};
 use godot::classes::native::ScriptLanguageExtensionProfilingInfo;
 use godot::classes::script_language::ScriptNameCasing;
+use godot::classes::{
+    Engine, IScriptLanguageExtension, ProjectSettings, ResourceLoader, Script,
+    ScriptLanguageExtension,
+};
 use godot::global::Error;
 use godot::meta::AsArg;
 use godot::prelude::*;
-use crate::fsx_script::FsxScript;
 
 pub fn get_or_create_session(script_path: GString) -> Option<Variant> {
     let global_script_classes = ProjectSettings::singleton().get_global_class_list();
-    let plugin_class = global_script_classes.iter_shared().filter(|class| class.get_or_nil("class").to_string() == "FsxScriptPlugin").map(|class| class.get_or_nil("path").stringify()).last();
+    let plugin_class = global_script_classes
+        .iter_shared()
+        .filter(|class| class.get_or_nil("class").to_string() == "FsxScriptPlugin")
+        .map(|class| class.get_or_nil("path").stringify())
+        .last();
 
     let session = match plugin_class {
         None => {
             godot_error!("FsxScriptPlugin is not registered");
             None
         }
-        Some(path) => {
-            ResourceLoader::singleton().load(path.into_arg()).map(|mut resource| {
-                resource.call("new", &[]).call("GetOrCreateSession", &[Variant::from(script_path)])
-            })
-        }
+        Some(path) => ResourceLoader::singleton()
+            .load(path.into_arg())
+            .map(|mut resource| {
+                resource
+                    .call("new", &[])
+                    .call("GetOrCreateSession", &[Variant::from(script_path)])
+            }),
     };
     session
 }
-
 
 #[derive(GodotClass)]
 #[class(base = ScriptLanguageExtension, tool)]
@@ -50,7 +58,12 @@ impl FsxScriptLanguage {
     }
 
     #[func]
-    fn complete_code(&self, _code: GString, _path: GString, _owner: Option<Gd<Object>>) -> Dictionary {
+    fn complete_code(
+        &self,
+        _code: GString,
+        _path: GString,
+        _owner: Option<Gd<Object>>,
+    ) -> Dictionary {
         godot_print!("FsxScriptLanguage - complete_code");
         Dictionary::new()
     }
@@ -71,7 +84,10 @@ impl FsxScriptLanguage {
 #[godot_api]
 impl IScriptLanguageExtension for FsxScriptLanguage {
     fn init(base: Base<Self::Base>) -> Self {
-        Self { base, scripts: HashMap::new() }
+        Self {
+            base,
+            scripts: HashMap::new(),
+        }
     }
 
     fn get_name(&self) -> GString {
@@ -112,7 +128,11 @@ impl IScriptLanguageExtension for FsxScriptLanguage {
     }
 
     fn get_string_delimiters(&self) -> PackedStringArray {
-        PackedStringArray::from(vec![GString::from("\" \""), GString::from("' '"), GString::from("@\" \"")])
+        PackedStringArray::from(vec![
+            GString::from("\" \""),
+            GString::from("' '"),
+            GString::from("@\" \""),
+        ])
     }
 
     fn make_template(
@@ -159,8 +179,6 @@ let _process(self : Base, delta: float) =
         validate_warnings: bool,
         validate_safe_lines: bool,
     ) -> Dictionary {
-        let script : String = script.to_string();
-
         let session = get_or_create_session(GString::from("GeneralFsxScriptSession"));
 
         match session {
@@ -169,7 +187,17 @@ let _process(self : Base, delta: float) =
                 Dictionary::new()
             }
             Some(session) => {
-                let result = session.call("Validate", &[script.to_variant(), path.to_variant(), validate_functions.to_variant(), validate_errors.to_variant(), validate_warnings.to_variant(), validate_safe_lines.to_variant()]);
+                let result = session.call(
+                    "Validate",
+                    &[
+                        script.to_variant(),
+                        path.to_variant(),
+                        validate_functions.to_variant(),
+                        validate_errors.to_variant(),
+                        validate_warnings.to_variant(),
+                        validate_safe_lines.to_variant(),
+                    ],
+                );
                 Dictionary::from_variant(&result)
             }
         }
@@ -221,30 +249,41 @@ let _process(self : Base, delta: float) =
         todo!()
     }
 
-fn can_make_function(&self) -> bool {
+    fn can_make_function(&self) -> bool {
         todo!()
     }
 
-fn open_in_external_editor(&mut self, script: Option<Gd<Script>>, line: i32, column: i32) -> Error {
+    fn open_in_external_editor(
+        &mut self,
+        script: Option<Gd<Script>>,
+        line: i32,
+        column: i32,
+    ) -> Error {
         Error::ERR_UNAVAILABLE
     }
 
-fn overrides_external_editor(&mut self) -> bool {
+    fn overrides_external_editor(&mut self) -> bool {
         false
     }
 
-fn preferred_file_name_casing(&self) -> ScriptNameCasing {
+    fn preferred_file_name_casing(&self) -> ScriptNameCasing {
         ScriptNameCasing::SNAKE_CASE
     }
 
-fn complete_code(&self, code: GString, path: GString, owner: Option<Gd<Object>>) -> Dictionary {
-    godot_print!("FsxScriptLanguage - complete_code");
-    Dictionary::new()
+    fn complete_code(&self, code: GString, path: GString, owner: Option<Gd<Object>>) -> Dictionary {
+        godot_print!("FsxScriptLanguage - complete_code");
+        Dictionary::new()
     }
 
-fn lookup_code(&self, code: GString, symbol: GString, path: GString, owner: Option<Gd<Object>>) -> Dictionary {
-    godot_print!("FsxScriptLanguage - lookup_code");
-    Dictionary::new()
+    fn lookup_code(
+        &self,
+        code: GString,
+        symbol: GString,
+        path: GString,
+        owner: Option<Gd<Object>>,
+    ) -> Dictionary {
+        godot_print!("FsxScriptLanguage - lookup_code");
+        Dictionary::new()
     }
 
     fn auto_indent_code(&self, _code: GString, _from_line: i32, _to_line: i32) -> GString {
@@ -275,59 +314,75 @@ fn lookup_code(&self, code: GString, symbol: GString, path: GString, owner: Opti
         godot_print!("FsxScriptLanguage - thread_exit");
     }
 
-fn debug_get_error(&self) -> GString {
+    fn debug_get_error(&self) -> GString {
         todo!()
     }
 
-fn debug_get_stack_level_count(&self) -> i32 {
+    fn debug_get_stack_level_count(&self) -> i32 {
         todo!()
     }
 
-fn debug_get_stack_level_line(&self, level: i32) -> i32 {
+    fn debug_get_stack_level_line(&self, level: i32) -> i32 {
         todo!()
     }
 
-fn debug_get_stack_level_function(&self, level: i32) -> GString {
+    fn debug_get_stack_level_function(&self, level: i32) -> GString {
         todo!()
     }
 
-fn debug_get_stack_level_source(&self, level: i32) -> GString {
+    fn debug_get_stack_level_source(&self, level: i32) -> GString {
         todo!()
     }
 
-fn debug_get_stack_level_locals(&mut self, level: i32, max_subitems: i32, max_depth: i32) -> Dictionary {
+    fn debug_get_stack_level_locals(
+        &mut self,
+        level: i32,
+        max_subitems: i32,
+        max_depth: i32,
+    ) -> Dictionary {
         todo!()
     }
 
-fn debug_get_stack_level_members(&mut self, level: i32, max_subitems: i32, max_depth: i32) -> Dictionary {
+    fn debug_get_stack_level_members(
+        &mut self,
+        level: i32,
+        max_subitems: i32,
+        max_depth: i32,
+    ) -> Dictionary {
         todo!()
     }
 
-unsafe fn debug_get_stack_level_instance(&mut self, level: i32) -> *mut c_void {
+    unsafe fn debug_get_stack_level_instance(&mut self, level: i32) -> *mut c_void {
         todo!()
     }
 
-fn debug_get_globals(&mut self, max_subitems: i32, max_depth: i32) -> Dictionary {
+    fn debug_get_globals(&mut self, max_subitems: i32, max_depth: i32) -> Dictionary {
         todo!()
     }
 
-fn debug_parse_stack_level_expression(&mut self, level: i32, expression: GString, max_subitems: i32, max_depth: i32) -> GString {
+    fn debug_parse_stack_level_expression(
+        &mut self,
+        level: i32,
+        expression: GString,
+        max_subitems: i32,
+        max_depth: i32,
+    ) -> GString {
         todo!()
     }
 
-fn debug_get_current_stack_info(&mut self) -> Array<Dictionary> {
+    fn debug_get_current_stack_info(&mut self) -> Array<Dictionary> {
         todo!()
     }
 
-fn reload_all_scripts(&mut self) {
+    fn reload_all_scripts(&mut self) {
         todo!()
     }
 
-fn reload_scripts(&mut self, scripts: VariantArray, soft_reload: bool) {
+    fn reload_scripts(&mut self, scripts: VariantArray, soft_reload: bool) {
         todo!()
     }
 
-fn reload_tool_script(&mut self, script: Option<Gd<Script>>, soft_reload: bool) {
+    fn reload_tool_script(&mut self, script: Option<Gd<Script>>, soft_reload: bool) {
         todo!()
     }
 
@@ -351,23 +406,31 @@ fn reload_tool_script(&mut self, script: Option<Gd<Script>>, soft_reload: bool) 
         Array::<Dictionary>::new()
     }
 
-fn profiling_start(&mut self) {
+    fn profiling_start(&mut self) {
         todo!()
     }
 
-fn profiling_stop(&mut self) {
+    fn profiling_stop(&mut self) {
         todo!()
     }
 
-fn profiling_set_save_native_calls(&mut self, enable: bool) {
+    fn profiling_set_save_native_calls(&mut self, enable: bool) {
         todo!()
     }
 
-unsafe fn profiling_get_accumulated_data(&mut self, info_array: *mut ScriptLanguageExtensionProfilingInfo, info_max: i32) -> i32 {
+    unsafe fn profiling_get_accumulated_data(
+        &mut self,
+        info_array: *mut ScriptLanguageExtensionProfilingInfo,
+        info_max: i32,
+    ) -> i32 {
         todo!()
     }
 
-unsafe fn profiling_get_frame_data(&mut self, info_array: *mut ScriptLanguageExtensionProfilingInfo, info_max: i32) -> i32 {
+    unsafe fn profiling_get_frame_data(
+        &mut self,
+        info_array: *mut ScriptLanguageExtensionProfilingInfo,
+        info_max: i32,
+    ) -> i32 {
         todo!()
     }
 
@@ -379,7 +442,7 @@ unsafe fn profiling_get_frame_data(&mut self, info_array: *mut ScriptLanguageExt
 
     fn get_global_class_name(&self, path: GString) -> Dictionary {
         match self.scripts.get(&path) {
-            None => { Dictionary::new() }
+            None => Dictionary::new(),
             Some(script) => {
                 let mut dict = Dictionary::new();
                 let script = script.bind();

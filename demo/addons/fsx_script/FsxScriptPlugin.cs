@@ -2,6 +2,7 @@
 using Godot;
 using Godot.Collections;
 using Godot.FSharp;
+using CodeEdit = Godot.CodeEdit;
 
 namespace FsxScript;
 
@@ -26,7 +27,18 @@ public partial class FsxScriptPlugin : EditorPlugin
         }
 
         ScriptSession.SetBasePath(ProjectSettings.GlobalizePath("res://"));
+        EditorInterface.Singleton.GetScriptEditor().EditorScriptChanged += OnEditorScriptChanged;
         EditorInterface.Singleton.GetScriptEditor().ScriptClose += OnScriptClose;
+    }
+
+    private void OnEditorScriptChanged(Script script)
+    {
+        if (!script.IsClass("FsxScript"))
+        {
+            return;
+        }
+
+        (EditorInterface.Singleton.GetScriptEditor().GetCurrentEditor().GetBaseEditor() as CodeEdit)!.IndentUseSpaces = true;
     }
 
     private static void OnScriptClose(Script script)

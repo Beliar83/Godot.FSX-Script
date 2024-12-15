@@ -57,9 +57,10 @@ type ScriptSession() as this =
             if status = Variant.CreateFrom "stable" then
                 ""
             else
-                $".{status}"
+                $"-{status}"
+        // TODO: Add supporting for godot-dotnet
         //"\n#r \"nuget: Godot.Bindings, {}.{}.*-*\"", version_info.get("major").unwrap(), version_info.get("minor").unwrap()
-        $"#r \"GodotSharp\", {major}.{minor}.{patch}{status}"
+        $"#r \"nuget: GodotSharp, {major}.{minor}.{patch}{status}\""
 
     do
         try
@@ -94,6 +95,112 @@ type ScriptSession() as this =
 
     static member SetBasePath(path: String) = basePath <- path
 
+    static member Validate(
+            script: string,
+            path: string,
+            validateFunctions: bool,
+            validateErrors: bool,
+            validateWarnings: bool,
+            validateSafeLines: bool
+        ) =
+        
+        let checker = FSharpChecker.Create(keepAssemblyContents = false)
+        
+        let validationResult = new Dictionary()
+
+        let script_path =
+            if String.IsNullOrWhiteSpace path then "dummy.fsx"
+            elif not <| path.EndsWith ".fsx" then $"{path}.fsx"
+            else path
+
+        let script_path =
+            let index = script_path.IndexOf("://")
+            if index >= 0 then script_path.Substring(index + 3) else script_path
+
+        let scriptCode = $"{script}{scriptInit}" |> SourceText.ofString       
+
+        Environment.SetEnvironmentVariable("FSHARP_COMPILER_BIN", AppDomain.CurrentDomain.BaseDirectory)
+
+        let options, _diagnostics =
+            checker.GetProjectOptionsFromScript(script_path, scriptCode)
+            |> Async.RunSynchronously
+
+        let parseResults, answer =
+            checker.ParseAndCheckFileInProject(script_path, 0, scriptCode, options)
+            |> Async.RunSynchronously
+        
+        let isValid, checkFileResults =
+            match answer with
+            | FSharpCheckFileAnswer.Aborted -> (false, None)
+            | FSharpCheckFileAnswer.Succeeded checkFileResults ->  (true, Some(checkFileResults))
+        
+
+        let results =
+            match parseResults with
+            | fileResults -> fileResults
+
+        
+        
+        let diagnostics =
+            results.Diagnostics
+            |> Array.append
+            <| match checkFileResults with
+                | None -> [||]
+                | Some value -> value.Diagnostics
+        
+        if diagnostics.Length > 0 then
+            let isValid =
+                not
+                <| (diagnostics
+                    |> Array.exists (fun x -> x.Severity = FSharpDiagnosticSeverity.Error))
+
+            validationResult.Add("valid", isValid)
+
+            if validateErrors then
+                let errorList = new Array()
+
+                for error in
+                        diagnostics
+                    |> Array.filter (fun x -> x.Severity = FSharpDiagnosticSeverity.Error) do
+                    let errorData = new Dictionary()
+                    errorData.Add("line", error.StartLine)
+                    errorData.Add("column", Variant.CreateFrom(error.StartColumn + 1))
+                    errorData.Add("message", error.Message)
+                    errorData.Add("path", path)
+                    
+                    errorList.Add(errorData)
+
+                validationResult["errors"] <- errorList
+
+            if validateWarnings then
+                let warningList = new Array()
+
+                for warning in
+                        diagnostics
+                    |> Array.filter (fun x -> x.Severity = FSharpDiagnosticSeverity.Warning) do
+                    let warningData = new Dictionary()
+                    // TODO: Make example project and create bug
+                    warningData.Add("start_line", warning.StartLine)
+                    warningData.Add("end_line", warning.EndLine)
+                    warningData.Add("leftmost_column", warning.StartColumn)
+                    warningData.Add("rightmost_column", warning.EndColumn)
+                    warningData.Add("code", warning.ErrorNumber)
+                    warningData.Add("string_code", warning.ErrorNumberText)
+                    warningData.Add("message", warning.Message)
+                    warningList.Add(warningData)
+
+                validationResult["warnings"] <- warningList
+        else
+            validationResult.Add("valid", isValid)
+
+        if validateFunctions then
+            validationResult.Add("functions", Array<string>())
+        
+        if validateSafeLines then
+            validationResult.Add("safe_lines", new Array<int>([1]))
+                
+        validationResult
+    
     member _.GetClassName() =
         match info with
         | None -> new StringName("")
@@ -188,87 +295,4 @@ type ScriptSession() as this =
 
         exportedFields |> List.map _.Name
 
-    member _.Validate
-        (
-            script: string,
-            path: string,
-            validateFunctions: bool,
-            validateErrors: bool,
-            validateWarnings: bool,
-            _validateSafeLines: bool
-        ) =
-        // TODO: Check
-        let validationResult = new Dictionary()
-
-        let path =
-            if String.IsNullOrWhiteSpace path then "dummy.fsx"
-            elif not <| path.EndsWith ".fsx" then $"{path}.fsx"
-            else path
-
-        let path =
-            let index = path.IndexOf("://")
-            if index >= 0 then path.Substring(index + 3) else path
-
-        match results with
-        | None -> validationResult.Add("valid", false)
-        | Some parseResults ->
-            let results =
-                match parseResults with
-                | fileResults -> fileResults
-
-            if results.Diagnostics.Length > 0 then
-                let isValid =
-                    not
-                    <| (results.Diagnostics
-                        |> Array.exists (fun x -> x.Severity = FSharpDiagnosticSeverity.Error))
-
-                printfn $"Valid: {isValid}"
-                validationResult.Add("valid", isValid)
-
-                if validateErrors then
-                    printfn "Getting errors"
-                    let errorList = new Array()
-                    // TODO: Make example project and create bug
-                    GCHandle.Alloc(errorList) |> ignore
-
-                    for error in
-                        results.Diagnostics
-                        |> Array.filter (fun x -> x.Severity = FSharpDiagnosticSeverity.Error) do
-                        let errorData = new Dictionary()
-                        GCHandle.Alloc(errorData) |> ignore
-                        errorData.Add("line", error.StartLine)
-                        errorData.Add("column", error.StartColumn)
-                        errorData.Add("message", error.Message)
-                        errorList.Add(errorData)
-
-                    validationResult["errors"] <- errorList
-
-                if validateWarnings then
-                    printfn "Getting Warnings"
-                    let warningList = new Array()
-                    GCHandle.Alloc(warningList) |> ignore
-
-                    for warning in
-                        results.Diagnostics
-                        |> Array.filter (fun x -> x.Severity = FSharpDiagnosticSeverity.Warning) do
-                        let warningData = new Dictionary()
-                        // TODO: Make example project and create bug
-                        GCHandle.Alloc(warningData) |> ignore
-                        warningData.Add("start_line", warning.StartLine)
-                        warningData.Add("end_line", warning.EndLine)
-                        warningData.Add("leftmost_column", warning.StartColumn)
-                        warningData.Add("rightmost_column", warning.EndColumn)
-                        warningData.Add("code", warning.ErrorNumber)
-                        warningData.Add("string_code", warning.ErrorNumberText)
-                        warningData.Add("message", warning.Message)
-                        warningList.Add(warningData)
-
-                    validationResult["warnings"] <- warningList
-
-                printfn "ScriptSession: Returning"
-            else
-                printfn "Valid: true"
-                validationResult.Add("valid", true)
-                printfn "ScriptSession: Returning"
-
-        validationResult
+    

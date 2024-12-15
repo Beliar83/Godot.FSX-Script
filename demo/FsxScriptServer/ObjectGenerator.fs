@@ -227,11 +227,10 @@ module ObjectGenerator =
                 | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue _ -> None
                 | FSharpImplementationFileDeclaration.InitAction _ -> None)
 
-
         let state =
             entities
             |> List.choose (fun (entity, _) -> extractStateType entity)
-            |> List.head
+            |> List.tryHead
 
         let node =
             entities
@@ -239,10 +238,11 @@ module ObjectGenerator =
             |> List.tryHead
 
 
-
-        match node with
-        | None -> Result.Error "Base Type not found"
-        | Some node ->
+        match (node, state) with
+        | None, None -> Result.Error "Base Type and State not found"
+        | None, Some _ -> Result.Error "State not found"
+        | Some _, None -> Result.Error "Base Type not found"
+        | Some node, Some state ->
             let exportedFields = state.FSharpFields
 
             let notExportedFields =
@@ -250,7 +250,6 @@ module ObjectGenerator =
                 |> Seq.filter (fun x ->
                     not
                     <| (x.PropertyAttributes |> Seq.exists (fun x -> x.IsAttribute<ExportAttribute>())))
-
 
             let methods =
                 contents.Declarations
@@ -302,7 +301,6 @@ module ObjectGenerator =
 
                 nodeMethods |> List.contains method.DisplayName
 
-
             let info =
                 {
 
@@ -338,7 +336,7 @@ module ObjectGenerator =
                                   None
 
                           { MethodName = method.DisplayName
-                            IsOverride = isOverride (method)
+                            IsOverride = isOverride method
                             MethodParams =
                               [
                                 // The first and last parameters are internal parameters for fsharp
