@@ -104,7 +104,7 @@ type ScriptSession() as this =
             validateSafeLines: bool
         ) =
         
-        let checker = FSharpChecker.Create(keepAssemblyContents = false)
+        let checker = FSharpChecker.Create(keepAssemblyContents = true)
         
         let validationResult = new Dictionary()
 
@@ -194,10 +194,37 @@ type ScriptSession() as this =
             validationResult.Add("valid", isValid)
 
         if validateFunctions then
-            validationResult.Add("functions", Array<string>())
+            let functions =
+                match checkFileResults with
+                | None -> []
+                | Some value ->
+                    match value.ImplementationFile with
+                    | None -> []
+                    | Some value ->
+                        let entity, declarations =
+                            value.Declarations
+                            |> List.choose (fun x ->
+                                match x with
+                                | FSharpImplementationFileDeclaration.Entity(entity, declarations) -> Some(entity, declarations)
+                                | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(value, curriedArgs, body) -> None
+                                | FSharpImplementationFileDeclaration.InitAction action -> None)
+                            |> List.filter (fun (e, _) -> e.IsFSharpModule)
+                            |> List.head                        
+                        declarations
+                        |> List.choose (fun x ->
+                            match x with
+                            | FSharpImplementationFileDeclaration.Entity(entity, declarations) -> None
+                            | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(value, curriedArgs, body) ->
+                                Some(value)
+                            | FSharpImplementationFileDeclaration.InitAction action -> None)
+                        |> List.filter (fun  x -> x.IsFunction && x.DeclaringEntity = Some(entity))
+                        |> List.map (fun x -> $"{x.DisplayName}:{x.DeclarationLocation.StartLine}")              
+                |> Seq.ofList
+                
+            validationResult.Add("functions", Array<string>(functions))
         
         if validateSafeLines then
-            validationResult.Add("safe_lines", new Array<int>([1]))
+            validationResult.Add("safe_lines", Array<int>())
                 
         validationResult
     
