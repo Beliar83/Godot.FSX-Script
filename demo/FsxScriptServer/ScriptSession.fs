@@ -2,7 +2,6 @@
 
 open System
 open System.IO
-open System.Runtime.InteropServices
 open System.Text
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.Diagnostics
@@ -24,8 +23,7 @@ type ScriptSession() as this =
     static let propertyInfoType = new StringName("Type")
     static let propertyInfoHint = new StringName("Hint")
     static let propertyInfoHintString = new StringName("HintString")
-    static let propertyInfoUsage = new StringName("Usage")
-
+    static let propertyInfoUsage = new StringName("Usage")    
     let sbOut = StringBuilder()
     let sbErr = StringBuilder()
     let inStream = new StringReader("")
@@ -57,7 +55,15 @@ type ScriptSession() as this =
             if status = Variant.CreateFrom "stable" then
                 ""
             else
-                $"-{status}"
+                let pattern = new RegEx()
+                match pattern.Compile("(\w+)(\d+)") with
+                | Error.Ok ->
+                        let matches = pattern.Search (status.AsString())
+                        $"-{matches.Strings[1]}.{matches.Strings[2]}"
+                | _ ->
+                    GD.PrintErr "Could not compile version regex"
+                    $"{status}"
+
         // TODO: Add supporting for godot-dotnet
         //"\n#r \"nuget: Godot.Bindings, {}.{}.*-*\"", version_info.get("major").unwrap(), version_info.get("minor").unwrap()
         $"#r \"nuget: GodotSharp, {major}.{minor}.{patch}{status}\""
