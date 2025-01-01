@@ -1,3 +1,6 @@
+use crate::fsx_script_instance::{FsxScriptInstance, FsxScriptPlaceholderInstance};
+use crate::fsx_script_language::{get_or_create_session, FsxScriptLanguage};
+use godot::classes::{IScriptExtension, Script, ScriptExtension, ScriptLanguage};
 use godot::global::{weakref, Error};
 use godot::prelude::*;
 use godot::sys::types::{OpaqueString, OpaqueStringName};
@@ -12,9 +15,6 @@ use std::convert::From;
 use std::ffi::c_void;
 use std::mem::ManuallyDrop;
 use std::ops::Add;
-use godot::classes::{IScriptExtension, Script, ScriptExtension, ScriptLanguage};
-use crate::fsx_script_instance::{FsxScriptInstance, FsxScriptPlaceholder};
-use crate::fsx_script_language::{get_or_create_session, FsxScriptLanguage};
 
 #[derive(GodotClass)]
 #[class(base = ScriptExtension, tool)]
@@ -221,8 +221,12 @@ impl IScriptExtension for FsxScript {
 
     fn can_instantiate(&self) -> bool {
         godot_print!("FSXScript - can_instantiate");
-        // TODO: Check
-        false
+        match self.get_session() {
+            None => false,
+            Some(session) => {
+                session.call("CanInstantiate", &[]).booleanize()
+            }
+        }
     }
 
     fn get_base_script(&self) -> Option<Gd<Script>> {
@@ -273,7 +277,7 @@ impl IScriptExtension for FsxScript {
             .push(Gd::<Object>::from_instance_id(for_object.instance_id()));
 
         let self_gd = self.to_gd();
-        let placeholder = FsxScriptPlaceholder::new(self_gd, for_object);
+        let placeholder = FsxScriptPlaceholderInstance::new(self_gd, for_object);
         let instance: GDExtensionScriptInstancePtr = placeholder.into();
         instance.cast::<c_void>()
     }
@@ -307,6 +311,10 @@ impl IScriptExtension for FsxScript {
     }
 
     fn reload(&mut self, keep_state: bool) -> Error {
+        todo!()
+    }
+
+fn get_doc_class_name(&self) -> StringName {
         todo!()
     }
 

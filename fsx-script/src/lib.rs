@@ -1,15 +1,24 @@
-use godot::classes::{Engine, ResourceFormatLoader, ResourceFormatSaver, ResourceLoader, ResourceSaver, ScriptLanguage};
+use crate::fsx_script_resource_format_loader::FsxScriptResourceFormatLoader;
+use godot::classes::{Engine, ResourceFormatLoader, ResourceLoader};
 use godot::meta::AsArg;
 use godot::prelude::*;
-use crate::fsx_script_language::FsxScriptLanguage;
-use crate::fsx_script_resource_format_loader::FsxScriptResourceFormatLoader;
-use crate::fsx_script_resource_format_saver::FsxScriptResourceFormatSaver;
 
+#[cfg(feature = "editor")]
+use crate::fsx_script_language::FsxScriptLanguage;
+#[cfg(feature = "editor")]
+use crate::fsx_script_resource_format_saver::FsxScriptResourceFormatSaver;
+#[cfg(feature = "editor")]
+use godot::classes::{ResourceFormatSaver, ResourceSaver, ScriptLanguage};
+#[cfg(feature = "editor")]
 mod fsx_script;
+#[cfg(feature = "editor")]
 mod fsx_script_instance;
+#[cfg(feature = "editor")]
 mod fsx_script_language;
-mod fsx_script_resource_format_loader;
+#[cfg(feature = "editor")]
 mod fsx_script_resource_format_saver;
+
+mod fsx_script_resource_format_loader;
 
 struct FsxScriptExtension;
 
@@ -17,19 +26,22 @@ struct FsxScriptExtension;
 unsafe impl ExtensionLibrary for FsxScriptExtension {
     fn on_level_init(level: InitLevel) {
         match level {
-            InitLevel::Core => {}
+            InitLevel::Core => {
+            }
             InitLevel::Servers => {}
             InitLevel::Scene => {
-                let language = FsxScriptLanguage::new_alloc();
-                Engine::singleton().register_script_language(&language);
-                Engine::singleton().register_singleton(FsxScriptLanguage::singleton_name().into_arg(), &language);
-                let fsx_scrip_resource_format_saver = FsxScriptResourceFormatSaver::new_gd();
-                ResourceSaver::singleton()
-                    .add_resource_format_saver(&fsx_scrip_resource_format_saver);
-                Engine::singleton().register_singleton(
-                    "FsxScriptResourceFormatSaver",
-                    &fsx_scrip_resource_format_saver,
-                );
+                #[cfg(feature = "editor")] {
+                    let language = FsxScriptLanguage::new_alloc();
+                    Engine::singleton().register_script_language(&language);
+                    Engine::singleton().register_singleton(FsxScriptLanguage::singleton_name().into_arg(), &language);
+                    let fsx_scrip_resource_format_saver = FsxScriptResourceFormatSaver::new_gd();
+                    ResourceSaver::singleton()
+                        .add_resource_format_saver(&fsx_scrip_resource_format_saver);
+                    Engine::singleton().register_singleton(
+                        "FsxScriptResourceFormatSaver",
+                        &fsx_scrip_resource_format_saver,
+                    );
+                }
                 let fsx_script_resource_format_loader = FsxScriptResourceFormatLoader::new_gd();
                 ResourceLoader::singleton()
                     .add_resource_format_loader(&fsx_script_resource_format_loader);
@@ -47,27 +59,29 @@ unsafe impl ExtensionLibrary for FsxScriptExtension {
             InitLevel::Core => {}
             InitLevel::Servers => {}
             InitLevel::Scene => {
-                let language_name = FsxScriptLanguage::singleton_name();
-                let language = Engine::singleton()
-                    .get_singleton(language_name.into_arg())
-                    .and_then(|l| Some(l.cast::<ScriptLanguage>()));
-                match language {
-                    None => {}
-                    Some(language) => {
-                        Engine::singleton().unregister_script_language(&language);
-                        Engine::singleton().unregister_singleton(language_name.into_arg());
-                        language.free();
+                #[cfg(feature = "editor")] {
+                    let language_name = FsxScriptLanguage::singleton_name();
+                    let language = Engine::singleton()
+                        .get_singleton(language_name.into_arg())
+                        .and_then(|l| Some(l.cast::<ScriptLanguage>()));
+                    match language {
+                        None => {}
+                        Some(language) => {
+                            Engine::singleton().unregister_script_language(&language);
+                            Engine::singleton().unregister_singleton(language_name.into_arg());
+                            language.free();
+                        }
                     }
-                }
-                let saver_name = StringName::from("FsxScriptResourceFormatSaver");
-                let fsx_script_resource_format_saver = Engine::singleton()
-                    .get_singleton(saver_name.into_arg())
-                    .and_then(|l| Some(l.cast::<ResourceFormatSaver>()));
-                match fsx_script_resource_format_saver {
-                    None => {}
-                    Some(saver) => {
-                        ResourceSaver::singleton().remove_resource_format_saver(&saver);
-                        Engine::singleton().unregister_singleton(saver_name.into_arg());
+                    let saver_name = StringName::from("FsxScriptResourceFormatSaver");
+                    let fsx_script_resource_format_saver = Engine::singleton()
+                        .get_singleton(saver_name.into_arg())
+                        .and_then(|l| Some(l.cast::<ResourceFormatSaver>()));
+                    match fsx_script_resource_format_saver {
+                        None => {}
+                        Some(saver) => {
+                            ResourceSaver::singleton().remove_resource_format_saver(&saver);
+                            Engine::singleton().unregister_singleton(saver_name.into_arg());
+                        }
                     }
                 }
                 let loader_name = StringName::from("FsxScriptResourceFormatLoader");

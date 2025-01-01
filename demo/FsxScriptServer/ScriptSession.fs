@@ -2,6 +2,7 @@
 
 open System
 open System.IO
+open System.Runtime.InteropServices
 open System.Text
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.Diagnostics
@@ -12,6 +13,7 @@ open FSharpx.Collections
 open Godot
 open Godot.Collections
 open Godot.FSharp.ObjectGenerator
+open Godot.FSharp.Variant
 open Microsoft.FSharp.Core
 
 type VariantType = Variant.Type
@@ -23,7 +25,24 @@ type ScriptSession() as this =
     static let propertyInfoType = new StringName("Type")
     static let propertyInfoHint = new StringName("Hint")
     static let propertyInfoHintString = new StringName("HintString")
-    static let propertyInfoUsage = new StringName("Usage")    
+    static let propertyInfoUsage = new StringName("Usage")
+    
+    static let getFrameworkReferences =
+        let runtimePath = RuntimeEnvironment.GetRuntimeDirectory()
+        let dotnetVersion = Environment.Version        
+        
+        let basePath = Path.GetFullPath $"{runtimePath}/../../../packs/Microsoft.NETCore.App.Ref/{dotnetVersion.Major}.{dotnetVersion.Minor}.{dotnetVersion.Build}/ref/net{dotnetVersion.Major}.{dotnetVersion.Minor}"
+        Directory.GetFiles(basePath, "*.dll")
+        
+    static let getGodotReferences =
+        let executableRoot = Path.GetDirectoryName(OS.GetExecutablePath())
+        [|Path.Join(executableRoot, "GodotSharp/Api/Release", "GodotSharp.dll")|]
+    
+    static let otherFlags =
+        [|"--noframework"|]
+        |> Array.append (getGodotReferences |> Array.map (fun x -> $"-r:{x}"))
+        |> Array.append (getFrameworkReferences |> Array.map (fun x -> $"-r:{x}"))
+    
     let sbOut = StringBuilder()
     let sbErr = StringBuilder()
     let inStream = new StringReader("")
@@ -44,37 +63,11 @@ type ScriptSession() as this =
     let mutable info: Option<ToGenerateInfo> = None
     let mutable checkResults: Option<FSharpCheckFileResults> = None
 
-    static let scriptInit =
-        let versionInfo = Engine.GetVersionInfo()
-        let major = versionInfo["major"]
-        let minor = versionInfo["minor"]
-        let patch = versionInfo["patch"]
-        let status = versionInfo["status"]
-
-        let status =
-            if status = Variant.CreateFrom "stable" then
-                ""
-            else
-                let pattern = new RegEx()
-                match pattern.Compile("(\w+)(\d+)") with
-                | Error.Ok ->
-                        let matches = pattern.Search (status.AsString())
-                        $"-{matches.Strings[1]}.{matches.Strings[2]}"
-                | _ ->
-                    GD.PrintErr "Could not compile version regex"
-                    $"{status}"
-
-        // TODO: Add supporting for godot-dotnet
-        //"\n#r \"nuget: Godot.Bindings, {}.{}.*-*\"", version_info.get("major").unwrap(), version_info.get("minor").unwrap()
-        $"#r \"nuget: GodotSharp, {major}.{minor}.{patch}{status}\""
-
     do
         try
             fsiSession <- FsiEvaluationSession.Create(fsiConfig, allArgs, inStream, outStream, errStream)
         with (e: Exception) ->
             ()
-
-
 
     let GetExportedPropertiesOfEntity (declarations: FSharpImplementationFileDeclaration list) =
         let fields =
@@ -123,12 +116,12 @@ type ScriptSession() as this =
             let index = script_path.IndexOf("://")
             if index >= 0 then script_path.Substring(index + 3) else script_path
 
-        let scriptCode = $"{script}{scriptInit}" |> SourceText.ofString       
+        let scriptCode = script |> SourceText.ofString       
 
         Environment.SetEnvironmentVariable("FSHARP_COMPILER_BIN", AppDomain.CurrentDomain.BaseDirectory)
 
         let options, _diagnostics =
-            checker.GetProjectOptionsFromScript(script_path, scriptCode)
+            checker.GetProjectOptionsFromScript(script_path, scriptCode, otherFlags = otherFlags)
             |> Async.RunSynchronously
 
         let parseResults, answer =
@@ -212,17 +205,17 @@ type ScriptSession() as this =
                             |> List.choose (fun x ->
                                 match x with
                                 | FSharpImplementationFileDeclaration.Entity(entity, declarations) -> Some(entity, declarations)
-                                | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(value, curriedArgs, body) -> None
-                                | FSharpImplementationFileDeclaration.InitAction action -> None)
+                                | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue _ -> None
+                                | FSharpImplementationFileDeclaration.InitAction _ -> None)
                             |> List.filter (fun (e, _) -> e.IsFSharpModule)
                             |> List.head                        
                         declarations
                         |> List.choose (fun x ->
                             match x with
-                            | FSharpImplementationFileDeclaration.Entity(entity, declarations) -> None
-                            | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(value, curriedArgs, body) ->
+                            | FSharpImplementationFileDeclaration.Entity _ -> None
+                            | FSharpImplementationFileDeclaration.MemberOrFunctionOrValue(value, _, _) ->
                                 Some(value)
-                            | FSharpImplementationFileDeclaration.InitAction action -> None)
+                            | FSharpImplementationFileDeclaration.InitAction _ -> None)
                         |> List.filter (fun  x -> x.IsFunction && x.DeclaringEntity = Some(entity))
                         |> List.map (fun x -> $"{x.DisplayName}:{x.DeclarationLocation.StartLine}")              
                 |> Seq.ofList
@@ -251,16 +244,202 @@ type ScriptSession() as this =
 
     member val PropertyTypes = PersistentHashMap.empty<StringName, Variant.Type> with get, set
 
+    member _.Compile(scriptCode: string, scriptPath: string) =
+        match (info, results, checkResults) with
+        | Some info, Some results, Some checkResults ->
+            let diagnostics =
+                results.Diagnostics
+                |> Array.append
+                <| checkResults.Diagnostics
+            
+            if not <| (diagnostics |> Array.exists (fun diagnostic -> diagnostic.Severity = FSharpDiagnosticSeverity.Error)) then
+                // TODO: Write C# classes for export
+                
+                let fsharpCompileFile = FileAccess.CreateTemp(int <| FileAccess.Write, Path.GetFileNameWithoutExtension scriptPath, ".fsx")
+                
+                let propertyNames =
+                    info.StateToGenerate.ExportedFields
+                    |> List.map _.Name                   
+                    
+                let addPropertyNamesModule(builder : StringBuilder) =
+                    propertyNames
+                    |> List.fold (fun (builder : StringBuilder) name -> builder.AppendLine($"\tlet {name} = new Godot.StringName(\"{name}\")"))
+                           (builder.AppendLine("module __PropertyNames ="))                    
+                
+                let isSinglePrecision field = field.OfTypeName.ToString() = "System.Single"
+                let addDefaultStateFunction(builder : StringBuilder) =
+                    let builder = builder.AppendLine("let __get_default_state() =")
+                    let getDefaultForPrecision field = if isSinglePrecision field then "0f" else "0"
+                    let getDefaultForField field =
+                        match getGodotDefaultForGodotSharp(field.OfType) with
+                        | DefaultValue.Simple value -> $"{field.Name} = {value}"
+                        | DefaultValue.Nil -> $"{field.Name} = null"
+                        | DefaultValue.Int -> $"{field.Name} = 0"
+                        | DefaultValue.Float -> $"{field.Name} = { getDefaultForPrecision(field) }"
+                        | DefaultValue.Object -> $"{field.Name} = new {field.OfTypeName}()"
+                    
+                    info.StateToGenerate.ExportedFields
+                    |> List.map getDefaultForField
+                    |> List.fold (fun (builder : StringBuilder) value -> builder.AppendLine($"\t\t{value}")) (builder.AppendLine("\t{"))
+                    |> _.AppendLine("\t}")
+                
+                let getConversionForPrecision field = if isSinglePrecision field then "Single" else "Double"
+                let systemTypePrefixLength = "System.".Length
+                    
+                let getConversionForField valueName field =
+                    match getConversionToDotnetForGodotSharp(field.OfType) with
+                    | Simple methodName -> $"value.{methodName}()"
+                    | Nil -> "null"
+                    | Int -> $"{valueName}.As{field.OfTypeName.ToString().Remove(0, systemTypePrefixLength)}()"
+                    | Float -> $"{valueName}.As{getConversionForPrecision field}()"
+                    | Object -> $"{valueName}.AsGodotObject() :?> {field.OfTypeName}"
+                let addSetMethod(builder: StringBuilder) =                        
+                    let unknownPropertyMessage = $"$\"__set: {info.Name} has no exported value '{{name}}'\""
+                    let getConversionForField = getConversionForField "value"
+                    info.StateToGenerate.ExportedFields
+                    |> List.fold ( fun (builder : StringBuilder) field ->
+                                    builder
+                                        .AppendLine($"if name = __PropertyNames.{field.Name} then")
+                                        .AppendLine($"\t\t{{ state with {field.Name} = {getConversionForField(field)} }}")
+                                        .Append("\telse ")
+                            ) (builder.AppendLine("let __set(state: State, name: Godot.StringName, value: Godot.Variant) =").Append("\t"))
+                    |> _.AppendLine()
+                    |> _.AppendLine($"\t\tGodot.GD.PrintErr {unknownPropertyMessage}")
+                    |> _.AppendLine("\t\tstate")
+                
+                let addGetMethod(builder: StringBuilder) =
+                    let unknownPropertyMessage = $"$\"__get: {info.Name} has no exported value '{{name}}'\""
+                    propertyNames
+                    |> List.fold (fun (builder : StringBuilder) name ->
+                            builder
+                                .AppendLine($"if name = __PropertyNames.{name} then")
+                                .AppendLine($"\t\tGodot.Variant.CreateFrom state.{name}")
+                                .Append("\telse ")
+                            ) (builder.AppendLine("let __get(state : State, name: Godot.StringName) =").Append("\t"))
+                    |> _.AppendLine()
+                    |> _.AppendLine($"\t\tGodot.GD.PrintErr {unknownPropertyMessage}")
+                    |> _.AppendLine("\t\tnew Godot.Variant()")
+                
+                let addCallMethod(builder: StringBuilder) =
+                    let unknownMethodMessage = $"$\"__call: {info.Name} has no method '{{methodName}}'\""
+                    info.methods
+                    |> List.fold (fun (builder : StringBuilder) method ->
+                            let methodParams =
+                                method.MethodParams
+                                |> List.indexed
+                                |> List.map (fun (index, parameter) ->
+                                        let valueName = $"arguments[{index}]"
+                                        $"{getConversionForField valueName parameter}"
+                                    )
+
+
+                            let methodParams =
+                                if methodParams.Length > 0 then
+                                    if method.IsCurried then
+                                        methodParams
+                                        |> String.concat " "
+                                    else                                    
+                                        methodParams
+                                        |> String.concat ","
+                                        |> sprintf ", %s"
+                                else
+                                    ""
+                                    
+                            let stateProcessing, returnValue =
+                                match method.ReturnParameter with
+                                | None -> ("callResult", "new Godot.Variant()")
+                                | Some _ -> ("fst callResult", "Variant.CreateFrom(snd callResult)")
+                            
+                            let call =
+                                if method.IsCurried then
+                                    $" self{methodParams} state"
+                                else
+                                    $"(self{methodParams}, state)"
+                            builder
+                                .AppendLine($"if methodName = new StringName(\"{method.MethodName}\") && arguments.Count = {method.MethodParams.Length} then")
+                                .AppendLine($"\t\tlet callResult = {method.MethodName}{call}")
+                                .AppendLine($"\t\tstate <- {stateProcessing}")
+                                .AppendLine($"\t\t{returnValue}")
+                                .Append("\telse ")
+                            ) ( builder.AppendLine("let __call(self: Base, methodName: StringName,  state: byref<State>, arguments: Godot.Collections.Array<Godot.Variant>) =").Append("\t"))
+                    |> _.AppendLine()
+                    |> _.AppendLine($"\t\tGodot.GD.PrintErr {unknownMethodMessage}")
+                    |> _.AppendLine("\t\tnew Godot.Variant()")
+                
+                
+                
+                
+                let addStoreStateMethod(builder: StringBuilder) =
+                    propertyNames
+                    |> List.fold (fun (builder: StringBuilder) name ->
+                            let valueName = $"stateDict[\"{name}\"]"
+                            builder
+                                .AppendLine($"\t{valueName} <- state.{name}")
+                        ) (builder.AppendLine("let __storeState(state : State) =").AppendLine("\tlet mutable stateDict = new Godot.Collections.Dictionary()"))
+                    |> _.AppendLine("\tstateDict")
+                
+                let addRestoreStateMethod(builder: StringBuilder) =
+                    info.StateToGenerate.ExportedFields
+                    |> List.fold ( fun (builder : StringBuilder) field ->
+                                    let valueName = $"stateDict[\"{field.Name}\"]"
+                                    builder
+                                        .AppendLine($"\t\t{field.Name} = {getConversionForField valueName field}")
+                            ) (builder.AppendLine("let __restoreState(stateDict: Godot.Collections.Dictionary) =").AppendLine("\t{"))
+                    |> _.AppendLine("\t}")               
+                
+                let compileCodeBuilder =
+                    StringBuilder()
+                        |> _.Append(scriptCode)
+                        |> _.AppendLine()
+                        |> _.AppendLine("#nowarn \"0067\"")
+                        |> _.AppendLine()
+                        |> addPropertyNamesModule
+                        |> _.AppendLine()
+                        |> addDefaultStateFunction
+                        |> _.AppendLine()
+                        |> addSetMethod
+                        |> _.AppendLine()
+                        |> addGetMethod
+                        |> _.AppendLine()
+                        |> addCallMethod
+                        |> _.AppendLine()
+                        |> addStoreStateMethod
+                        |> _.AppendLine()
+                        |> addRestoreStateMethod
+                        |> _.AppendLine()
+                
+                let code = compileCodeBuilder.ToString().Replace("\t", "    ")
+                
+                if not <| fsharpCompileFile.StoreString code then
+                    GD.PrintErr "Could not write temporary script file for compilation"
+                else               
+                    fsharpCompileFile.Close()
+                    let tempScriptPath = Path.GetFullPath(fsharpCompileFile.GetPath())
+                    let args =
+                        otherFlags
+                        |> Array.append [| "fsc.exe"; "-a"; $"\"{tempScriptPath}\""; "-o" ; Path.ChangeExtension(scriptPath, "dll") |]
+                        
+                    let task =
+                        checker.Compile(args)
+                        |> Async.StartAsTask
+                        
+                    task.Wait()
+                    
+                    File.Delete(tempScriptPath)
+        | _ -> ()
+
+                
+    
+        
     member _.ParseScript(scriptCode: string, scriptPath: string) =
-        let scriptCode = $"{scriptCode}{scriptInit}" |> SourceText.ofString
 
         Environment.SetEnvironmentVariable("FSHARP_COMPILER_BIN", AppDomain.CurrentDomain.BaseDirectory)
 
-        let options, _diagnostics =
-            checker.GetProjectOptionsFromScript(scriptPath, scriptCode)
-            |> Async.RunSynchronously
-
         let parseResults, parseAnswer =
+            let scriptCode = scriptCode |> SourceText.ofString
+            let options, _ =
+                checker.GetProjectOptionsFromScript(scriptPath, scriptCode, otherFlags = otherFlags)
+                |> Async.RunSynchronously
             checker.ParseAndCheckFileInProject(scriptPath, 0, scriptCode, options)
             |> Async.RunSynchronously
 
@@ -281,17 +460,18 @@ type ScriptSession() as this =
             | None -> None
             | Some file ->
                 match generateInfo file with
-                | Error message ->
-                    GD.PrintErr $"Error parsing {scriptPath}: {message}"
+                | Error messages ->
+                    for message in messages do
+                        GD.PrintErr $"Error parsing {scriptPath}: {message}"
                     None
-                | Ok info -> Some(info)
-
+                | Ok info ->                    
+                    Some(info)
 
         checkResults <- answer
 
         this.PropertyTypes <-
             this.PropertyList
-            |> List.map (fun p -> (p.Name, p.OfType))
+            |> List.map (fun p -> (new StringName(p.Name), p.OfType))
             |> PersistentHashMap.ofSeq
 
 
@@ -318,7 +498,7 @@ type ScriptSession() as this =
     member _.HasProperty(name: StringName) =
         match info with
         | None -> false
-        | Some info -> info.StateToGenerate.ExportedFields |> List.exists (fun f -> f.Name = name)
+        | Some info -> info.StateToGenerate.ExportedFields |> List.exists (fun f -> f.Name = name.ToString())
 
     member _.GetPropertyNames() =
         let exportedFields =
@@ -328,4 +508,7 @@ type ScriptSession() as this =
 
         exportedFields |> List.map _.Name
 
-    
+    member _.CanInstantiate() =
+        match info with
+        | None -> false
+        | Some _ -> true

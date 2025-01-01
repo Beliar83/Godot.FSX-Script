@@ -61,7 +61,7 @@ module getTypeNameFromIdent =
           |> add<uint16> ()
           TypeMatcher(Variant.Type.Float, PropertyHint.None, "")
           |> add<float> ()
-          |> add<double> ()
+          |> add<float32> ()
           TypeMatcher(Variant.Type.String, PropertyHint.None, "") |> add<string> () ]
         |> tryAndMatch fullName
         |> Option.orElseWith (fun () ->
@@ -104,6 +104,7 @@ module getTypeNameFromIdent =
                 | "Godot.StringName" -> Some(Variant.Type.StringName, PropertyHint.None, "")
                 | "Godot.NodePath" -> Some(Variant.Type.NodePath, PropertyHint.None, "")
                 | "Godot.Variant" -> Some(Variant.Type.Nil, PropertyHint.None, "")
+                | "Godot.GodotObject" -> Some(Variant.Type.Object, PropertyHint.None, "")
                 | _ -> None
                 |> Some
             else

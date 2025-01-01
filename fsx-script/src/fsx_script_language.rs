@@ -1,17 +1,14 @@
-use std::collections::HashMap;
-use std::ffi::c_void;
-
 use crate::fsx_script::FsxScript;
 use godot::builtin::GString;
 use godot::classes::native::ScriptLanguageExtensionProfilingInfo;
 use godot::classes::script_language::ScriptNameCasing;
-use godot::classes::{
-    Engine, IScriptLanguageExtension, ProjectSettings, ResourceLoader, Script,
-    ScriptLanguageExtension,
-};
+use godot::classes::{Engine, IScriptLanguageExtension, Os, ProjectSettings, ResourceLoader, Script, ScriptLanguageExtension};
 use godot::global::Error;
 use godot::meta::AsArg;
 use godot::prelude::*;
+use std::collections::HashMap;
+use std::ffi::c_void;
+use std::path::{Path, PathBuf};
 
 pub fn get_or_create_session(script_path: GString) -> Option<Variant> {
     let global_script_classes = ProjectSettings::singleton().get_global_class_list();
@@ -55,29 +52,6 @@ impl FsxScriptLanguage {
         Engine::singleton()
             .get_singleton(Self::singleton_name().into_arg())
             .map(|gd| gd.cast())
-    }
-
-    #[func]
-    fn complete_code(
-        &self,
-        _code: GString,
-        _path: GString,
-        _owner: Option<Gd<Object>>,
-    ) -> Dictionary {
-        godot_print!("FsxScriptLanguage - complete_code");
-        Dictionary::new()
-    }
-
-    #[func]
-    fn lookup_code(
-        &self,
-        _code: GString,
-        _symbol: GString,
-        _path: GString,
-        _owner: Option<Gd<Object>>,
-    ) -> Dictionary {
-        godot_print!("FsxScriptLanguage - lookup_code");
-        Dictionary::new()
     }
 }
 

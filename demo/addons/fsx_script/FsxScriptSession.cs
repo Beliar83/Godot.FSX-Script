@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿#if TOOLS
+using System;
+using System.Threading.Tasks;
 using Godot;
 using Godot.Collections;
 using Godot.FSharp;
@@ -14,7 +16,6 @@ public partial class FsxScriptSession : GodotObject
     private bool isUpdated;
     private bool isUpdating;
 
-
     private void UpdateScript()
     {
         if (isUpdating)
@@ -28,7 +29,28 @@ public partial class FsxScriptSession : GodotObject
         {
             if (script is not null && !string.IsNullOrWhiteSpace(ScriptPath))
             {
-                scriptSession.ParseScript(script.GetSourceCode(), ProjectSettings.GlobalizePath(ScriptPath));
+                string scriptPath = ProjectSettings.GlobalizePath(ScriptPath);
+                Dictionary<InteropInstance, Dictionary> storedScripts =
+                    Interop.Unload(ScriptPath, out WeakReference? contextReference);
+
+                while (contextReference?.IsAlive ?? false)
+                {
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+                    GC.WaitForPendingFinalizers();
+                    Task.Delay(1).Wait();
+                }
+
+                string sourceCode = script.GetSourceCode();
+                scriptSession.ParseScript(sourceCode, scriptPath);
+                scriptSession.Compile(sourceCode, scriptPath);
+                contextReference = Interop.Load(ScriptPath, scriptSession.GetClassName(), GetBaseType(), storedScripts);
+                while (contextReference?.IsAlive ?? false)
+                {
+                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+                    GC.WaitForPendingFinalizers();
+                    Task.Delay(1).Wait();
+                }
+
                 isUpdated = true;
             }
             else
@@ -38,7 +60,7 @@ public partial class FsxScriptSession : GodotObject
                     script ??= ResourceLoader.Load<Script>(ScriptPath, "FsxScript");
                 }
 
-                CallDeferred(MethodName.UpdateScript);
+                CallDeferred(nameof(UpdateScript));
             }
         }
         finally
@@ -86,4 +108,16 @@ public partial class FsxScriptSession : GodotObject
         return ScriptSession.Validate(scriptCode, path, validateFunctions, validateErrors, validateWarnings,
             validateSafeLines);
     }
+
+    private bool CanInstantiate()
+    {
+        while (!isUpdated)
+        {
+            UpdateScript();
+            Task.Delay(1).Wait();
+        }
+
+        return scriptSession.CanInstantiate();
+    }
 }
+#endif

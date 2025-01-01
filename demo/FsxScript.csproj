@@ -9,4 +9,9 @@
     <ItemGroup>
         <ProjectReference Include="FsxScriptServer\FsxScriptServer.fsproj"/>
     </ItemGroup>
+    <ItemGroup>
+        <Reference Include="node" Condition="'$(Configuration)'!='DEBUG'">
+            <HintPath>node.dll</HintPath>
+        </Reference>
+    </ItemGroup>
 </Project>

@@ -29,16 +29,18 @@ public partial class FsxScriptPlugin : EditorPlugin
         ScriptSession.SetBasePath(ProjectSettings.GlobalizePath("res://"));
         EditorInterface.Singleton.GetScriptEditor().EditorScriptChanged += OnEditorScriptChanged;
         EditorInterface.Singleton.GetScriptEditor().ScriptClose += OnScriptClose;
+        AddExportPlugin(new FsxScriptExportPlugin());
     }
 
-    private void OnEditorScriptChanged(Script script)
+    private static void OnEditorScriptChanged(Script? script)
     {
-        if (!script.IsClass("FsxScript"))
+        if (!script?.IsClass("FsxScript") ?? true)
         {
             return;
         }
 
-        (EditorInterface.Singleton.GetScriptEditor().GetCurrentEditor().GetBaseEditor() as CodeEdit)!.IndentUseSpaces = true;
+        (EditorInterface.Singleton.GetScriptEditor().GetCurrentEditor().GetBaseEditor() as CodeEdit)!.IndentUseSpaces =
+            true;
     }
 
     private static void OnScriptClose(Script script)
@@ -78,7 +80,7 @@ public partial class FsxScriptPlugin : EditorPlugin
         Sessions.Clear();
     }
 
-    private FsxScriptSession GetOrCreateSession(string path)
+    private static FsxScriptSession GetOrCreateSession(string path)
     {
         if (Sessions.TryGetValue(path, out FsxScriptSession? session))
         {

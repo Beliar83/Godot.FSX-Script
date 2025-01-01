@@ -6,6 +6,10 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib"]
 
+[features]
+default = ["editor"]
+template = ["godot/lazy-function-tables"]
+editor = ["godot/experimental-threads"]
+
 [dependencies]
-godot = { version = "0.2.1", features = [ "api-custom", "experimental-threads"] }
-lazy_static = { version = "1.5.0", features = [] }
+godot = { version = "0.2.1", features = [ "api-custom"] }
