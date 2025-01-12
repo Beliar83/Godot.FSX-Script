@@ -6,10 +6,10 @@ use godot::obj::Gd;
 use godot::prelude::*;
 use godot::sys::{
     get_interface, GDExtensionBool, GDExtensionCallError, GDExtensionConstStringNamePtr,
-    GDExtensionConstTypePtr, GDExtensionConstVariantPtr, GDExtensionInt, GDExtensionPropertyInfo,
-    GDExtensionScriptInstanceDataPtr, GDExtensionScriptInstanceInfo3, GDExtensionScriptInstancePtr,
-    GDExtensionTypePtr, GDExtensionUninitializedVariantPtr, GDExtensionVariantPtr, GodotFfi,
-    PtrcallType, GDEXTENSION_CALL_ERROR_INVALID_METHOD, GDEXTENSION_CALL_OK,
+    GDExtensionConstTypePtr, GDExtensionConstVariantPtr, GDExtensionInt, GDExtensionMethodInfo,
+    GDExtensionPropertyInfo, GDExtensionScriptInstanceDataPtr, GDExtensionScriptInstanceInfo3,
+    GDExtensionScriptInstancePtr, GDExtensionTypePtr, GDExtensionVariantPtr, GodotFfi, PtrcallType,
+    GDEXTENSION_CALL_ERROR_INVALID_METHOD, GDEXTENSION_CALL_OK,
 };
 use std::collections::HashMap;
 // TODO: If possible, combine FsxScriptInstance and FsxScriptPlaceholderInstance
@@ -24,8 +24,8 @@ static INFO: GDExtensionScriptInstanceInfo3 = GDExtensionScriptInstanceInfo3 {
     property_get_revert_func: None,
     get_owner_func: None,
     get_property_state_func: None,
-    get_method_list_func: None,
-    free_method_list_func: None,
+    get_method_list_func: Some(FsxScriptInstance::get_method_list),
+    free_method_list_func: Some(FsxScriptInstance::free_method_list),
     get_property_type_func: None,
     validate_property_func: None,
     has_method_func: Some(FsxScriptInstance::has_method),
@@ -53,8 +53,8 @@ static PLACEHOLDER_INFO: GDExtensionScriptInstanceInfo3 = GDExtensionScriptInsta
     property_get_revert_func: None,
     get_owner_func: None,
     get_property_state_func: None,
-    get_method_list_func: None,
-    free_method_list_func: None,
+    get_method_list_func: Some(FsxScriptPlaceholderInstance::get_method_list),
+    free_method_list_func: Some(FsxScriptPlaceholderInstance::free_method_list),
     get_property_type_func: None,
     validate_property_func: None,
     has_method_func: Some(FsxScriptPlaceholderInstance::has_method),
@@ -178,6 +178,26 @@ impl FsxScriptInstance {
         let instance: &mut FsxScriptInstance = p_instance.into();
         let name = StringName::new_from_sys(p_name as GDExtensionConstTypePtr);
         GDExtensionBool::from(instance.script.bind().has_method(name))
+    }
+
+    unsafe extern "C" fn get_method_list(
+        p_instance: GDExtensionScriptInstanceDataPtr,
+        r_count: *mut u32,
+    ) -> *const GDExtensionMethodInfo {
+        let instance: &mut FsxScriptInstance = p_instance.into();
+        instance.script.bind().get_method_list(r_count)
+    }
+
+    unsafe extern "C" fn free_method_list(
+        _p_instance: GDExtensionScriptInstanceDataPtr,
+        p_list: *const GDExtensionMethodInfo,
+        p_count: u32,
+    ) {
+        Vec::<GDExtensionMethodInfo>::from_raw_parts(
+            p_list.cast_mut(),
+            p_count as usize,
+            p_count as usize,
+        );
     }
 
     unsafe extern "C" fn call(
@@ -335,9 +355,29 @@ impl FsxScriptPlaceholderInstance {
         p_instance: GDExtensionScriptInstanceDataPtr,
         p_name: GDExtensionConstStringNamePtr,
     ) -> GDExtensionBool {
-        let instance: &mut FsxScriptInstance = p_instance.into();
+        let instance: &mut FsxScriptPlaceholderInstance = p_instance.into();
         let name = StringName::new_from_sys(p_name as GDExtensionConstTypePtr);
         GDExtensionBool::from(instance.script.bind().has_method(name))
+    }
+
+    unsafe extern "C" fn get_method_list(
+        p_instance: GDExtensionScriptInstanceDataPtr,
+        r_count: *mut u32,
+    ) -> *const GDExtensionMethodInfo {
+        let instance: &mut FsxScriptPlaceholderInstance = p_instance.into();
+        instance.script.bind().get_method_list(r_count)
+    }
+
+    unsafe extern "C" fn free_method_list(
+        _p_instance: GDExtensionScriptInstanceDataPtr,
+        p_list: *const GDExtensionMethodInfo,
+        p_count: u32,
+    ) {
+        Vec::<GDExtensionMethodInfo>::from_raw_parts(
+            p_list.cast_mut(),
+            p_count as usize,
+            p_count as usize,
+        );
     }
 
     unsafe extern "C" fn call(

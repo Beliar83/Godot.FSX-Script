@@ -20,12 +20,20 @@ open Microsoft.FSharp.Core
 
 type ScriptSession() as this =
     static let mutable basePath: string = ""
-    static let propertyInfoName = new StringName("Name")
+    static let infoName = new StringName("Name")
     static let propertyInfoClassName = new StringName("ClassName")
     static let propertyInfoType = new StringName("Type")
     static let propertyInfoHint = new StringName("Hint")
     static let propertyInfoHintString = new StringName("HintString")
     static let propertyInfoUsage = new StringName("Usage")
+    
+    static let methodInfoReturnValue = new StringName("ReturnValue")
+    static let methodInfoFlags = new StringName("Flags")
+    static let methodInfoId = new StringName("Id")
+    static let methodInfoArguments = new StringName("Arguments")
+    static let methodInfoDefaultArguments = new StringName("DefaultArgumentValues")
+     
+    
     
     static let getFrameworkReferences =
         let runtimePath = RuntimeEnvironment.GetRuntimeDirectory()
@@ -92,6 +100,25 @@ type ScriptSession() as this =
         |> List.filter (fun entity -> entity.DisplayName = "State")
         |> List.tryHead
 
+    let GetPropertyInfo (value : Field) =
+        let propertyInfo = new Dictionary()
+        propertyInfo.Add(infoName, value.Name)
+
+        let fieldType = value.OfType
+        let propertyHint = value.PropertyHint
+        let hintText = value.HintText
+        let usageFlags = value.UsageFlags
+        if fieldType = VariantType.Object then
+            propertyInfo.Add(propertyInfoClassName, value.OfTypeName)
+        else
+            propertyInfo.Add(propertyInfoClassName, new StringName(""))
+
+        propertyInfo.Add(propertyInfoType, Variant.From(&fieldType))
+        propertyInfo.Add(propertyInfoHint, Variant.From(&propertyHint))
+        propertyInfo.Add(propertyInfoHintString, Variant.From(&hintText))
+        propertyInfo.Add(propertyInfoUsage, Variant.From(&usageFlags))
+        propertyInfo
+    
     static member SetBasePath(path: String) = basePath <- path
 
     static member Validate(
@@ -473,25 +500,55 @@ type ScriptSession() as this =
         let propertyList = Array<Dictionary>()
 
         for field in this.PropertyList do
-            let propertyInfo = new Dictionary()
-            propertyInfo.Add(propertyInfoName, field.Name)
-
-            let fieldType = field.OfType
-            let propertyHint = field.PropertyHint
-            let hintText = field.HintText
-            let usageFlags = field.UsageFlags
-            if fieldType = VariantType.Object then
-                propertyInfo.Add(propertyInfoClassName, field.OfTypeName)
-            else
-                propertyInfo.Add(propertyInfoClassName, new StringName(""))
-
-            propertyInfo.Add(propertyInfoType, Variant.From(&fieldType))
-            propertyInfo.Add(propertyInfoHint, Variant.From(&propertyHint))
-            propertyInfo.Add(propertyInfoHintString, Variant.From(&hintText))
-            propertyInfo.Add(propertyInfoUsage, Variant.From(&usageFlags))
+            let propertyInfo = GetPropertyInfo(field)
             propertyList.Add(propertyInfo)
 
         propertyList
+        
+    member _.GetMethods() =
+        let methodList = Array<Dictionary>()
+
+        for method in this.MethodList do
+            let methodInfo = new Dictionary()
+            methodInfo.Add(infoName, method.MethodName)
+            
+            let returnInfo =
+                match method.ReturnParameter with
+                | None ->
+                    let propertyInfo = new Dictionary()
+                    propertyInfo.Add(infoName, "")
+
+                    let fieldType = VariantType.Nil
+                    let propertyHint = PropertyHint.None
+                    let hintText = ""
+                    let usageFlags = PropertyUsageFlags.None
+
+                    propertyInfo.Add(propertyInfoType, Variant.From(&fieldType))
+                    propertyInfo.Add(propertyInfoHint, Variant.From(&propertyHint))
+                    propertyInfo.Add(propertyInfoHintString, Variant.From(&hintText))
+                    propertyInfo.Add(propertyInfoUsage, Variant.From(&usageFlags))
+                    propertyInfo.Add(propertyInfoClassName, new StringName())
+                    propertyInfo                    
+                | Some returnValue ->
+                    GetPropertyInfo(returnValue)
+                    
+
+            let methodFlags = method.MethodFlags
+
+            let arguments = Array<Dictionary>()
+            
+            for methodParam in method.MethodParams do
+                let paramInfo = GetPropertyInfo(methodParam)
+                arguments.Add paramInfo
+            
+            methodInfo.Add(methodInfoReturnValue, Variant.From &returnInfo)
+            methodInfo.Add(methodInfoFlags, Variant.From(&methodFlags))
+            methodInfo.Add(methodInfoId, Variant.CreateFrom(-1))
+            methodInfo.Add(methodInfoArguments, Variant.From(&arguments))
+            methodInfo.Add(methodInfoDefaultArguments, Variant.CreateFrom(new Array()))
+            methodList.Add(methodInfo)
+
+        methodList
 
     member _.HasProperty(name: StringName) =
         match info with

@@ -5,9 +5,12 @@ use godot::global::{weakref, Error};
 use godot::prelude::*;
 use godot::sys::types::{OpaqueString, OpaqueStringName};
 use godot::sys::{
-    c_str_from_str, get_interface, GDExtensionInt, GDExtensionPropertyInfo,
-    GDExtensionScriptInstancePtr, GDExtensionStringNamePtr, GDExtensionStringPtr,
-    GDExtensionUninitializedStringNamePtr, GDExtensionUninitializedStringPtr,
+    c_str_from_str, get_interface, GDExtensionInt, GDExtensionMethodInfo, GDExtensionPropertyInfo,
+    GDExtensionScriptInstanceDataPtr, GDExtensionScriptInstancePtr, GDExtensionStringNamePtr,
+    GDExtensionStringPtr, GDExtensionTypePtr, GDExtensionUninitializedStringNamePtr,
+    GDExtensionUninitializedStringPtr, GDExtensionVariantPtr, GodotFfi, PtrcallType, __GdextString,
+    __GdextStringName, __GdextVariant, GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE,
+    GDEXTENSION_VARIANT_TYPE_NIL,
 };
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -103,6 +106,141 @@ impl FsxScript {
         }
     }
 
+    pub(crate) unsafe fn get_method_list(&self, count: *mut u32) -> *const GDExtensionMethodInfo {
+        let method_list = match self.get_session() {
+            None => Array::<Dictionary>::new(),
+            Some(session) => {
+                let variant = session.call("GetMethods", &[]);
+                Array::<Dictionary>::from_variant(&variant)
+            }
+        };
+        let mut method_list_buf = Vec::<GDExtensionMethodInfo>::with_capacity(method_list.len());
+        for method in method_list.iter_shared() {
+            let name = method
+                .get(StringName::from("Name"))
+                .expect("MethodInfoDictionary was not in the correct format")
+                .clone();
+            let name = ManuallyDrop::new(create_string_name_from_string(name.to_string()));
+            let name = name.as_ptr() as GDExtensionStringNamePtr;
+
+            let return_value = method
+                .get(StringName::from("ReturnValue"))
+                .expect("MethodInfoDictionary was not in the correct format")
+                .clone();
+
+            let id = method
+                .get(StringName::from("Id"))
+                .expect("MethodInfoDictionary was not in the correct format")
+                .clone()
+                .to::<i32>();
+
+            let return_value = Self::get_property_info(return_value.to::<Dictionary>());
+
+            let flags = method
+                .get(StringName::from("Flags"))
+                .expect("MethodInfoDictionary was not in the correct format")
+                .clone()
+                .to::<u32>();
+
+            let arguments = method
+                .get(StringName::from("Arguments"))
+                .expect("MethodInfoDictionary was not in the correct format")
+                .clone()
+                .to::<Array<Dictionary>>();
+
+            let mut argument_buf = Vec::<GDExtensionPropertyInfo>::with_capacity(arguments.len());
+
+            for argument in arguments.iter_shared() {
+                argument_buf.push(Self::get_property_info(argument));
+            }
+
+            let argument_count = arguments.len() as u32;
+            let arguments = argument_buf.as_mut_ptr();
+            std::mem::forget(argument_buf);
+
+            let default_arguments = method
+                .get(StringName::from("DefaultArgumentValues"))
+                .expect("MethodInfoDictionary was not in the correct format")
+                .clone()
+                .to::<Array<Variant>>();
+
+            let mut default_argument_buf =
+                Vec::<GDExtensionVariantPtr>::with_capacity(default_arguments.len());
+
+            for default_argument in default_arguments.iter_shared() {
+                default_argument_buf.push(default_argument.sys() as GDExtensionVariantPtr);
+                std::mem::forget(default_argument);
+            }
+
+            let default_argument_count = default_arguments.len() as u32;
+            let default_arguments = default_argument_buf.as_mut_ptr();
+            std::mem::forget(default_argument_buf);
+
+            let info = GDExtensionMethodInfo {
+                id,
+                name,
+                return_value,
+                flags,
+                argument_count,
+                arguments,
+                default_argument_count,
+                default_arguments,
+            };
+
+            method_list_buf.push(info);
+        }
+
+        *count = method_list_buf.len() as u32;
+        let x = method_list_buf.as_ptr();
+        std::mem::forget(method_list_buf);
+        x
+    }
+
+    unsafe fn get_property_info(property: Dictionary) -> GDExtensionPropertyInfo {
+        let name = property
+            .get(StringName::from("Name"))
+            .expect("PropertyInfoDictionary was not in the correct format")
+            .clone();
+        let name = ManuallyDrop::new(create_string_name_from_string(name.to_string()));
+        let name = name.as_ptr() as GDExtensionStringNamePtr;
+
+        let class_name = property
+            .get(StringName::from("ClassName"))
+            .expect("PropertyInfoDictionary was not in the correct format")
+            .clone();
+        let class_name = ManuallyDrop::new(create_string_name_from_string(class_name.to_string()));
+        let class_name = class_name.as_ptr() as GDExtensionStringNamePtr;
+
+        let type_ = property
+            .get(StringName::from("Type"))
+            .expect("PropertyInfoDictionary was not in the correct format");
+        let type_ = type_.to();
+        let hint = property
+            .get(StringName::from("Hint"))
+            .expect("PropertyInfoDictionary was not in the correct format");
+        let hint = hint.to();
+        let hint_string = property
+            .get(StringName::from("HintString"))
+            .expect("PropertyInfoDictionary was not in the correct format")
+            .clone();
+        let hint_string =
+            ManuallyDrop::new(create_godot_string_from_string(hint_string.to_string()));
+        let hint_string = hint_string.as_ptr() as GDExtensionStringPtr;
+
+        let usage = property
+            .get(StringName::from("Usage"))
+            .expect("PropertyInfoDictionary was not in the correct format");
+        let usage = usage.to();
+        GDExtensionPropertyInfo {
+            name,
+            class_name,
+            type_,
+            hint,
+            hint_string,
+            usage,
+        }
+    }
+
     pub(crate) unsafe fn get_property_list(
         &self,
         count: *mut u32,
@@ -117,49 +255,7 @@ impl FsxScript {
 
         let mut buf = Vec::<GDExtensionPropertyInfo>::with_capacity(property_list.len());
         for property in property_list.iter_shared() {
-            let name = property
-                .get(StringName::from("Name"))
-                .expect("PropertyInfoDictionary was not in the correct format")
-                .clone();
-            let name = ManuallyDrop::new(create_string_name_from_string(name.to_string()));
-            let name = name.as_ptr() as GDExtensionStringNamePtr;
-
-            let class_name = property
-                .get(StringName::from("ClassName"))
-                .expect("PropertyInfoDictionary was not in the correct format")
-                .clone();
-            let class_name =
-                ManuallyDrop::new(create_string_name_from_string(class_name.to_string()));
-            let class_name = class_name.as_ptr() as GDExtensionStringNamePtr;
-
-            let type_ = property
-                .get(StringName::from("Type"))
-                .expect("PropertyInfoDictionary was not in the correct format");
-            let type_ = type_.to();
-            let hint = property
-                .get(StringName::from("Hint"))
-                .expect("PropertyInfoDictionary was not in the correct format");
-            let hint = hint.to();
-            let hint_string = property
-                .get(StringName::from("HintString"))
-                .expect("PropertyInfoDictionary was not in the correct format")
-                .clone();
-            let hint_string =
-                ManuallyDrop::new(create_godot_string_from_string(hint_string.to_string()));
-            let hint_string = hint_string.as_ptr() as GDExtensionStringPtr;
-
-            let usage = property
-                .get(StringName::from("Usage"))
-                .expect("PropertyInfoDictionary was not in the correct format");
-            let usage = usage.to();
-            let info = GDExtensionPropertyInfo {
-                name,
-                class_name,
-                type_,
-                hint,
-                hint_string,
-                usage,
-            };
+            let info = Self::get_property_info(property);
             buf.push(info);
         }
 

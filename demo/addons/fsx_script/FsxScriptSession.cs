@@ -93,6 +93,17 @@ public partial class FsxScriptSession : GodotObject
         return properties;
     }
 
+    private Array<Dictionary> GetMethods()
+    {
+        while (!isUpdated)
+        {
+            UpdateScript();
+            Task.Delay(1).Wait();
+        }
+
+        return scriptSession.GetMethods();
+    }
+
     private bool HasProperty(StringName name)
     {
         while (!isUpdated)
