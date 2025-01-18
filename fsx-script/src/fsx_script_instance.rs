@@ -82,7 +82,7 @@ impl FsxScriptInstance {
     pub(crate) fn new(script: Gd<FsxScript>, object: Gd<Object>) -> Self {
         let mut interop_script = ResourceLoader::singleton()
             .load("res://addons/fsx_script/Interop.cs")
-            .unwrap()
+            .expect("C# Interop script could not be loaded")
             .cast::<Script>();
         let variant = if !interop_script.is_instance_valid() {
             godot_error!("Could not create C# instance for script");
@@ -139,7 +139,7 @@ impl FsxScriptInstance {
         if instance.script.bind().has_property(&name) {
             let args = [name.to_variant()];
             let value = instance.internal_object.call("GetFsxValue", &args);
-            get_interface().variant_duplicate.unwrap()(
+            get_interface().variant_duplicate.expect("gdext is not initialized")(
                 value.sys() as GDExtensionConstVariantPtr,
                 r_ret,
                 GDExtensionBool::from(false),
@@ -246,7 +246,7 @@ impl From<FsxScriptInstance> for GDExtensionScriptInstancePtr {
     fn from(value: FsxScriptInstance) -> Self {
         let value = Box::<FsxScriptInstance>::from(value);
         unsafe {
-            get_interface().script_instance_create3.unwrap()(
+            get_interface().script_instance_create3.expect("gdext is not initialized")(
                 &INFO,
                 Box::into_raw(value) as GDExtensionScriptInstanceDataPtr,
             )
@@ -317,7 +317,7 @@ impl FsxScriptPlaceholderInstance {
         let name = StringName::new_from_sys(p_name as GDExtensionConstTypePtr);
         if instance.script.bind().has_property(&name) {
             if instance.properties.contains_key(&name) {
-                get_interface().variant_duplicate.unwrap()(
+                get_interface().variant_duplicate.expect("gdext is not initialized")(
                     instance.properties[&name].sys() as GDExtensionConstVariantPtr,
                     r_ret,
                     GDExtensionBool::from(false),
@@ -407,7 +407,7 @@ impl From<FsxScriptPlaceholderInstance> for GDExtensionScriptInstancePtr {
     fn from(value: FsxScriptPlaceholderInstance) -> Self {
         let value = Box::<FsxScriptPlaceholderInstance>::from(value);
         unsafe {
-            get_interface().script_instance_create3.unwrap()(
+            get_interface().script_instance_create3.expect("gdext is not initialized")(
                 &PLACEHOLDER_INFO,
                 Box::into_raw(value) as GDExtensionScriptInstanceDataPtr,
             )

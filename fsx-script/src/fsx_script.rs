@@ -39,7 +39,7 @@ fn create_string_name_from_string(content: String) -> Vec<OpaqueStringName> {
         let content = content.add("\0");
         get_interface()
             .string_name_new_with_utf8_chars_and_len
-            .unwrap()(
+            .expect("gdext is not initialized")(
             buf.as_mut_ptr() as GDExtensionUninitializedStringNamePtr,
             c_str_from_str(content.as_str()),
             content.len() as GDExtensionInt,
@@ -56,7 +56,7 @@ fn create_godot_string_from_string(content: String) -> Vec<OpaqueString> {
 
     unsafe {
         let content = content.add("\0");
-        get_interface().string_new_with_utf8_chars_and_len2.unwrap()(
+        get_interface().string_new_with_utf8_chars_and_len2.expect("gdext is not initialized")(
             buf.as_mut_ptr() as GDExtensionUninitializedStringPtr,
             c_str_from_str(content.as_str()),
             content.len() as GDExtensionInt,
@@ -406,7 +406,7 @@ impl IScriptExtension for FsxScript {
                 Gd::<Object>::from_variant(&session).call_deferred("UpdateScript", &[]);
             }
         }
-        let mut language = FsxScriptLanguage::singleton().unwrap();
+        let mut language = FsxScriptLanguage::singleton().expect("FsxScriptLanguage single has not been set");
         let mut language = language.bind_mut();
         let self_gd = self.to_gd();
         let path = self_gd.get_path();

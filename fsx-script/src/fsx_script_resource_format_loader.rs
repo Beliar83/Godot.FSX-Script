@@ -55,7 +55,7 @@ impl IResourceFormatLoader for FsxScriptResourceFormatLoader {
     }
 
     fn get_resource_type(&self, path: GString) -> GString {
-        if path.to_string().ends_with(".fsx") {
+        if path.get_extension() == GString::from("fsx") {
             GString::from("Script")
         } else {
             GString::default()
@@ -79,7 +79,7 @@ impl IResourceFormatLoader for FsxScriptResourceFormatLoader {
                 }
                 Some(value) => ResourceLoader::singleton()
                     .load(value.stringify().into_arg())
-                    .unwrap()
+                    .unwrap_or_else(|| panic!("Could not load C# script for {}", path))
                     .to_variant(),
             }
         }
