@@ -309,7 +309,7 @@ type ScriptSession() as this =
                     
                 let getConversionForField valueName field =
                     match getConversionToDotnetForGodotSharp GD.PrintErr field.OfType with
-                    | Simple methodName -> $"value.{methodName}()"
+                    | Simple methodName -> $"{valueName}.{methodName}()"
                     | Nil -> "null"
                     | Int -> $"{valueName}.As{field.OfTypeName.ToString().Remove(0, systemTypePrefixLength)}()"
                     | Float -> $"{valueName}.As{getConversionForPrecision field}()"

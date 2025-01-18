@@ -26,7 +26,7 @@ type FsxToGodotSharp() as this =
     
     let getConversionForField valueName (field : ObjectGenerator.Field) =
         match Variant.getConversionToDotnetForGodotSharp Console.Error.WriteLine field.OfType with
-        | Simple methodName -> $"value.{methodName}()"
+        | Simple methodName -> $"{valueName}.{methodName}()"
         | Nil -> "null"
         | Int -> $"{valueName}.As{field.OfTypeName.ToString().Remove(0, systemTypePrefixLength)}()"
         | Float -> $"{valueName}.As{getConversionForPrecision field}()"

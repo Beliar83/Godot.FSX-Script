@@ -17,7 +17,7 @@ module Variant =
         | VariantType.Int -> DefaultValue.Int
         | VariantType.Float -> DefaultValue.Float
         | VariantType.Bool -> DefaultValue.Simple "false"
-        | VariantType.String -> DefaultValue.Simple "String.Empty"
+        | VariantType.String -> DefaultValue.Simple "\"\""
         | VariantType.Dictionary -> DefaultValue.Simple "new Godot.Dictionary()"
         | VariantType.Array -> DefaultValue.Simple "new Godot.Array()"
         | VariantType.Object -> DefaultValue.Object
