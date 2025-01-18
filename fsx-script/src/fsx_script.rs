@@ -6,11 +6,10 @@ use godot::prelude::*;
 use godot::sys::types::{OpaqueString, OpaqueStringName};
 use godot::sys::{
     c_str_from_str, get_interface, GDExtensionInt, GDExtensionMethodInfo, GDExtensionPropertyInfo,
-    GDExtensionScriptInstanceDataPtr, GDExtensionScriptInstancePtr, GDExtensionStringNamePtr,
-    GDExtensionStringPtr, GDExtensionTypePtr, GDExtensionUninitializedStringNamePtr,
-    GDExtensionUninitializedStringPtr, GDExtensionVariantPtr, GodotFfi, PtrcallType, __GdextString,
-    __GdextStringName, __GdextVariant, GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE,
-    GDEXTENSION_VARIANT_TYPE_NIL,
+    GDExtensionScriptInstancePtr, GDExtensionStringNamePtr, GDExtensionStringPtr,
+    GDExtensionTypePtr, GDExtensionUninitializedStringNamePtr, GDExtensionUninitializedStringPtr,
+    GDExtensionVariantPtr, GodotFfi, PtrcallType, __GdextString, __GdextStringName, __GdextVariant,
+    GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE, GDEXTENSION_VARIANT_TYPE_NIL,
 };
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -29,6 +28,7 @@ pub(crate) struct FsxScript {
     owner_ids: Array<i64>,
     owners: RefCell<Vec<Gd<Object>>>,
     base: Base<ScriptExtension>,
+    source_changed_cache: bool,
 }
 
 // This creates a vec that holds a single StringName. This is needed to get a unique address that can be passed to godot
@@ -56,7 +56,9 @@ fn create_godot_string_from_string(content: String) -> Vec<OpaqueString> {
 
     unsafe {
         let content = content.add("\0");
-        get_interface().string_new_with_utf8_chars_and_len2.expect("gdext is not initialized")(
+        get_interface()
+            .string_new_with_utf8_chars_and_len2
+            .expect("gdext is not initialized")(
             buf.as_mut_ptr() as GDExtensionUninitializedStringPtr,
             c_str_from_str(content.as_str()),
             content.len() as GDExtensionInt,
@@ -307,6 +309,15 @@ impl FsxScript {
             .map(|gd_ref| weakref(&gd_ref.to_variant()).to())
             .collect();
     }
+
+    pub(crate) fn update_script(&self) {
+        match self.get_session() {
+            None => {}
+            Some(session) => {
+                Gd::<Object>::from_variant(&session).call_deferred("UpdateScript", &[]);
+            }
+        }
+    }
 }
 
 #[godot_api]
@@ -317,6 +328,7 @@ impl IScriptExtension for FsxScript {
             base,
             owners: Default::default(),
             owner_ids: Default::default(),
+            source_changed_cache: false,
         }
     }
 
@@ -371,6 +383,7 @@ impl IScriptExtension for FsxScript {
         let self_gd = self.to_gd();
         let instance = FsxScriptInstance::new(self_gd, for_object);
         let instance: GDExtensionScriptInstancePtr = instance.into();
+        self.update_script();
         instance.cast::<c_void>()
     }
 
@@ -382,6 +395,7 @@ impl IScriptExtension for FsxScript {
         let self_gd = self.to_gd();
         let placeholder = FsxScriptPlaceholderInstance::new(self_gd, for_object);
         let instance: GDExtensionScriptInstancePtr = placeholder.into();
+        self.update_script();
         instance.cast::<c_void>()
     }
 
@@ -403,14 +417,16 @@ impl IScriptExtension for FsxScript {
         match self.get_session() {
             None => {}
             Some(session) => {
-                Gd::<Object>::from_variant(&session).call_deferred("UpdateScript", &[]);
+                Gd::<Object>::from_variant(&session).call("ScriptCodeChanged", &[]);
             }
         }
-        let mut language = FsxScriptLanguage::singleton().expect("FsxScriptLanguage single has not been set");
+        let mut language =
+            FsxScriptLanguage::singleton().expect("FsxScriptLanguage single has not been set");
         let mut language = language.bind_mut();
         let self_gd = self.to_gd();
         let path = self_gd.get_path();
         language.scripts.insert(path, self_gd);
+        self.source_changed_cache = true;
     }
 
     fn reload(&mut self, keep_state: bool) -> Error {
@@ -482,7 +498,10 @@ impl IScriptExtension for FsxScript {
     }
 
     fn update_exports(&mut self) {
-        todo!()
+        if self.source_changed_cache {
+            self.source_changed_cache = false;
+            self.update_script();
+        }
     }
 
     fn get_script_method_list(&self) -> Array<Dictionary> {

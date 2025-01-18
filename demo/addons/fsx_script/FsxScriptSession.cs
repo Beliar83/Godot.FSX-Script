@@ -16,6 +16,11 @@ public partial class FsxScriptSession : GodotObject
     private bool isUpdated;
     private bool isUpdating;
 
+    private void ScriptCodeChanged()
+    {
+        isUpdated = false;
+    }
+
     private void UpdateScript()
     {
         if (isUpdating)
