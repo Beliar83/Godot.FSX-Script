@@ -195,6 +195,7 @@ module ObjectGenerator =
             && 
                ((returnParameterType.IsTupleType
                && returnParameterType.GenericArguments.Count = 2
+               && (returnParameterType.GenericArguments |> Seq.head).HasTypeDefinition
                && (returnParameterType.GenericArguments |> Seq.head)
                   |> _.StripAbbreviations()
                       .TypeDefinition = state
