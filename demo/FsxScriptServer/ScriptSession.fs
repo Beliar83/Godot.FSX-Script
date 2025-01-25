@@ -180,7 +180,7 @@ type ScriptSession() as this =
                     let errorData = new Dictionary()
                     errorData.Add("line", error.StartLine)
                     errorData.Add("column", Variant.CreateFrom(error.StartColumn + 1))
-                    errorData.Add("message", error.Message)
+                    errorData.Add("message", Variant.CreateFrom(error.Message.Split("\n") |> Array.head))
                     errorData.Add("path", path)
                     
                     errorList.Add(errorData)
