@@ -14,10 +14,20 @@ public partial class FsxScriptSession : GodotObject
     private readonly ScriptSession scriptSession = new();
     private Script? script;
     private bool isUpdated;
+    private bool isParsed;
     private bool isUpdating;
 
     private void ScriptCodeChanged()
     {
+        isParsed = false;
+        if (script is not null && !string.IsNullOrWhiteSpace(ScriptPath))
+        {
+            string scriptPath = ProjectSettings.GlobalizePath(ScriptPath);
+            string sourceCode = script.GetSourceCode();
+            scriptSession.ParseScript(sourceCode, scriptPath);
+            isParsed = true;
+        }
+
         isUpdated = false;
     }
 
@@ -46,7 +56,11 @@ public partial class FsxScriptSession : GodotObject
                 }
 
                 string sourceCode = script.GetSourceCode();
-                scriptSession.ParseScript(sourceCode, scriptPath);
+                if (!isParsed)
+                {
+                    scriptSession.ParseScript(sourceCode, scriptPath);
+                }
+
                 scriptSession.Compile(sourceCode, scriptPath);
                 contextReference = Interop.Load(ScriptPath, scriptSession.GetFullTypeName(), GetBaseType(),
                     storedScripts);
@@ -135,6 +149,11 @@ public partial class FsxScriptSession : GodotObject
     {
         return ScriptSession.Validate(scriptCode, path, validateFunctions, validateErrors, validateWarnings,
             validateSafeLines);
+    }
+
+    private Dictionary Complete(string scriptCode)
+    {
+        return scriptSession.Complete(scriptCode);
     }
 
     private bool CanInstantiate()

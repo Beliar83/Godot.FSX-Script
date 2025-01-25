@@ -6,6 +6,7 @@ open System.Runtime.InteropServices
 open System.Text
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.Diagnostics
+open FSharp.Compiler.EditorServices
 open FSharp.Compiler.Interactive.Shell
 open FSharp.Compiler.Symbols
 open FSharp.Compiler.Text
@@ -129,8 +130,6 @@ type ScriptSession() as this =
             validateWarnings: bool,
             validateSafeLines: bool
         ) =
-        
-        let checker = FSharpChecker.Create(keepAssemblyContents = true)
         
         let validationResult = new Dictionary()
 
@@ -448,9 +447,6 @@ type ScriptSession() as this =
                     
                     File.Delete(tempScriptPath)
         | _ -> ()
-
-                
-    
         
     member _.ParseScript(scriptCode: string, scriptPath: string) =
 
@@ -572,3 +568,53 @@ type ScriptSession() as this =
         match info with
         | None -> false
         | Some _ -> true
+
+    member _.Complete(code: string) =
+        match (checkResults, results) with
+        | Some checkResults, Some parseResults ->
+            let result =
+                code.Split('\n')
+                |> Array.indexed
+                |> Array.map (fun (index, text) -> (index + 1, text.Replace("\uffff", ""), text.IndexOf('\uffff')))
+                |> Array.filter (fun (_, _, index) -> index > 1)
+                |> Array.tryHead
+            match result with
+            | None -> new Dictionary()
+            | Some (line, text, character) ->
+                let result = new Dictionary()
+
+                let identStart = text.LastIndexOf(".", character) + 1
+                let completeText = text.Substring(0, identStart)
+                let partialName = QuickParse.GetPartialLongNameEx(completeText, identStart - 1)
+                
+                let declarations = checkResults.GetDeclarationListInfo(Some parseResults, line, completeText, partialName, (fun () -> []))
+                if declarations.IsError then
+                    result["result"] <- Variant.CreateFrom(int64 <| Error.CantResolve)
+                else
+                    result["result"] <- Variant.CreateFrom(int64 <| Error.Ok)
+                let options = new Array()
+                result["force"] <- declarations.Items.Length > 0
+                for completion in declarations.Items do
+                    let option = new Dictionary()
+                    let completionKind =
+                        match completion.Kind with
+                        | CompletionItemKind.SuggestedName -> ScriptLanguageExtension.CodeCompletionKind.PlainText
+                        | CompletionItemKind.Field -> ScriptLanguageExtension.CodeCompletionKind.Member
+                        | CompletionItemKind.Property -> ScriptLanguageExtension.CodeCompletionKind.Member
+                        | CompletionItemKind.Method _ -> ScriptLanguageExtension.CodeCompletionKind.Function
+                        | CompletionItemKind.Event -> ScriptLanguageExtension.CodeCompletionKind.Signal
+                        | CompletionItemKind.Argument -> ScriptLanguageExtension.CodeCompletionKind.PlainText
+                        | CompletionItemKind.CustomOperation -> ScriptLanguageExtension.CodeCompletionKind.PlainText
+                        | CompletionItemKind.Other -> ScriptLanguageExtension.CodeCompletionKind.PlainText
+                    option["kind"] <- Variant.CreateFrom(int64 <| completionKind)
+                    option["display"] <- completion.NameInList
+                    option["insert_text"] <- completion.NameInCode
+                    option["font_color"] <- new Variant()
+                    option["icon"] <- new Variant()
+                    option["default_value"] <- new Variant()
+                    option["location"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.CodeCompletionLocation.Other)
+                    options.Add(option)
+                result["options"] <- options
+                result["call_hint"] <- "" // Should be something like function signature. Not sure how to get that
+                result
+        | _ -> new Dictionary()

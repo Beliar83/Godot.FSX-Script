@@ -247,8 +247,17 @@ let _process(self : Base, delta: float) =
     }
 
     fn complete_code(&self, code: GString, path: GString, owner: Option<Gd<Object>>) -> Dictionary {
-        godot_print!("FsxScriptLanguage - complete_code");
-        Dictionary::new()
+        let session = get_or_create_session(path.clone());
+        match session {
+            None => {
+                godot_error!("Could not get session for {path}");
+                Dictionary::new()
+            }
+            Some(session) => {
+                let result = session.call("Complete", &[code.to_variant()]);
+                Dictionary::from_variant(&result)
+            }
+        }
     }
 
     fn lookup_code(
