@@ -7,9 +7,8 @@ use godot::sys::types::{OpaqueString, OpaqueStringName};
 use godot::sys::{
     c_str_from_str, get_interface, GDExtensionInt, GDExtensionMethodInfo, GDExtensionPropertyInfo,
     GDExtensionScriptInstancePtr, GDExtensionStringNamePtr, GDExtensionStringPtr,
-    GDExtensionTypePtr, GDExtensionUninitializedStringNamePtr, GDExtensionUninitializedStringPtr,
-    GDExtensionVariantPtr, GodotFfi, PtrcallType, __GdextString, __GdextStringName, __GdextVariant,
-    GDEXTENSION_METHOD_ARGUMENT_METADATA_NONE, GDEXTENSION_VARIANT_TYPE_NIL,
+    GDExtensionUninitializedStringNamePtr, GDExtensionUninitializedStringPtr,
+    GDExtensionVariantPtr, GodotFfi,
 };
 use std::cell::RefCell;
 use std::collections::HashSet;
@@ -337,7 +336,6 @@ impl IScriptExtension for FsxScript {
     }
 
     fn can_instantiate(&self) -> bool {
-        godot_print!("FSXScript - can_instantiate");
         match self.get_session() {
             None => false,
             Some(session) => session.call("CanInstantiate", &[]).booleanize(),
@@ -345,7 +343,6 @@ impl IScriptExtension for FsxScript {
     }
 
     fn get_base_script(&self) -> Option<Gd<Script>> {
-        godot_print!("FSXScript - get_base_script");
         // TODO: Return actual base
         None
     }
@@ -361,7 +358,6 @@ impl IScriptExtension for FsxScript {
     }
 
     fn inherits_script(&self, _script: Gd<Script>) -> bool {
-        godot_print!("FSXScript - inherits_script");
         todo!()
     }
 
@@ -442,37 +438,31 @@ impl IScriptExtension for FsxScript {
     }
 
     fn has_method(&self, _method: StringName) -> bool {
-        godot_print!("FSXScript - has_method");
         // TODO: Actually check
         false
     }
 
     fn has_static_method(&self, _method: StringName) -> bool {
-        godot_print!("FSXScript - has_static_method");
         // TODO: Actually check
         false
     }
 
     fn get_method_info(&self, _method: StringName) -> Dictionary {
-        godot_print!("FSXScript - get_method_info");
         // TODO: Actually generate
         Dictionary::new()
     }
 
     fn is_tool(&self) -> bool {
-        godot_print!("FSXScript - is_tool");
         // TODO: Actually check
         true
     }
 
     fn is_valid(&self) -> bool {
-        godot_print!("FSXScript - is_valid");
         // TODO: Actually check
         false
     }
 
     fn is_abstract(&self) -> bool {
-        godot_print!("FSXScript - is_abstract");
         // TODO: Actually check
         false
     }
@@ -505,27 +495,22 @@ impl IScriptExtension for FsxScript {
     }
 
     fn get_script_method_list(&self) -> Array<Dictionary> {
-        godot_print!("FSXScript - get_script_property_list");
         Array::new()
     }
 
     fn get_script_property_list(&self) -> Array<Dictionary> {
-        godot_print!("FSXScript - get_script_property_list");
         Array::new()
     }
 
     fn get_member_line(&self, _member: StringName) -> i32 {
-        godot_print!("FSXScript - get_member_line");
         todo!()
     }
 
     fn get_constants(&self) -> Dictionary {
-        godot_print!("FSXScript - get_constants");
         todo!()
     }
 
     fn get_members(&self) -> Array<StringName> {
-        godot_print!("FSXScript - get_members");
         // TODO: Actually generate
         Array::<StringName>::new()
     }
