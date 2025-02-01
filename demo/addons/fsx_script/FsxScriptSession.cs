@@ -156,6 +156,11 @@ public partial class FsxScriptSession : GodotObject
         return scriptSession.Complete(scriptCode);
     }
 
+    private Dictionary Lookup(int line, int column, string lineText, string symbol)
+    {
+        return scriptSession.Lookup(line, column, lineText, symbol);
+    }
+
     private bool CanInstantiate()
     {
         while (!isUpdated)

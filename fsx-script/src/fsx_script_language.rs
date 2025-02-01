@@ -70,8 +70,7 @@ impl IScriptLanguageExtension for FsxScriptLanguage {
         GString::from("FsxScriptLanguage")
     }
 
-    fn init_ext(&mut self) {
-    }
+    fn init_ext(&mut self) {}
 
     fn get_type(&self) -> GString {
         GString::from("FsxScript")
@@ -81,8 +80,7 @@ impl IScriptLanguageExtension for FsxScriptLanguage {
         GString::from("fsx")
     }
 
-    fn finish(&mut self) {
-    }
+    fn finish(&mut self) {}
 
     fn get_reserved_words(&self) -> PackedStringArray {
         PackedStringArray::new()
@@ -249,7 +247,48 @@ let _process(self : Base, delta: float) =
         path: GString,
         owner: Option<Gd<Object>>,
     ) -> Dictionary {
-        Dictionary::new()
+        let session = get_or_create_session(path.clone());
+        match session {
+            None => {
+                godot_error!("Could not get session for {path}");
+                Dictionary::new()
+            }
+            Some(session) => {
+                let lines = code.split("\n");
+                let cursor_character = "\u{ffff}";
+                let (line, line_string) = lines
+                    .as_slice()
+                    .iter()
+                    .enumerate()
+                    .find(|(_, l)| l.contains(cursor_character))
+                    .expect("Could not find line for cursor character");
+                let line = line + 1;
+                let column = line_string
+                    .find(cursor_character)
+                    .expect("Could not find cursor character in line");
+                let line_string = line_string.replace(cursor_character, "");
+                let column = match line_string
+                    .find_ex(symbol.into_arg())
+                    .from(column)
+                    .r()
+                    .done()
+                {
+                    None => line_string.len(),
+                    Some(index) => index + symbol.len(),
+                };
+
+                let result = session.call(
+                    "Lookup",
+                    &[
+                        Variant::from(line as i64),
+                        Variant::from(column as i64),
+                        line_string.to_variant(),
+                        symbol.to_variant(),
+                    ],
+                );
+                Dictionary::from_variant(&result)
+            }
+        }
     }
 
     fn auto_indent_code(&self, _code: GString, _from_line: i32, _to_line: i32) -> GString {
@@ -271,11 +310,9 @@ let _process(self : Base, delta: float) =
         todo!()
     }
 
-    fn thread_enter(&mut self) {
-    }
+    fn thread_enter(&mut self) {}
 
-    fn thread_exit(&mut self) {
-    }
+    fn thread_exit(&mut self) {}
 
     fn debug_get_error(&self) -> GString {
         todo!()

@@ -618,3 +618,83 @@ type ScriptSession() as this =
                 result["call_hint"] <- "" // Should be something like function signature. Not sure how to get that
                 result
         | _ -> new Dictionary()
+    
+    member _.Lookup(line: int, column: int, lineText: string, symbolText: string) =
+        let rec findBestMatchingSymbolUse(extendedColumn, foundUses : FSharpSymbolUse list) =
+            let extendedSymbol = $"{symbolText}{lineText[extendedColumn - 1]}"
+            let filteredSymbols =
+                foundUses
+                |> List.filter (fun symbolUse ->
+                    match symbolUse.Symbol with
+                    | :? FSharpEntity as entity ->
+                        entity.AsType().Format(FSharpDisplayContext.Empty.WithShortTypeNames true).StartsWith(extendedSymbol)                                
+                    | _ -> false                       
+                )
+            if filteredSymbols.Length > foundUses.Length then
+                List.head <| foundUses
+            elif filteredSymbols.Length = 0 then
+                List.head <| foundUses
+            elif filteredSymbols.Length = 1 then
+                List.head filteredSymbols
+            elif extendedColumn < lineText.Length then
+                findBestMatchingSymbolUse(extendedColumn + 1, filteredSymbols)
+            else
+                List.head foundUses        
+        
+        let result = new Dictionary()
+        match (checkResults, results) with
+        | Some checkResults, Some parseResults ->
+            let textUpToColumn = lineText.Substr(0, column).Trim()
+            let positionOfLastSpace = textUpToColumn.LastIndexOf(' ')
+            let indentText =
+                if positionOfLastSpace >= 0 then
+                    textUpToColumn.Substring(positionOfLastSpace).Trim()
+                else
+                    textUpToColumn.Trim()
+            let symbolUses = checkResults.GetSymbolUsesAtLocation(line, column, lineText, indentText.Split('.') |> List.ofArray)
+            if symbolUses.Length = 0 then
+                result["type"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.LookupResultType.ScriptLocation)
+                result["result"] <- Variant.CreateFrom(int64 <| Error.Ok)
+            else
+                let symbolUse =
+                    if symbolUses.Length = 1 || lineText.Length = column  then
+                        List.head symbolUses
+                    else
+                        findBestMatchingSymbolUse(column + 1, symbolUses)
+                result["result"] <- Variant.CreateFrom(int64 <| Error.Ok)
+                match symbolUse.Symbol with
+                | :? FSharpEntity as entity ->
+                    let entity = entity.AsType().StripAbbreviations().TypeDefinition
+                    if entity.IsClass || entity.IsValueType || entity.IsFSharpModule then
+                        result["type"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.LookupResultType.Class)
+                        result["class_name"] <- entity.DisplayName
+                    elif entity.IsFSharpRecord then
+                        result["type"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.LookupResultType.Class)
+                        result["class_name"] <- entity.DisplayName
+                    elif entity.IsEnum then
+                        result["type"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.LookupResultType.ClassEnum)
+                | :? FSharpMemberOrFunctionOrValue as value ->
+                    result["class_member"] <- value.DisplayName
+                    match value.DeclaringEntity with
+                    | None -> ()
+                    | Some declaringEntity -> result["class_name"] <- declaringEntity.DisplayName
+                    if value.IsMethod then
+                        result["type"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.LookupResultType.ClassMethod)
+                    elif value.IsMember then
+                        result["type"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.LookupResultType.ClassProperty)
+                    else
+                        result["type"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.LookupResultType.LocalVariable)
+                | :? FSharpField as field ->
+                    result["type"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.LookupResultType.ClassProperty)
+                    result["class_member"] <- field.DisplayName
+                    match field.DeclaringEntity with
+                    | None -> ()
+                    | Some declaringEntity -> result["class_name"] <- declaringEntity.DisplayName
+                | :? FSharpUnionCase as unionCase ->
+                    result["type"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.LookupResultType.ClassEnum)
+                    result["class_name"] <- unionCase.DeclaringEntity.DisplayName
+                    result["class_member"] <- unionCase.DisplayName
+                | _ ->
+                    result["type"] <- Variant.CreateFrom(int64 <| ScriptLanguageExtension.LookupResultType.LocalVariable)              
+        | _ -> result["result"] <- Variant.CreateFrom(int64 <| Error.ParseError)
+        result
