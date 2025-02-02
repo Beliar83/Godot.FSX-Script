@@ -12,4 +12,4 @@ template = ["godot/lazy-function-tables"]
 editor = ["godot/experimental-threads"]
 
 [dependencies]
-godot = { version = "0.2.2", features = [ "api-custom"] }
+godot = { version = "0.2.3", features = [ "api-custom"] }

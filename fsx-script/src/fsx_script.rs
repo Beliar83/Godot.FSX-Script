@@ -413,7 +413,7 @@ impl IScriptExtension for FsxScript {
         match self.get_session() {
             None => {}
             Some(session) => {
-                Gd::<Object>::from_variant(&session).call("ScriptCodeChanged", &[]);
+                Gd::<Object>::from_variant(&session).call_deferred("ScriptCodeChanged", &[]);
             }
         }
         let mut language =

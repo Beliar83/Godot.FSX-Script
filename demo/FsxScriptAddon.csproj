@@ -1,5 +1,5 @@
-<Project Sdk="Godot.NET.Sdk/4.4.0-dev.7">
-    <UsingTask TaskName="FSXScript.MsBuild.FsxToGodotSharp" AssemblyFile="../FSXScript.MsBuild\bin\Debug\net8.0\FSXScript.MsBuild.dll"/>
+<Project Sdk="Godot.NET.Sdk/4.4.0-beta.2">
+    <UsingTask TaskName="FSXScript.MsBuild.FsxToGodotSharp" AssemblyFile="../FSXScript.MsBuild\bin\Debug\net8.0\FSXScript.MsBuild.dll" />
     <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
         <EnableDynamicLoading>true</EnableDynamicLoading>
@@ -9,7 +9,7 @@
         <GodotSharpPath>E:\Godot\Godot_v4.4-dev7_mono_win64\GodotSharp\Api\Release\GodotSharp.dll</GodotSharpPath>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="FsxScriptServer\FsxScriptServer.fsproj"/>
+        <ProjectReference Include="FsxScriptServer\FsxScriptServer.fsproj" />
     </ItemGroup>
     <ItemGroup>
         <Reference Include="node" Condition="'$(Configuration)'!='DEBUG'">
@@ -18,16 +18,16 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ScriptFiles Include="$(RootFolder)\*.fsx"/>
+        <ScriptFiles Include="$(RootFolder)\*.fsx" />
     </ItemGroup>
 
     <Target Condition="'$(Configuration)'!='DEBUG'" Name="GenerateDotnetfiles" BeforeTargets="CoreCompile" Inputs="@(ScriptFiles)" Outputs="$(RootFolder)\Generated\*.cs">
         <FsxToGodotSharp ScriptFiles="@(ScriptFiles)" GodotSharpPath="$(GodotSharpPath)" Namespace="$(RootNamespace)">
-            <Output TaskParameter="GeneratedFiles" PropertyName="DotnetFiles"/>
+            <Output TaskParameter="GeneratedFiles" PropertyName="DotnetFiles" />
         </FsxToGodotSharp>
         <ItemGroup>
-            <Compile Remove="$(DotnetFiles)"/>
-            <Compile Include="$(DotnetFiles)"/>
+            <Compile Remove="$(DotnetFiles)" />
+            <Compile Include="$(DotnetFiles)" />
         </ItemGroup>
     </Target>
 </Project>
