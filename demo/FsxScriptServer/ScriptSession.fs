@@ -621,13 +621,23 @@ type ScriptSession() as this =
     
     member _.Lookup(line: int, column: int, lineText: string, symbolText: string) =
         let rec findBestMatchingSymbolUse(extendedColumn, foundUses : FSharpSymbolUse list) =
-            let extendedSymbol = $"{symbolText}{lineText[extendedColumn - 1]}"
             let filteredSymbols =
                 foundUses
                 |> List.filter (fun symbolUse ->
                     match symbolUse.Symbol with
                     | :? FSharpEntity as entity ->
-                        entity.AsType().Format(FSharpDisplayContext.Empty.WithShortTypeNames true).StartsWith(extendedSymbol)                                
+                        let typeName = entity.AsType().Format(FSharpDisplayContext.Empty.WithShortTypeNames true)                        
+                        if typeName.EndsWith "Attribute" then
+                            let indexOfOpeningBracket = column - symbolText.Length - 2
+                            let indexOfClosingBracket = extendedColumn;
+                            if indexOfOpeningBracket >= 0 && indexOfClosingBracket < lineText.Length then
+                                let extendedSymbol = $"{lineText[indexOfOpeningBracket..indexOfOpeningBracket + 1]}{symbolText}Attribute{lineText[indexOfClosingBracket - 1 ..indexOfClosingBracket]}"
+                                extendedSymbol = $"[<{typeName}>]"
+                            else
+                                false
+                        else
+                            let extendedSymbol = $"{symbolText}{lineText[extendedColumn - 1]}"
+                            typeName.StartsWith(extendedSymbol)                                
                     | _ -> false                       
                 )
             if filteredSymbols.Length > foundUses.Length then

@@ -334,16 +334,19 @@ module ObjectGenerator =
                 |> List.filter (fun x -> x.IsFunction && x.DeclaringEntity = Some(entity))
                 |> List.ofSeq
         
+        let isExportField(field : FSharpField) =
+            field.PropertyAttributes |> Seq.exists _.IsAttribute<ExportAttribute>()
+            || field.PropertyAttributes |> Seq.exists (fun x -> x.AttributeType.FullName = "Godot.ExportAttribute")
+        
         let buildInfo(entity : FSharpEntity, methods: FSharpMemberOrFunctionOrValue list, state : FSharpEntity, node: FSharpType) =
-            let exportedFields = state.FSharpFields
+            let exportedFields =
+                state.FSharpFields
+                |> Seq.filter isExportField
 
             let notExportedFields =
                 state.FSharpFields
                 |> Seq.filter
-                    (fun x ->
-                        not
-                        <| (x.PropertyAttributes
-                            |> Seq.exists _.IsAttribute<ExportAttribute>()))
+                    (fun x -> not <| isExportField(x))
             let errors =
                 [ for method in methods do
                       let checkCustomMethod () =
