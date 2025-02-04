@@ -338,7 +338,7 @@ impl IScriptExtension for FsxScript {
     fn can_instantiate(&self) -> bool {
         match self.get_session() {
             None => false,
-            Some(session) => session.call("CanInstantiate", &[]).booleanize(),
+            Some(session) => session.call("CanInstantiate", &[]).booleanize() && self.is_tool(),
         }
     }
 
@@ -453,8 +453,10 @@ impl IScriptExtension for FsxScript {
     }
 
     fn is_tool(&self) -> bool {
-        // TODO: Actually check
-        true
+        match self.get_session() {
+            None => false,
+            Some(session) => session.call("IsTool", &[]).booleanize(),
+        }
     }
 
     fn is_valid(&self) -> bool {

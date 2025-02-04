@@ -259,10 +259,14 @@ type ScriptSession() as this =
     member _.MethodList =
         match info with
             | None -> List.empty
-            | Some info -> info.methods
-        
+            | Some info -> info.Methods        
 
-    member val PropertyTypes = PersistentHashMap.empty<StringName, VariantType> with get, set
+    member _.IsTool =
+        match info with
+        | None -> false
+        | Some value -> value.IsTool
+    
+    member val PropertyTypes = PersistentHashMap.empty<StringName, VariantType> with get, set        
 
     member _.Compile(scriptCode: string, scriptPath: string) =
         match (info, results, checkResults) with
@@ -272,9 +276,7 @@ type ScriptSession() as this =
                 |> Array.append
                 <| checkResults.Diagnostics
             
-            if not <| (diagnostics |> Array.exists (fun diagnostic -> diagnostic.Severity = FSharpDiagnosticSeverity.Error)) then
-                // TODO: Write C# classes for export
-                
+            if not <| (diagnostics |> Array.exists (fun diagnostic -> diagnostic.Severity = FSharpDiagnosticSeverity.Error)) then                
                 let fsharpCompileFile = FileAccess.CreateTemp(int <| FileAccess.Write, Path.GetFileNameWithoutExtension scriptPath, ".fsx")
                 
                 let propertyNames =
@@ -342,7 +344,7 @@ type ScriptSession() as this =
                 
                 let addCallMethod(builder: StringBuilder) =
                     let unknownMethodMessage = $"$\"__call: {info.Name} has no method '{{methodName}}'\""
-                    info.methods
+                    info.Methods
                     |> List.fold (fun (builder : StringBuilder) method ->
                             let methodParams =
                                 method.MethodParams
@@ -562,7 +564,7 @@ type ScriptSession() as this =
     member _.HasMethod(name : StringName) =
         match info with
         | None -> false
-        | Some info -> info.methods |> List.exists (fun m -> m.MethodName = name.ToString())
+        | Some info -> info.Methods |> List.exists (fun m -> m.MethodName = name.ToString())
     
     member _.CanInstantiate() =
         match info with

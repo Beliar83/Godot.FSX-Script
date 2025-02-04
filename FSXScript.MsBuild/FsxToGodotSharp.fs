@@ -165,7 +165,7 @@ type FsxToGodotSharp() as this =
                 builder 
             
             let addMethods (builder : StringBuilder) =
-                info.methods
+                info.Methods
                 |> List.fold (fun (builder : StringBuilder) method ->
                         let returnParameter =
                             match method.ReturnParameter with

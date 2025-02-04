@@ -65,7 +65,8 @@ module ObjectGenerator =
           ExtendingNamespace: string
           Name: string
           StateToGenerate: StateToGenerate
-          methods: List<MethodsToGenerate> }
+          Methods: List<MethodsToGenerate>
+          IsTool: bool }
 
     let extractTypesNonRecursive (moduleDecls: FSharpImplementationFileDeclaration list) =
         moduleDecls
@@ -398,13 +399,13 @@ module ObjectGenerator =
                         |> List.map (fun x -> x.DisplayName)
                     nodeMethods |> List.contains method.DisplayName
 
+                let isTool = entity.Attributes |> Seq.exists (fun x -> x.AttributeType.FullName = "Godot.ToolAttribute")
                 
                 let info = {
-
                       Extending = node.TypeDefinition.DisplayName
                       ExtendingNamespace = GeneratorHelper.getScope node.TypeDefinition
                       Name = entity.DisplayName
-                      methods =
+                      Methods =
                           [ for method in methods do
                                 let isCurried = method.CurriedParameterGroups.Count >= 2
 
@@ -482,7 +483,6 @@ module ObjectGenerator =
                                                 getParamInfo param ]
                                   MethodFlags = MethodFlags.Default
                                   ReturnParameter = returnParameter } ]
-
                       StateToGenerate =
                           { Name = state.DisplayName
                             ExportedFields =
@@ -525,7 +525,8 @@ module ObjectGenerator =
                                         UsageFlags =
                                             PropertyUsageFlags.Default
                                             ||| PropertyUsageFlags.ScriptVariable } ] }
-                      ModuleNameToOpen = $"{GeneratorHelper.getScope entity}.{entity.DisplayName}" }
+                      ModuleNameToOpen = $"{GeneratorHelper.getScope entity}.{entity.DisplayName}"
+                      IsTool = isTool }
                 Result.Ok info
         
         

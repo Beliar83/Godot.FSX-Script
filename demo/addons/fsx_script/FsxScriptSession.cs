@@ -171,5 +171,10 @@ public partial class FsxScriptSession : GodotObject
 
         return scriptSession.CanInstantiate();
     }
+
+    private bool IsTool()
+    {
+        return scriptSession.IsTool;
+    }
 }
 #endif
