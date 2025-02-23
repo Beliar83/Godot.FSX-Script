@@ -115,11 +115,11 @@ open Godot
 //This sets the godot class to inherit from
 type Base = {base_class_name}
 
-//Define fields in this type. Use [Export] to mark exported fields.
+//Define fields in this type. Use [<Export>] to mark exported fields.
 type State = struct end
 
-let _process(self : Base, delta: float) =
-    ()"
+let _process (self: Base, delta : double, state: State) =
+    state"
         );
         let mut script = FsxScript::new_gd();
         script.set_source_code(code.as_str());

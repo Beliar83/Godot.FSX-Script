@@ -278,19 +278,25 @@ type ScriptSession() as this =
             
             if not <| (diagnostics |> Array.exists (fun diagnostic -> diagnostic.Severity = FSharpDiagnosticSeverity.Error)) then                
                 let fsharpCompileFile = FileAccess.CreateTemp(int <| FileAccess.Write, Path.GetFileNameWithoutExtension scriptPath, ".fsx")
+                let allStateFields =
+                    info.StateToGenerate.ExportedFields
+                    |> List.append info.StateToGenerate.InnerFields
                 
                 let propertyNames =
                     info.StateToGenerate.ExportedFields
                     |> List.map _.Name                   
                     
                 let addPropertyNamesModule(builder : StringBuilder) =
-                    propertyNames
-                    |> List.fold (fun (builder : StringBuilder) name -> builder.AppendLine($"\tlet {name} = new Godot.StringName(\"{name}\")"))
-                           (builder.AppendLine("module __PropertyNames ="))                    
+                    if propertyNames.Length > 0 then
+                        let builder = builder.AppendLine()
+                        propertyNames
+                        |> List.fold (fun (builder : StringBuilder) name -> builder.AppendLine($"\tlet {name} = new Godot.StringName(\"{name}\")"))
+                               (builder.AppendLine("module __PropertyNames ="))
+                    else
+                        builder
                 
                 let isSinglePrecision field = field.OfTypeName.ToString() = "System.Single"
                 let addDefaultStateFunction(builder : StringBuilder) =
-                    let builder = builder.AppendLine("let __get_default_state() =")
                     let getDefaultForPrecision field = if isSinglePrecision field then "0f" else "0"
                     let getDefaultForField field =
                         match getGodotDefaultForGodotSharp GD.PrintErr field.OfType with
@@ -300,10 +306,16 @@ type ScriptSession() as this =
                         | DefaultValue.Float -> $"{field.Name} = { getDefaultForPrecision(field) }"
                         | DefaultValue.Object -> $"{field.Name} = new {field.OfTypeName}()"
                     
-                    info.StateToGenerate.ExportedFields
-                    |> List.map getDefaultForField
-                    |> List.fold (fun (builder : StringBuilder) value -> builder.AppendLine($"\t\t{value}")) (builder.AppendLine("\t{"))
-                    |> _.AppendLine("\t}")
+                    let builder = builder.Append("let __get_default_state() =")                                        
+                    
+                    if allStateFields.Length > 0 then
+                        let builder = builder.AppendLine()
+                        allStateFields
+                        |> List.map getDefaultForField
+                        |> List.fold (fun (builder : StringBuilder) value -> builder.AppendLine($"\t\t{value}")) (builder.AppendLine("\t{"))
+                        |> _.AppendLine("\t}")
+                    else
+                        builder.AppendLine(" State()")                        
                 
                 let getConversionForPrecision field = if isSinglePrecision field then "Single" else "Double"
                 let systemTypePrefixLength = "System.".Length
@@ -386,13 +398,11 @@ type ScriptSession() as this =
                             ) ( builder.AppendLine("let __call(self: Base, methodName: StringName,  state: byref<State>, arguments: Godot.Collections.Array<Godot.Variant>) =").Append("\t"))
                     |> _.AppendLine()
                     |> _.AppendLine($"\t\tGodot.GD.PrintErr {unknownMethodMessage}")
-                    |> _.AppendLine("\t\tnew Godot.Variant()")
-                
-                
-                
+                    |> _.AppendLine("\t\tnew Godot.Variant()")              
                 
                 let addStoreStateMethod(builder: StringBuilder) =
-                    propertyNames
+                    allStateFields
+                    |> List.map _.Name
                     |> List.fold (fun (builder: StringBuilder) name ->
                             let valueName = $"stateDict[\"{name}\"]"
                             builder
@@ -401,20 +411,24 @@ type ScriptSession() as this =
                     |> _.AppendLine("\tstateDict")
                 
                 let addRestoreStateMethod(builder: StringBuilder) =
-                    info.StateToGenerate.ExportedFields
-                    |> List.fold ( fun (builder : StringBuilder) field ->
-                                    let valueName = $"stateDict[\"{field.Name}\"]"
-                                    builder
-                                        .AppendLine($"\t\t{field.Name} = {getConversionForField valueName field}")
-                            ) (builder.AppendLine("let __restoreState(stateDict: Godot.Collections.Dictionary) =").AppendLine("\t{"))
-                    |> _.AppendLine("\t}")               
+                    let builder = builder.Append("let __restoreState(stateDict: Godot.Collections.Dictionary) =")
+                    
+                    if allStateFields.Length > 0 then                        
+                        allStateFields
+                        |> List.fold ( fun (builder : StringBuilder) field ->
+                                        let valueName = $"stateDict[\"{field.Name}\"]"
+                                        builder
+                                            .AppendLine($"\t\t{field.Name} = {getConversionForField valueName field}")
+                                ) (builder.AppendLine().AppendLine("\t{"))
+                        |> _.AppendLine("\t}")
+                    else
+                        builder.AppendLine(" State()")
                 
                 let compileCodeBuilder =
                     StringBuilder()
                         |> _.Append(scriptCode)
                         |> _.AppendLine()
                         |> _.AppendLine("#nowarn \"0067\"")
-                        |> _.AppendLine()
                         |> addPropertyNamesModule
                         |> _.AppendLine()
                         |> addDefaultStateFunction
@@ -428,7 +442,6 @@ type ScriptSession() as this =
                         |> addStoreStateMethod
                         |> _.AppendLine()
                         |> addRestoreStateMethod
-                        |> _.AppendLine()
                 
                 let code = compileCodeBuilder.ToString().Replace("\t", "    ")
                 

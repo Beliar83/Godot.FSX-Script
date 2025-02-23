@@ -95,7 +95,33 @@ impl FsxScript {
     }
 
     fn get_session(&self) -> Option<Variant> {
-        get_or_create_session(self.base().get_path())
+        let path = self.base().get_path();
+        if path.is_empty() {
+            None
+        } else {
+            get_or_create_session(path)
+        }
+    }
+
+    #[func]
+    fn update_code(&mut self) {
+        let path = self.base().get_path();
+        if path.is_empty() {
+            self.base_mut().call_deferred("update_code", &[]);
+        } else {
+            match self.get_session() {
+                None => {}
+                Some(session) => {
+                    Gd::<Object>::from_variant(&session).call_deferred("ScriptCodeChanged", &[]);
+                }
+            }
+            let mut language =
+                FsxScriptLanguage::singleton().expect("FsxScriptLanguage single has not been set");
+            let mut language = language.bind_mut();
+            let self_gd = self.to_gd();
+            language.scripts.insert(path, self_gd);
+            self.source_changed_cache = true;
+        }
     }
 
     pub(crate) unsafe fn has_method(&self, method_name: StringName) -> bool {
@@ -379,7 +405,6 @@ impl IScriptExtension for FsxScript {
         let self_gd = self.to_gd();
         let instance = FsxScriptInstance::new(self_gd, for_object);
         let instance: GDExtensionScriptInstancePtr = instance.into();
-        self.update_script();
         instance.cast::<c_void>()
     }
 
@@ -391,7 +416,6 @@ impl IScriptExtension for FsxScript {
         let self_gd = self.to_gd();
         let placeholder = FsxScriptPlaceholderInstance::new(self_gd, for_object);
         let instance: GDExtensionScriptInstancePtr = placeholder.into();
-        self.update_script();
         instance.cast::<c_void>()
     }
 
@@ -410,19 +434,7 @@ impl IScriptExtension for FsxScript {
 
     fn set_source_code(&mut self, code: GString) {
         self.code = code.to_string();
-        match self.get_session() {
-            None => {}
-            Some(session) => {
-                Gd::<Object>::from_variant(&session).call_deferred("ScriptCodeChanged", &[]);
-            }
-        }
-        let mut language =
-            FsxScriptLanguage::singleton().expect("FsxScriptLanguage single has not been set");
-        let mut language = language.bind_mut();
-        let self_gd = self.to_gd();
-        let path = self_gd.get_path();
-        language.scripts.insert(path, self_gd);
-        self.source_changed_cache = true;
+        self.update_code();
     }
 
     fn reload(&mut self, keep_state: bool) -> Error {

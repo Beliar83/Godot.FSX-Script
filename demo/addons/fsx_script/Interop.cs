@@ -67,6 +67,11 @@ public partial class Interop : GodotObject
     public static WeakReference? Load(string scriptPath, string fullModulePath,
         string baseTypeName, Godot.Collections.Dictionary<InteropInstance, Dictionary> scripts)
     {
+        if (fullModulePath.StartsWith("global."))
+        {
+            fullModulePath = fullModulePath[7..];
+        }
+        
         if (ScriptData.ContainsKey(scriptPath))
         {
             GD.PrintErr($"Script {scriptPath} is already loaded");
