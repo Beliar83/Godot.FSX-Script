@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <Version>0.9.0</Version>
+        <Authors>Beliar83(karstenbock@gmx.net)</Authors>
+        <Copyright>Copyright Beliar83 2025</Copyright>
+        <TargetsForTfmSpecificBuildOutput>
+            $(TargetsForTfmSpecificBuildOutput);CopyProjectReferencesToPackage
+        </TargetsForTfmSpecificBuildOutput>
+        <BuildOutputTargetFolder>tasks</BuildOutputTargetFolder>
+        <NoWarn>NU5100</NoWarn>
+        <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+        <GenerateDependencyFile>true</GenerateDependencyFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Godot.FsxScript\Godot.FsxScript.fsproj"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Compile Include="FsxToGodotSharp.fs"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Build.Utilities.Core" Version="17.11.4" PrivateAssets="all" ExcludeAssets="Runtime"/>
+        <PackageReference Update="FSharp.Core" Version="9.0.201"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Content Include="build\Godot.FSXScript.MsBuild.props" PackagePath="build\"/>
+        <Content Include="build\Godot.FSXScript.MsBuild.targets" PackagePath="build\"/>
+    </ItemGroup>
+    <Target
+            Name="CopyProjectReferencesToPackage"
+            DependsOnTargets="ResolveReferences">
+        <ItemGroup>
+            <BuildOutputInPackage
+                    Include="@(ReferenceCopyLocalPaths)"
+                    TargetPath="%(ReferenceCopyLocalPaths.DestinationSubPath)"/>
+        </ItemGroup>
+    </Target>
+</Project>

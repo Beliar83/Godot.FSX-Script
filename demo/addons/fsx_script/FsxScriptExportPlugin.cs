@@ -1,4 +1,6 @@
 ﻿#if TOOLS
+#if FSX_SERVER_ACTIVE
+#nullable enable
 using Godot;
 using Godot.Collections;
 
@@ -18,7 +20,20 @@ public partial class FsxScriptExportPlugin : EditorExportPlugin
     public override void _ExportBegin(string[] features, bool isDebug, string path, uint flags)
     {
         ConfigFile configFile = new();
-        Dictionary<string, string> dictionary = new() { { "res://node.fsx", "res://Generated/TestNode.cs" } };
+        Dictionary<string, string> dictionary = [];
+        foreach ((string scriptPath, FsxScriptSession session) in FsxScriptPlugin.Sessions)
+        {
+            if (scriptPath == "GeneralFsxScriptSession") continue;
+
+            StringName className = session.GetClassName();
+            if (className == new StringName())
+            {
+                session.UpdateScript();
+            };
+            
+            dictionary[scriptPath] = $"res://Generated//{className}.cs";
+        }
+
         configFile.SetValue("Scripts", "Mapping", dictionary);
         configFile.Save("res://fsx_script.ini");
         AddFile("res://fsx_script.ini", FileAccess.GetFileAsBytes("res://fsx_script.ini"), false);
@@ -33,4 +48,5 @@ public partial class FsxScriptExportPlugin : EditorExportPlugin
         }
     }
 }
+#endif
 #endif

@@ -1,4 +1,6 @@
 ﻿#if TOOLS
+#if FSX_SERVER_ACTIVE
+#nullable enable
 using System;
 using System.Threading.Tasks;
 using Godot;
@@ -31,7 +33,7 @@ public partial class FsxScriptSession : GodotObject
         isUpdated = false;
     }
 
-    private void UpdateScript()
+    internal void UpdateScript()
     {
         if (isUpdating)
         {
@@ -134,7 +136,7 @@ public partial class FsxScriptSession : GodotObject
         return scriptSession.HasProperty(name);
     }
 
-    private StringName GetClassName()
+    internal StringName GetClassName()
     {
         return scriptSession.GetClassName();
     }
@@ -177,4 +179,5 @@ public partial class FsxScriptSession : GodotObject
         return scriptSession.IsTool;
     }
 }
+#endif
 #endif

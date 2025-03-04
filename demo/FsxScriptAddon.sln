@@ -6,6 +6,10 @@ Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Godot.FsxScript.Server", ".
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Godot.FsxScript", "..\Godot.FsxScript\Godot.FsxScript.fsproj", "{180977C4-9E1E-49EE-8F61-0B9F10929D26}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Godot.FSXScript.MsBuild", "..\Godot.FSXScript.MsBuild\Godot.FSXScript.MsBuild.fsproj", "{873681A5-2155-4D2C-9239-15D57B6D1059}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Godot.FsxScript.Sdk", "..\Godot.FsxScript.Sdk\Godot.FsxScript.Sdk.fsproj", "{EF1FC411-1026-4780-97B0-C1DE6D0443D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 	Debug|Any CPU = Debug|Any CPU
@@ -31,5 +35,17 @@ Global
 		{180977C4-9E1E-49EE-8F61-0B9F10929D26}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
 		{180977C4-9E1E-49EE-8F61-0B9F10929D26}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
 		{180977C4-9E1E-49EE-8F61-0B9F10929D26}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
+		{873681A5-2155-4D2C-9239-15D57B6D1059}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{873681A5-2155-4D2C-9239-15D57B6D1059}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{873681A5-2155-4D2C-9239-15D57B6D1059}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{873681A5-2155-4D2C-9239-15D57B6D1059}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{873681A5-2155-4D2C-9239-15D57B6D1059}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
+		{873681A5-2155-4D2C-9239-15D57B6D1059}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
+		{EF1FC411-1026-4780-97B0-C1DE6D0443D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF1FC411-1026-4780-97B0-C1DE6D0443D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EF1FC411-1026-4780-97B0-C1DE6D0443D0}.ExportDebug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF1FC411-1026-4780-97B0-C1DE6D0443D0}.ExportDebug|Any CPU.Build.0 = Debug|Any CPU
+		{EF1FC411-1026-4780-97B0-C1DE6D0443D0}.ExportRelease|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF1FC411-1026-4780-97B0-C1DE6D0443D0}.ExportRelease|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal

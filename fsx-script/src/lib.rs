@@ -1,5 +1,5 @@
 use crate::fsx_script_resource_format_loader::FsxScriptResourceFormatLoader;
-use godot::classes::{Engine, ResourceFormatLoader, ResourceLoader};
+use godot::classes::{Engine, ProjectSettings, ResourceFormatLoader, ResourceLoader};
 use godot::meta::AsArg;
 use godot::prelude::*;
 

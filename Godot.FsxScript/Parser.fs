@@ -1,6 +1,5 @@
 ﻿module FsxScript.Parser
 
-open System
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.Text
 open Godot.FSharp.ObjectGenerator
@@ -8,8 +7,6 @@ open Godot.FSharp.ObjectGenerator
 let ParseScript (scriptCode: string, scriptPath: string, otherFlags, printError: string -> unit) =
     let checker =
         FSharpChecker.Create(keepAssemblyContents = true)
-
-    Environment.SetEnvironmentVariable("FSHARP_COMPILER_BIN", AppDomain.CurrentDomain.BaseDirectory)
 
     let parseResults, parseAnswer =
         let scriptCode = scriptCode |> SourceText.ofString

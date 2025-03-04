@@ -1,4 +1,5 @@
 ﻿#if TOOLS
+#nullable enable
 using System.Threading.Tasks;
 using Godot;
 using Godot.Collections;

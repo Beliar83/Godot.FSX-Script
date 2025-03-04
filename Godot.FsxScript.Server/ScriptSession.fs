@@ -2,7 +2,6 @@
 
 open System
 open System.IO
-open System.Runtime.InteropServices
 open System.Text
 open FSharp.Compiler.CodeAnalysis
 open FSharp.Compiler.Diagnostics
@@ -20,6 +19,7 @@ open Godot.FSharp.Variant
 open Microsoft.FSharp.Core
 
 type ScriptSession() as this =
+
     static let mutable basePath: string = ""
     static let infoName = new StringName("Name")
     static let propertyInfoClassName = new StringName("ClassName")
@@ -33,24 +33,15 @@ type ScriptSession() as this =
     static let methodInfoId = new StringName("Id")
     static let methodInfoArguments = new StringName("Arguments")
     static let methodInfoDefaultArguments = new StringName("DefaultArgumentValues")
-     
-    
-    
-    static let getFrameworkReferences =
-        let runtimePath = RuntimeEnvironment.GetRuntimeDirectory()
-        let dotnetVersion = Environment.Version        
         
-        let basePath = Path.GetFullPath $"{runtimePath}/../../../packs/Microsoft.NETCore.App.Ref/{dotnetVersion.Major}.{dotnetVersion.Minor}.{dotnetVersion.Build}/ref/net{dotnetVersion.Major}.{dotnetVersion.Minor}"
-        Directory.GetFiles(basePath, "*.dll")
         
     static let getGodotReferences =
         let executableRoot = Path.GetDirectoryName(OS.GetExecutablePath())
         [|Path.Join(executableRoot, "GodotSharp/Api/Release", "GodotSharp.dll")|]
     
     static let otherFlags =
-        [|"--noframework"|]
+        [|"--targetprofile:netcore"|]
         |> Array.append (getGodotReferences |> Array.map (fun x -> $"-r:{x}"))
-        |> Array.append (getFrameworkReferences |> Array.map (fun x -> $"-r:{x}"))   
     
     let sbOut = StringBuilder()
     let sbErr = StringBuilder()
@@ -120,6 +111,8 @@ type ScriptSession() as this =
         propertyInfo.Add(propertyInfoUsage, Variant.From(&usageFlags))
         propertyInfo
     
+    static member public FsxScriptPath = "res://.fsxscript";  
+
     static member SetBasePath(path: String) = basePath <- path
 
     static member Validate(
@@ -145,6 +138,7 @@ type ScriptSession() as this =
         let parseResults, _, answer = Parser.ParseScript(script, scriptPath, otherFlags, GD.PrintErr)
 
         Environment.SetEnvironmentVariable("FSHARP_COMPILER_BIN", AppDomain.CurrentDomain.BaseDirectory)
+        printfn $"Using F# compiler from {AppDomain.CurrentDomain.BaseDirectory}"
         let isValid, checkFileResults =
             match answer with
             | None -> (false, None)
@@ -243,7 +237,7 @@ type ScriptSession() as this =
     
     member _.GetClassName() =
         match info with
-        | None -> new StringName("")
+        | None -> new StringName()
         | Some info -> new StringName(info.Name)
 
     member _.GetBaseType() =
@@ -446,21 +440,21 @@ type ScriptSession() as this =
                 let code = compileCodeBuilder.ToString().Replace("\t", "    ")
                 
                 if not <| fsharpCompileFile.StoreString code then
-                    GD.PrintErr "Could not write temporary script file for compilation"
+                    GD.PrintErr "Could not write script file for compilation"
                 else               
                     fsharpCompileFile.Close()
                     let tempScriptPath = Path.GetFullPath(fsharpCompileFile.GetPath())
                     let args =
                         otherFlags
                         |> Array.append [| "fsc.exe"; "-a"; $"\"{tempScriptPath}\""; "-o" ; Path.ChangeExtension(scriptPath, "dll") |]
-                        
+                    let savedDir = Environment.CurrentDirectory
+                    Environment.CurrentDirectory <- ProjectSettings.GlobalizePath ScriptSession.FsxScriptPath
                     let task =
                         checker.Compile(args)
                         |> Async.StartAsTask
                         
                     task.Wait()
-                    
-                    File.Delete(tempScriptPath)
+                    Environment.CurrentDirectory <- savedDir
         | _ -> ()
         
     member _.ParseScript(scriptCode: string, scriptPath: string) =

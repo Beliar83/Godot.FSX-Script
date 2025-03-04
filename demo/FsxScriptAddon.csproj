@@ -1,11 +1,9 @@
-<Project Sdk="Godot.NET.Sdk/4.4.0-beta.2">
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <EnableDynamicLoading>true</EnableDynamicLoading>
-        <Nullable>enable</Nullable>
-        <PackageId>FsxScriptAddon</PackageId>
-    </PropertyGroup>
-    <ItemGroup>
-        <ProjectReference Include="..\Godot.FsxScript.Server\Godot.FsxScript.Server.fsproj" />
-    </ItemGroup>
+<Project Sdk="Godot.NET.Sdk/4.4.0">
+  <PropertyGroup>
+    <TargetFramework>net8.0.0</TargetFramework>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <Nullable>enable</Nullable>
+    <PackageId>FsxScriptAddon</PackageId>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
 </Project>

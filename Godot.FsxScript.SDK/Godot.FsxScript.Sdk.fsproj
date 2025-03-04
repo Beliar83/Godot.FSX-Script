@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.Build.NoTargets/2.0.1">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <Version>0.9.0</Version>
+        <Authors>Beliar83(karstenbock@gmx.net)</Authors>
+        <Copyright>Copyright Beliar83 2025</Copyright>
+        <PackageType>MSBuildSdk</PackageType>
+        <PackageTags>MSBuildSdk</PackageTags>
+        <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
+        <IncludeBuildOutput>false</IncludeBuildOutput>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="Sdk\Sdk.props" Pack="true" PackagePath="Sdk"/>
+        <None Include="Sdk\Sdk.targets" Pack="true" PackagePath="Sdk"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Update="FSharp.Core" Version="9.0.201"/>
+    </ItemGroup>
+
+</Project>

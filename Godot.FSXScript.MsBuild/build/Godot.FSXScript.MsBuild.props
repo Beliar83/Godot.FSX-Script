@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <__FsxToGodotSharp_TaskFolder>$(MSBuildThisFileDirectory)..\tasks\net8.0</__FsxToGodotSharp_TaskFolder>
+        <CustomTasksAssembly>$(__FsxToGodotSharp_TaskFolder)\$(MSBuildThisFileName).dll</CustomTasksAssembly>
+        <RootFolder>$(MSBuildProjectDirectory)</RootFolder>
+        <GeneratedPath>Generated</GeneratedPath>
+    </PropertyGroup>
+
+    <UsingTask TaskName="$(MSBuildThisFileName).FsxToGodotSharp" AssemblyFile="$(CustomTasksAssembly)"/>
+</Project>

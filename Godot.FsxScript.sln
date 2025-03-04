@@ -1,0 +1,45 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33205.214
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Godot.FsxScript", "Godot.FsxScript\Godot.FsxScript.fsproj", "{319448ED-7240-4E3E-BFB4-1680F3022B0A}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Godot.FsxScript.Sdk", "Godot.FsxScript.Sdk\Godot.FsxScript.Sdk.fsproj", "{8E8A14D6-F0B4-45CE-9508-F4CF0F4BA305}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Godot.FsxScript.Server", "Godot.FsxScript.Server\Godot.FsxScript.Server.fsproj", "{0229BCEB-DE3B-4F4D-B313-5ACA2502FFC5}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Godot.FSXScript.MsBuild", "Godot.FSXScript.MsBuild\Godot.FSXScript.MsBuild.fsproj", "{C69E730C-4853-4763-9B6C-BF671BBD6EC5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{319448ED-7240-4E3E-BFB4-1680F3022B0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{319448ED-7240-4E3E-BFB4-1680F3022B0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{319448ED-7240-4E3E-BFB4-1680F3022B0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{319448ED-7240-4E3E-BFB4-1680F3022B0A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E8A14D6-F0B4-45CE-9508-F4CF0F4BA305}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E8A14D6-F0B4-45CE-9508-F4CF0F4BA305}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E8A14D6-F0B4-45CE-9508-F4CF0F4BA305}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E8A14D6-F0B4-45CE-9508-F4CF0F4BA305}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0229BCEB-DE3B-4F4D-B313-5ACA2502FFC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0229BCEB-DE3B-4F4D-B313-5ACA2502FFC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0229BCEB-DE3B-4F4D-B313-5ACA2502FFC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0229BCEB-DE3B-4F4D-B313-5ACA2502FFC5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C69E730C-4853-4763-9B6C-BF671BBD6EC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C69E730C-4853-4763-9B6C-BF671BBD6EC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C69E730C-4853-4763-9B6C-BF671BBD6EC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C69E730C-4853-4763-9B6C-BF671BBD6EC5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F5A32E29-BA17-4929-AB0D-C0C6DECC31A8}
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+	EndGlobalSection
+EndGlobal

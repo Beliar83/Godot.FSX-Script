@@ -20,20 +20,29 @@ pub fn get_or_create_session(script_path: GString) -> Option<Variant> {
         .map(|class| class.get_or_nil("path").stringify())
         .last();
 
-    let session = match plugin_class {
+    let plugin_class = match plugin_class {
         None => {
-            godot_error!("FsxScriptPlugin is not registered");
             None
         }
         Some(path) => ResourceLoader::singleton()
             .load(path.into_arg())
-            .map(|mut resource| {
-                resource
-                    .call("new", &[])
-                    .call("GetOrCreateSession", &[Variant::from(script_path)])
-            }),
     };
-    session
+
+    match plugin_class {
+        None => {
+            godot_error!("FsxScriptPlugin is not registered");
+            None
+        }
+        Some(mut plugin_class) => 
+            if plugin_class.call("IsInitialized", &[]).booleanize() {
+                Some(plugin_class
+                    .call("new", &[])
+                    .call("GetOrCreateSession", &[Variant::from(script_path)]))                
+            } else {
+                godot_error!("FsxScript is not initialized on the dotnet side");
+                None
+            }
+    }
 }
 
 #[derive(GodotClass)]
