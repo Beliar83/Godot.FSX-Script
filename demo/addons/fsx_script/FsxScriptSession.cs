@@ -18,6 +18,7 @@ public partial class FsxScriptSession : GodotObject
     private bool isUpdated;
     private bool isParsed;
     private bool isUpdating;
+    private uint currentSourceHash;
 
     private void ScriptCodeChanged()
     {
@@ -46,31 +47,36 @@ public partial class FsxScriptSession : GodotObject
         {
             if (script is not null && !string.IsNullOrWhiteSpace(ScriptPath))
             {
-                string scriptPath = ProjectSettings.GlobalizePath(ScriptPath);
-                Dictionary<InteropInstance, Dictionary> storedScripts =
-                    Interop.Unload(ScriptPath, out WeakReference? contextReference);
-
-                while (contextReference?.IsAlive ?? false)
-                {
-                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
-                    GC.WaitForPendingFinalizers();
-                    Task.Delay(1).Wait();
-                }
-
                 string sourceCode = script.GetSourceCode();
-                if (!isParsed)
+                uint hash = sourceCode.Hash();
+                if (hash != currentSourceHash)
                 {
-                    scriptSession.ParseScript(sourceCode, scriptPath);
-                }
+                    currentSourceHash = hash;
+                    string scriptPath = ProjectSettings.GlobalizePath(ScriptPath);
+                    Dictionary<InteropInstance, Dictionary> storedScripts =
+                        Interop.Unload(ScriptPath, out WeakReference? contextReference);
 
-                scriptSession.Compile(sourceCode, scriptPath);
-                contextReference = Interop.Load(ScriptPath, scriptSession.GetFullTypeName(), GetBaseType(),
-                    storedScripts);
-                while (contextReference?.IsAlive ?? false)
-                {
-                    GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
-                    GC.WaitForPendingFinalizers();
-                    Task.Delay(1).Wait();
+                    while (contextReference?.IsAlive ?? false)
+                    {
+                        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+                        GC.WaitForPendingFinalizers();
+                        Task.Delay(1).Wait();
+                    }
+
+                    if (!isParsed)
+                    {
+                        scriptSession.ParseScript(sourceCode, scriptPath);
+                    }
+
+                    scriptSession.Compile(sourceCode, scriptPath);
+                    contextReference = Interop.Load(ScriptPath, scriptSession.GetFullTypeName(), GetBaseType(),
+                        storedScripts);
+                    while (contextReference?.IsAlive ?? false)
+                    {
+                        GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced);
+                        GC.WaitForPendingFinalizers();
+                        Task.Delay(1).Wait();
+                    }
                 }
 
                 isUpdated = true;
